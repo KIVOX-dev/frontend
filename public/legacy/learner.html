@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Portal | SkilloWait</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="settings_v3.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+
+<body>
+  <div id="toast"></div>
+
+  <!-- ════════ LEARNER LOGIN SCREEN ════════ -->
+  <div id="learner-login-page" style="position:fixed;inset:0;z-index:200;display:flex;background:var(--bg)">
+    <div class="lp-left">
+      <div class="lp-logo">
+        <img src="logo.png" alt="SKILLOVATE" class="lp-brand-logo">
+      </div>
+      <div class="lp-body">
+        <div class="lp-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10"
+            height="10">
+            <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" />
+          </svg>AI-Powered Aptitude Training</div>
+        <div class="lp-title">Train smarter.<br>Score higher.</div>
+        <div class="lp-sub">Adaptive AI that learns your weak spots, builds your profile, and connects you to real
+          opportunities — all in one platform.</div>
+        <div class="lp-stats">
+          <div class="lp-stat">
+            <div class="lp-stat-val">2.4L+</div>
+            <div class="lp-stat-lbl">Students trained</div>
+          </div>
+          <div class="lp-stat">
+            <div class="lp-stat-val">91.4%</div>
+            <div class="lp-stat-lbl">AI accuracy</div>
+          </div>
+          <div class="lp-stat">
+            <div class="lp-stat-val">30+</div>
+            <div class="lp-stat-lbl">Job role paths</div>
+          </div>
+          <div class="lp-stat">
+            <div class="lp-stat-val">450+</div>
+            <div class="lp-stat-lbl">Colleges enrolled</div>
+          </div>
+        </div>
+        <div class="lp-avs">
+          <div class="lp-av-stack">
+            <div class="lp-av">AR</div>
+            <div class="lp-av">PK</div>
+            <div class="lp-av">VR</div>
+            <div class="lp-av">SM</div>
+          </div>
+          <span class="lp-av-text">Joined this week from 38 colleges</span>
+        </div>
+      </div>
+    </div>
+    <div class="lp-right" style="position:relative; display:flex; align-items:center; justify-content:center; flex:1">
+      <img src="logo.png"
+        style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:1200px; opacity:0.12; z-index:1; pointer-events:none;">
+      <div class="lp-card">
+        <div class="lp-heading">
+          <h2>Learner Login</h2>
+          <p>Sign in to continue your aptitude journey</p>
+        </div>
+        <div class="linfo"><strong>Demo credentials:</strong> Any Gmail &amp; password <strong>student123</strong></div>
+        <label class="lbl">Gmail Address</label>
+        <input type="email" class="fi" id="learner-login-email" placeholder="name@gmail.com" style="margin-bottom:12px">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end">
+          <label class="lbl">Password</label>
+          <a href="javascript:void(0)" onclick="doLearnerForgotPassword()"
+            style="font-size:12px; margin-bottom:6px; color:var(--accent)">-?</a>
+        </div>
+        <input type="password" class="fi" id="learner-login-pass" placeholder="••••••••" style="margin-bottom:14px"
+          onkeydown="if(event.key==='Enter')doLearnerPortalLogin()">
+        <div id="learner-login-err" class="auth-warn" style="display:none;margin-bottom:12px"></div>
+        <button class="l-submit l-submit-blue" onclick="doLearnerPortalLogin()">Sign In to Learner Portal
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+            <polyline points="9,18 15,12 9,6" />
+          </svg>
+        </button>
+        <div style="margin: 15px 0 10px; display: flex; align-items: center; gap: 10px;">
+          <div style="flex: 1; height: 1px; background: var(--border);"></div>
+          <span style="font-size: 11px; color: var(--muted); text-transform: uppercase;">or</span>
+          <div style="flex: 1; height: 1px; background: var(--border);"></div>
+        </div>
+        <div class="google-login-btn-container" data-role="learner"
+          style="display:flex; justify-content:center; width: 100%;"></div>
+        <div class="l-footer">No account? <a onclick="showToast('Sign up flow coming soon')">Sign up free</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ APP LAYOUT ════════ -->
+  <div id="app">
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div class="s-logo">
+        <img src="logo.png" alt="SKILLOVATE" class="brand-logo">
+      </div>
+
+      <div id="snav">
+        <div class="nav-sec">Learning Portal</div>
+        <div class="nav-item active" id="nav-dash" onclick="ss('dash','nav-dash')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+          </svg>
+          <span class="nav-lbl">Dashboard</span>
+        </div>
+        <div class="nav-item" id="nav-practice" onclick="ss('practice','nav-practice')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+          <span class="nav-lbl">Mock Practice</span>
+        </div>
+        <div class="nav-item" id="nav-tests" onclick="ss('tests','nav-tests')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <line x1="10" y1="9" x2="8" y2="9" />
+          </svg>
+          <span class="nav-lbl">Aptitude Tests</span>
+        </div>
+        <div class="nav-item" id="nav-mnc" onclick="ss('mnc','nav-mnc')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+            <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
+          </svg>
+          <span class="nav-lbl">MNC Test</span>
+        </div>
+        <div class="nav-item" id="nav-iv" onclick="ss('iv','nav-iv')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+          <span class="nav-lbl">Mock Interviewer</span>
+        </div>
+
+        <div class="nav-sec">Professional Profile</div>
+        <div class="nav-item" id="nav-profile" onclick="ss('profile','nav-profile')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span class="nav-lbl">Profile Summarizer</span>
+        </div>
+        <div class="nav-item" id="nav-resume" onclick="ss('resume','nav-resume')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          <span class="nav-lbl">Resume Builder</span>
+        </div>
+        <div class="nav-item" id="nav-lb" onclick="ss('lb','nav-lb')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 21h8" />
+            <path d="M12 17V7" />
+            <path d="M7 4h10" />
+            <path d="M17 11l-5 5-5-5" />
+          </svg>
+          <span class="nav-lbl">Top Talent Board</span>
+        </div>
+        <div class="nav-item" id="nav-settings" onclick="ss('settings','nav-settings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+          <span class="nav-lbl">Settings</span>
+        </div>
+      </div>
+
+      <div class="s-foot">
+        <div class="plan-strip" onclick="ss('subs','nav-subs')">
+          <div class="plan-name">Base Plan</div>
+          <div class="plan-sub">Upgrade to Pro for more features</div>
+          <div class="plan-bar-w">
+            <div class="plan-bar-f" style="width:20%"></div>
+          </div>
+        </div>
+        <div class="ui-toggle-wrap" onclick="toggleUIMode()">
+          <div class="ui-toggle-track">
+            <div class="ui-toggle-thumb"></div>
+          </div>
+          <div class="ui-toggle-lbl" id="ui-mode-lbl">User View</div>
+        </div>
+        <button class="collapse-btn" onclick="toggleSidebar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7" />
+            <polyline points="18 17 13 12 18 7" />
+          </svg>
+          <span>Collapse</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div id="main">
+      <div id="topbar">
+        <div id="mob-menu-btn" onclick="toggleSidebar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </div>
+        <div class="sw">
+          <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg></span>
+          <input type="text" placeholder="Search lessons, tests, or MNCs...">
+        </div>
+        <div class="tbr">
+          <div class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <div class="nd"></div>
+          </div>
+          <div class="uc">
+            <div class="uav" id="user-initials">S</div>
+            <div style="display:flex;flex-direction:column"><span class="un" id="user-name">Student</span><span
+                class="ur">Learner Portal</span></div>
+          </div>
+          <div class="ib" onclick="doLogout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg></div>
+        </div>
+      </div>
+
+      <div id="content">
+        <!-- ══ DASHBOARD ══ -->
+        <div class="screen active" id="screen-dash">
+          <div class="hero">
+            <div class="hero-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                width="10" height="10">
+                <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" />
+              </svg>AI operational · 91.4% model accuracy</div>
+            <div class="hero-title">Fuel Your Aptitude<br>Score with AI.</div>
+            <div class="hero-sub">Welcome to SkilloWait. Start a practice session to build your aptitude profile and
+              unlock your national leaderboard ranking.</div>
+            <div class="hero-acts">
+              <button class="hbtn hbtn-w" onclick="ss('practice','nav-practice')"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                  <circle cx="12" cy="12" r="10" />
+                  <polygon points="10,8 16,12 10,16" />
+                </svg>Start Practice</button>
+              <button class="hbtn hbtn-gh" onclick="ss('iv','nav-iv')"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                </svg>Mock Interview</button>
+              <button class="hbtn hbtn-gh" onclick="ss('subs','nav-subs')"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                  <polygon
+                    points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+                </svg>Upgrade</button>
+            </div>
+          </div>
+          <div class="sg">
+            <div class="sc">
+              <div class="si2" style="background:var(--accent-l)"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="var(--accent)" stroke-width="2" width="15" height="15">
+                  <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
+                </svg></div>
+              <div class="sv" id="dash-stat-tests">0</div>
+              <div class="sl">Tests Completed</div>
+              <div class="sd neu">Get started below</div>
+            </div>
+            <div class="sc">
+              <div class="si2" style="background:var(--teal-l)"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="var(--teal)" stroke-width="2" width="15" height="15">
+                  <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
+                </svg></div>
+              <div class="sv" id="dash-stat-acc">—</div>
+              <div class="sl">Avg Accuracy</div>
+              <div class="sd neu">Complete a test</div>
+            </div>
+            <div class="sc">
+              <div class="si2" style="background:var(--amber-l)"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="var(--amber)" stroke-width="2" width="15" height="15">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12,6 12,12 16,14" />
+                </svg></div>
+              <div class="sv" id="dash-stat-streak">0</div>
+              <div class="sl">Day Streak 🔥</div>
+              <div class="sd neu">Start your first session</div>
+            </div>
+            <div class="sc">
+              <div class="si2" style="background:var(--purple-l)"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="var(--purple)" stroke-width="2" width="15" height="15">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg></div>
+              <div class="sv" id="dash-stat-rank">—</div>
+              <div class="sl">National Rank</div>
+              <div class="sd neu">Practice to unlock</div>
+            </div>
+            <div class="sc">
+              <div class="si2" style="background:var(--red-l)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--red)"
+                  stroke-width="2" width="15" height="15">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg></div>
+              <div class="sv" id="dash-stat-speed">—</div>
+              <div class="sl">Avg Speed</div>
+              <div class="sd neu">Seconds / Q</div>
+            </div>
+          </div>
+          <div class="gms">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div class="card">
+                <div class="ct">Recent Activity <span onclick="ss('practice','nav-practice')">View all</span></div>
+                <div id="dash-activity-list">
+                  <div style="text-align:center;padding:28px;color:var(--muted);font-size:13px">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"
+                      style="display:block;margin:0 auto 10px;opacity:.3">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12,6 12,12 16,14" />
+                    </svg>
+                    No activity yet. Start a practice session!
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="ct">Today's Challenges</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Subject</th>
+                      <th>Topic</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="tn">Quantitative</div>
+                      </td>
+                      <td>
+                        <div style="font-size:12px;color:var(--muted)">Time &amp; Work</div>
+                      </td>
+                      <td><span class="badge bg">Done</span></td>
+                      <td><button class="btn btn-g btn-sm" onclick="startPractice('quant')">Review</button></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="tn">Logical Reasoning</div>
+                      </td>
+                      <td>
+                        <div style="font-size:12px;color:var(--muted)">Arrangements</div>
+                      </td>
+                      <td><span class="badge ba">Due</span></td>
+                      <td><button class="btn btn-p btn-sm" onclick="startPractice('logical')">Start</button></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="tn">Data Interpretation</div>
+                      </td>
+                      <td>
+                        <div style="font-size:12px;color:var(--muted)">Bar Charts</div>
+                      </td>
+                      <td><span class="badge br">Weak area</span></td>
+                      <td><button class="btn btn-p btn-sm" onclick="startPractice('di')">Start</button></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="tn">Verbal / English</div>
+                      </td>
+                      <td>
+                        <div style="font-size:12px;color:var(--muted)">Reading Comp.</div>
+                      </td>
+                      <td><span class="badge bb">New</span></td>
+                      <td><button class="btn btn-o btn-sm" onclick="startPractice('verbal')">Start</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div class="card"
+                style="background:linear-gradient(135deg,rgba(27,111,230,.07),rgba(108,92,231,.06));border-color:rgba(27,111,230,.14)">
+                <div class="ct" style="font-size:11.5px;color:var(--accent)">AI Recommendation</div>
+                <div style="font-size:13px;color:var(--text);line-height:1.62;margin-bottom:12px" id="dash-ai-rec">Your
+                  Data
+                  Interpretation accuracy dropped 12% this week. Practise bar chart questions today to recover.</div>
+                <button class="btn btn-p btn-sm" onclick="startPractice('di')">Practice DI Now</button>
+              </div>
+              <div class="card">
+                <div class="ct">Open Roles For You <span onclick="ss('profile','nav-profile')">View all</span></div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div class="rcard">
+                    <div class="vtit">Full Stack Developer</div>
+                    <div class="vco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        width="11" height="11">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                      </svg>Zoho Corporation</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center"><span
+                        class="badge bp">Internship</span><button class="btn btn-p btn-sm"
+                        onclick="openApplyModal('Full Stack Developer','Zoho Corporation · Internship')">Apply
+                        Now</button></div>
+                  </div>
+                  <div class="rcard">
+                    <div class="vtit">Backend Engineer</div>
+                    <div class="vco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        width="11" height="11">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                      </svg>Freshworks</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center"><span
+                        class="badge bg">Full-time</span><button class="btn btn-o btn-sm"
+                        onclick="openApplyModal('Backend Engineer','Freshworks · Full-time')">Apply</button></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card" id="test-quota-card">
+                <div class="ct">Test Quota</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:7px">4 of 5 base tests used</div>
+                <div class="pw" style="margin-bottom:8px">
+                  <div class="pf" style="width:80%;background:linear-gradient(90deg,var(--accent),var(--purple))"></div>
+                </div>
+                <div style="font-size:11px;color:var(--faint);margin-bottom:12px">1 test remaining · Base plan</div>
+                <button class="btn btn-p" style="width:100%;justify-content:center;height:42px"
+                  onclick="doLearnerPortalLogin()">Sign In to Learner Portal</button>
+
+                <div style="display:flex;align-items:center;gap:12px;margin:18px 0">
+                  <div style="flex:1;height:1px;background:var(--border)"></div>
+                  <div style="font-size:12px;color:var(--muted)">or</div>
+                  <div style="flex:1;height:1px;background:var(--border)"></div>
+                </div>
+
+                <div class="google-login-btn-container" data-role="learner"
+                  style="display:flex; justify-content:center; width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ PRACTICE ══ -->
+        <div class="screen" id="screen-practice">
+          <div class="ph">
+            <div class="pt">Practice</div>
+            <div class="ps">Choose a subject and start an adaptive AI session</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 270px;gap:16px;margin-bottom:16px">
+            <div class="card">
+              <div class="ct">Your accuracy by subject</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center">
+                <div style="position:relative;height:220px;display:flex;align-items:center;justify-content:center">
+                  <canvas id="practice-acc-chart"></canvas>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px"><span
+                      style="display:flex;align-items:center;gap:6px"><span
+                        style="width:10px;height:10px;border-radius:50%;background:#1B6FE6;display:inline-block"></span>Logical</span><span
+                      style="font-weight:700;color:#1B6FE6">92%</span></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px"><span
+                      style="display:flex;align-items:center;gap:6px"><span
+                        style="width:10px;height:10px;border-radius:50%;background:#4A90F5;display:inline-block"></span>Verbal</span><span
+                      style="font-weight:700;color:#4A90F5">88%</span></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px"><span
+                      style="display:flex;align-items:center;gap:6px"><span
+                        style="width:10px;height:10px;border-radius:50%;background:#0D9488;display:inline-block"></span>Quantitative</span><span
+                      style="font-weight:700;color:#0D9488">79%</span></div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px"><span
+                      style="display:flex;align-items:center;gap:6px"><span
+                        style="width:10px;height:10px;border-radius:50%;background:#EF4444;display:inline-block"></span>Data
+                      Interp.</span><span style="font-weight:700;color:#EF4444">61%</span></div>
+                  <div
+                    style="font-size:10.5px;color:var(--red);background:var(--red-l);border:1px solid rgba(239,68,68,.18);border-radius:6px;padding:5px 8px;margin-top:2px">
+                    Focus needed: Data Interpretation</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div class="card-sm" style="background:var(--amber-l);border-color:rgba(245,158,11,.22)">
+                <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:4px"> AI Focus Pick</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">Data Interpretation</div>
+                <div style="font-size:11.5px;color:var(--muted);margin-top:3px">Bar Charts · 61% accuracy</div>
+                <button class="btn btn-p btn-sm" style="margin-top:10px;width:100%;justify-content:center"
+                  onclick="startPractice('di')">Start Now</button>
+              </div>
+              <div class="card-sm">
+                <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Adaptive difficulty
+                </div>
+                <div style="font-size:12px;color:var(--text);line-height:1.55">Recalibrates every 5 answers using ELO
+                  scoring per topic.</div>
+              </div>
+            </div>
+          </div>
+          <div class="g2">
+            <div class="card">
+              <div class="ct">Pick a Subject</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div onclick="startPractice('quant')"
+                  style="cursor:pointer;background:var(--accent-l);border:1.5px solid rgba(27,111,230,.18);border-radius:var(--r2);padding:14px;transition:all .18s"
+                  onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                  <div style="font-size:22px;margin-bottom:6px"></div>
+                  <div style="font-size:13px;font-weight:700;color:var(--text)">Quantitative</div>
+                </div>
+                <div onclick="startPractice('logical')"
+                  style="cursor:pointer;background:var(--purple-l);border:1.5px solid rgba(108,92,231,.18);border-radius:var(--r2);padding:14px;transition:all .18s"
+                  onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                  <div style="font-size:22px;margin-bottom:6px"></div>
+                  <div style="font-size:13px;font-weight:700;color:var(--text)">Logical Reasoning</div>
+                </div>
+                <div onclick="startPractice('verbal')"
+                  style="cursor:pointer;background:var(--green-l);border:1.5px solid rgba(14,159,110,.18);border-radius:var(--r2);padding:14px;transition:all .18s"
+                  onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                  <div style="font-size:22px;margin-bottom:6px"></div>
+                  <div style="font-size:13px;font-weight:700;color:var(--text)">Verbal / English</div>
+                </div>
+                <div onclick="startPractice('di')"
+                  style="cursor:pointer;background:var(--amber-l);border:1.5px solid rgba(245,158,11,.18);border-radius:var(--r2);padding:14px;transition:all .18s"
+                  onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+                  <div style="font-size:22px;margin-bottom:6px"></div>
+                  <div style="font-size:13px;font-weight:700;color:var(--text)">Data Interpretation</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ct">Recent Sessions</div>
+              <div style="text-align:center;padding:28px;color:var(--muted);font-size:13px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"
+                  style="display:block;margin:0 auto 10px;opacity:.3">
+                  <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
+                </svg>
+                No sessions yet. Pick a subject to begin!
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ QUESTION ══ -->
+        <div class="screen" id="screen-question">
+          <div class="ql">
+            <div class="qm">
+              <div class="qhc">
+                <div>
+                  <div class="qmeta" id="q-counter">Q1 of 5 · Quantitative</div>
+                  <div class="qsub" id="q-subject">Quantitative Aptitude</div>
+                </div>
+                <div class="qtbox">
+                  <div class="qtv" id="q-timer">1:00</div>
+                  <div class="qtl">remaining</div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="qdots" id="q-dots"></div>
+                <div class="qtxt" id="q-text">Loading question...</div>
+                <div id="q-opts"></div>
+                <div id="q-next" style="display:none;margin-top:14px">
+                  <button class="btn btn-p" onclick="nextQ()">Next Question <svg viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                      <polyline points="9,18 15,12 9,6" />
+                    </svg></button>
+                </div>
+                <div class="exp-card" id="exp-card">
+                  <div class="exp-lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      width="12" height="12">
+                      <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" />
+                    </svg>AI Explanation</div>
+                  <div class="exp-txt" id="exp-txt"></div>
+                </div>
+              </div>
+            </div>
+            <div class="qsid">
+              <div class="qsc">
+                <div
+                  style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">
+                  Session Progress</div>
+                <div class="pw" style="margin-bottom:6px">
+                  <div class="pf" id="q-prog"
+                    style="width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div>
+                </div>
+                <div style="font-size:11px;color:var(--muted)" id="q-prog-txt">0 of 5 complete</div>
+                <div style="display:flex;gap:12px;margin-top:10px">
+                  <div style="text-align:center">
+                    <div style="font-size:18px;font-weight:700;color:var(--green);font-family:'Playfair Display',serif"
+                      id="q-correct">0</div>
+                    <div style="font-size:10px;color:var(--muted)">Marks</div>
+                  </div>
+                  <div style="text-align:center">
+                    <div style="font-size:18px;font-weight:700;color:var(--red);font-family:'Playfair Display',serif"
+                      id="q-wrong">0</div>
+                    <div style="font-size:10px;color:var(--muted)">Wrong</div>
+                  </div>
+                </div>
+              </div>
+              <div class="aip">
+                <div class="aipt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13"
+                    height="13">
+                    <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" />
+                  </svg>AI Panel</div>
+                <div style="font-size:12px;color:var(--faint);font-style:italic;line-height:1.6">Answer a question to
+                  see AI explanation and shortcut methods here.</div>
+              </div>
+              <button class="btn btn-o btn-sm" style="width:100%;justify-content:center"
+                onclick="ss('practice','nav-practice')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" width="13" height="13">
+                  <polyline points="15,18 9,12 15,6" />
+                </svg>Back to Practice</button>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ══ TESTS ══ -->
+        <div class="screen" id="screen-tests">
+          <div class="ph">
+            <div class="pt">Tests</div>
+            <div class="ps">Scheduled tests from your college admin — complete and track your progress</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"
+            id="tests-container">
+            <!-- Tests will be dynamically populated here -->
+          </div>
+          <div id="tests-empty" style="text-align:center;padding:40px 20px;color:var(--muted)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"
+              style="margin:0 auto 12px;opacity:0.4">
+              <polyline points="9,11 12,14 22,4" />
+              <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div style="font-size:14px;font-weight:600;margin-bottom:4px">No Tests Scheduled Yet</div>
+            <div style="font-size:12px">Check back later or contact your college admin for scheduled tests</div>
+          </div>
+        </div>
+
+        <!-- ══ TEST ACTIVE ══ -->
+        <div class="screen" id="screen-test-active">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <div>
+              <div class="pt" id="test-title">Test Name</div>
+              <div class="ps" id="test-subject">Subject</div>
+            </div>
+            <button class="btn btn-o btn-sm" onclick="ss('tests','nav-tests')"><svg viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" width="13" height="13">
+                <polyline points="15,18 9,12 15,6" />
+              </svg>Back to Tests</button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;margin-bottom:20px">
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--text)">Test Duration</div>
+                  <div style="font-size:14px;color:var(--muted);margin-top:4px" id="test-duration">60 minutes</div>
+                </div>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--text)">Total Questions</div>
+                  <div style="font-size:14px;color:var(--muted);margin-top:4px" id="test-questions">50</div>
+                </div>
+              </div>
+              <div style="border-top:1px solid var(--border);padding-top:16px">
+                <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">Instructions</div>
+                <ul style="font-size:12px;color:var(--muted);line-height:1.8;margin-left:16px">
+                  <li>Answer all questions carefully</li>
+                  <li>Negative marking: -0.25 per wrong answer</li>
+                  <li>You cannot revisit questions after submission</li>
+                  <li>Timer will show remaining time in top right</li>
+                </ul>
+              </div>
+            </div>
+
+            <div>
+              <div class="card-sm" style="margin-bottom:12px">
+                <div
+                  style="font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">
+                  Progress</div>
+                <div style="font-size:20px;font-weight:700;color:var(--accent);font-family:'Playfair Display',serif"
+                  id="test-progress">0/50</div>
+                <div style="height:6px;background:var(--border);border-radius:3px;margin-top:8px;overflow:hidden">
+                  <div
+                    style="height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;border-radius:3px"
+                    id="test-progress-bar"></div>
+                </div>
+              </div>
+              <div class="card-sm" style="background:var(--green-l);border-color:rgba(14,159,110,.2)">
+                <div
+                  style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">
+                  Marks So Far</div>
+                <div
+                  style="font-size:18px;font-weight:700;color:var(--green);font-family:'Playfair Display',serif;margin-top:4px"
+                  id="test-marks">0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:20px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div style="font-size:13px;font-weight:700;color:var(--text)">Question <span id="current-q">1</span> of
+                <span id="total-q">50</span>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Time Remaining</div>
+                <div style="font-size:16px;font-weight:700;color:var(--red);font-family:monospace" id="test-timer">60:00
+                </div>
+              </div>
+            </div>
+            <div style="background:var(--surface2);padding:16px;border-radius:var(--r2);margin-bottom:16px">
+              <div style="font-size:14px;font-weight:600;color:var(--text);line-height:1.7;margin-bottom:16px"
+                id="question-text">Question will appear here</div>
+              <div style="display:flex;flex-direction:column;gap:10px" id="question-options">
+                <label
+                  style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r2);cursor:pointer;transition:all .2s"><input
+                    type="radio" name="answer"> <span style="font-size:13px;color:var(--text)">Option A</span></label>
+                <label
+                  style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r2);cursor:pointer;transition:all .2s"><input
+                    type="radio" name="answer"> <span style="font-size:13px;color:var(--text)">Option B</span></label>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px">
+              <button class="btn btn-o" id="prev-btn" style="flex:1;justify-content:center"
+                onclick="previousQuestion()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  width="13" height="13">
+                  <polyline points="15,18 9,12 15,6" />
+                </svg>Previous</button>
+              <button class="btn btn-p" id="next-btn" style="flex:1;justify-content:center"
+                onclick="nextQuestion()">Next<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  width="13" height="13">
+                  <polyline points="9,18 15,12 9,6" />
+                </svg></button>
+              <button class="btn btn-green" id="submit-btn" style="flex:1;justify-content:center;display:none"
+                onclick="submitTest()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  width="13" height="13">
+                  <polyline points="20,6 9,17 4,12" />
+                </svg>Submit Test</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ TEST RESULTS ══ -->
+        <div class="screen" id="screen-test-results">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <div>
+              <div class="pt" id="result-title">Test Results</div>
+              <div class="ps" id="result-subtitle">Your performance summary</div>
+            </div>
+            <button class="btn btn-p btn-sm" onclick="ss('tests','nav-tests')">Back to Tests</button>
+          </div>
+
+          <div
+            style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px">
+            <div class="card-sm" style="background:var(--green-l);border-color:rgba(14,159,110,.2);text-align:center">
+              <div
+                style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">
+                Score</div>
+              <div
+                style="font-size:32px;font-weight:700;color:var(--green);font-family:'Playfair Display',serif;margin:8px 0"
+                id="result-score">0/50</div>
+              <div style="font-size:12px;color:var(--green);opacity:0.8">Percentage: <span
+                  id="result-percentage">0</span>%</div>
+            </div>
+            <div class="card-sm" style="background:var(--accent-l);border-color:rgba(27,111,230,.2);text-align:center">
+              <div
+                style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px">
+                Correct</div>
+              <div
+                style="font-size:28px;font-weight:700;color:var(--accent);font-family:'Playfair Display',serif;margin:8px 0"
+                id="result-correct">0</div>
+              <div style="font-size:12px;color:var(--accent);opacity:0.8">Out of 50</div>
+            </div>
+            <div class="card-sm" style="background:var(--red-l);border-color:rgba(239,68,68,.2);text-align:center">
+              <div
+                style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.5px">
+                Wrong</div>
+              <div
+                style="font-size:28px;font-weight:700;color:var(--red);font-family:'Playfair Display',serif;margin:8px 0"
+                id="result-wrong">0</div>
+              <div style="font-size:12px;color:var(--red);opacity:0.8">Attempted</div>
+            </div>
+            <div class="card-sm" style="background:var(--amber-l);border-color:rgba(245,158,11,.2);text-align:center">
+              <div
+                style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.5px">
+                Unattempted</div>
+              <div
+                style="font-size:28px;font-weight:700;color:var(--amber);font-family:'Playfair Display',serif;margin:8px 0"
+                id="result-unattempted">0</div>
+              <div style="font-size:12px;color:var(--amber);opacity:0.8">Skipped</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px">Category-wise Breakdown
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px"
+              id="category-breakdown">
+              <!-- Categories will be populated here -->
+            </div>
+          </div>
+
+          <div style="text-align:center;margin-top:20px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Results have been submitted to your
+              college admin database</div>
+            <button class="btn btn-p" onclick="ss('tests','nav-tests')" style="justify-content:center">Take Another
+              Test</button>
+          </div>
+        </div>
+
+
+        <!-- ══ MNC TESTS ══ -->
+        <div class="screen" id="screen-mnc">
+          <div class="ph" style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div>
+              <div class="pt">MNC Tests</div>
+              <div class="ps">Company-specific aptitude tests with previous year pattern questions</div>
+            </div>
+            <span class="badge ba">Base: 1 company · 1 attempt</span>
+          </div>
+          <div
+            style="background:var(--amber-l);border:1.5px solid rgba(245,158,11,.22);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:12.5px;color:var(--amber)">Base plan: Choose 1 company, 1 attempt only. All companies
+              available on Pro.</div>
+            <button class="btn btn-g btn-sm" style="color:var(--accent)" onclick="ss('subs','nav-subs')">Upgrade to
+              Pro</button>
+          </div>
+          <div class="mncg" id="mnc-grid"></div>
+        </div>
+
+        <!-- ══ MNC TEST ACTIVE ══ -->
+        <div class="screen" id="screen-mnc-test">
+          <div class="ql">
+            <div class="qm">
+              <div class="qhc" id="mnc-hdr">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div
+                    style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;overflow:hidden"
+                    id="mnc-logo-hdr"></div>
+                  <div>
+                    <div class="qmeta" id="mnc-counter">Q1 of 20 · Quantitative</div>
+                    <div class="qsub" id="mnc-co-name">TCS</div>
+                  </div>
+                </div>
+                <div class="qtbox">
+                  <div class="qtv" id="mnc-timer">18:00</div>
+                  <div class="qtl">remaining</div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="qtxt" id="mnc-q-txt"></div>
+                <div id="mnc-opts"></div>
+              </div>
+              <div id="mnc-next" style="display:none"><button class="btn btn-p" onclick="nextMNCQ()">Next <svg
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                    <polyline points="9,18 15,12 9,6" />
+                  </svg></button></div>
+            </div>
+            <div class="qsid">
+              <div class="qsc">
+                <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">Progress</div>
+                <div class="pw" style="margin-bottom:6px">
+                  <div class="pf" id="mnc-pb"
+                    style="width:5%;background:linear-gradient(90deg,var(--teal),var(--accent))"></div>
+                </div>
+                <div style="font-size:11px;color:var(--muted)" id="mnc-pt">Q1 of 20</div>
+              </div>
+              <button class="btn btn-g btn-sm" onclick="ss('mnc','nav-mnc')"
+                style="width:100%;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" width="13" height="13">
+                  <polyline points="15,18 9,12 15,6" />
+                </svg>Back to MNC Tests</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ LEADERBOARD (Premium v2) ══ -->
+        <div class="screen lb-v2-screen" id="screen-lb" style="position:relative;">
+          <!-- Immersive Mesh Background -->
+          <div class="settings-immersive-canvas">
+            <div class="mesh-container">
+              <div class="mesh-sphere mesh-sphere-1"></div>
+              <div class="mesh-sphere mesh-sphere-2"></div>
+              <div class="mesh-sphere mesh-sphere-3"></div>
+            </div>
+          </div>
+
+          <div class="leaderboard-v2-active">
+            <div class="ph"
+              style="display:flex;align-items:flex-start;justify-content:space-between;position:relative;z-index:1">
+              <div>
+                <div class="pt">National Leaderboard</div>
+                <div class="ps">Top talent based on performance and consistency · Updated real-time</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <span class="badge bp">College: Nirmala College</span>
+                <span class="badge ba">Academic Year: 2024</span>
+              </div>
+            </div>
+
+            <!-- Metric Strip -->
+            <div class="lb-metric-strip" style="position:relative;z-index:1">
+              <div class="lb-metric-card creative-tilt-card">
+                <div class="lb-metric-icon" style="background:#FEF3C7;color:#D97706">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                    <path d="M16 3.13a4 4 0 010 7.75" />
+                  </svg>
+                </div>
+                <div class="lb-metric-val">1.2k+</div>
+                <div class="lb-metric-lbl">Total Candidates</div>
+              </div>
+              <div class="lb-metric-card creative-tilt-card">
+                <div class="lb-metric-icon" style="background:#E0E7FF;color:#4F46E5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                </div>
+                <div class="lb-metric-val">84.2%</div>
+                <div class="lb-metric-lbl">Avg. Accuracy</div>
+              </div>
+              <div class="lb-metric-card creative-tilt-card">
+                <div class="lb-metric-icon" style="background:#DCFCE7;color:#16A34A">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
+                <div class="lb-metric-val">342</div>
+                <div class="lb-metric-lbl">Placement Ready</div>
+              </div>
+              <div class="lb-metric-card creative-tilt-card">
+                <div class="lb-metric-icon" style="background:#FCE7F3;color:#DB2777">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4l3 3" />
+                  </svg>
+                </div>
+                <div class="lb-metric-val">12</div>
+                <div class="lb-metric-lbl">Active Interviews</div>
+              </div>
+            </div>
+
+            <!-- Control Bar -->
+            <div class="lb-control-bar" style="position:relative;z-index:1">
+              <div class="lb-search-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" placeholder="Search by name, role, or id..." oninput="filterLeaderboard(this.value)">
+              </div>
+              <div class="lb-filter-pill active">All Talent</div>
+              <div class="lb-filter-pill">Top 50</div>
+              <div class="lb-filter-pill">Full Stack</div>
+              <div class="lb-filter-pill">Data Science</div>
+              <div class="lb-filter-pill">Placement Ready</div>
+            </div>
+
+            <!-- Premium Table -->
+            <div class="lb-table-container extreme-glass" style="position:relative;z-index:1">
+              <table class="lb-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Candidate</th>
+                    <th>Job Role</th>
+                    <th>Badge Tier</th>
+                    <th>Performance</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="lb-table-body">
+                  <!-- JS Rendered -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ PROFILE SUMMARY ══ -->
+        <div class="screen" id="screen-profile">
+          <div class="ph">
+            <div class="pt">Profile Summary</div>
+            <div class="ps">AI-generated from your full SkilloWait history</div>
+          </div>
+          <div class="prh">
+            <div class="prav" id="profile-av">—</div>
+            <div style="flex:1;position:relative;z-index:1">
+              <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:white"
+                id="profile-name">—</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.72);margin-top:2px" id="profile-meta">Complete your
+                profile after logging in</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.62);margin-top:6px;line-height:1.55;max-width:480px"
+                id="profile-bio">Your AI-generated aptitude summary will appear here after you complete a few practice
+                sessions.</div>
+              <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap" id="profile-badges"></div>
+            </div>
+            <div style="display:flex;gap:8px;position:relative;z-index:1">
+              <button class="hbtn hbtn-gh" onclick="showToast('PDF exported')"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" width="13" height="13">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="7,10 12,15 17,10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>Export PDF</button>
+            </div>
+          </div>
+          <div class="ptabs">
+            <button class="ptab on" onclick="setPTab('scores',this)">Scores</button>
+            <button class="ptab" onclick="setPTab('interviews',this)">Interviews</button>
+            <button class="ptab" onclick="setPTab('openroles',this)">Open Roles</button>
+            <button class="ptab" onclick="setPTab('achievements',this)">Achievements</button>
+          </div>
+          <div id="ptab-content"></div>
+        </div>
+
+        <!-- ══ RESUME BUILDER — COLLEGE MODULE ══ -->
+        <div class="screen" id="screen-resume">
+          <div style="max-width:1400px;margin:0 auto">
+            <div
+              style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:16px">
+              <div>
+                <div
+                  style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#1e3c72,#2b4c8c);-webkit-background-clip:text;background-clip:text;color:transparent">
+                  Resume Builder — College Module</div>
+                <div style="color:#5a6e7c;font-size:13px;margin-top:4px">Type bar updates instantly · Dynamic PDF export
+                  with template style</div>
+              </div>
+              <div
+                style="background:#e9ecef;padding:6px 14px;border-radius:40px;font-size:12px;font-weight:600;color:#2c5a8c;border:1px solid #cddfe7">
+                Live Editor</div>
+            </div>
+
+            <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+              <button class="btn btn-p btn-sm" onclick="setRM('fresh')"
+                style="background:#1e3c72;border:1px solid #1e3c72;color:white;padding:10px 20px;border-radius:40px;font-weight:600;font-size:13px;cursor:pointer">Build
+                from Profile</button>
+              <button class="btn btn-o btn-sm" onclick="setRM('upload')"
+                style="background:white;border:1px solid #b9cad6;color:#1e3c72;padding:10px 20px;border-radius:40px;font-weight:600;font-size:13px;cursor:pointer">Upload
+                Existing Doc</button>
+            </div>
+
+            <div
+              style="background:white;border-radius:20px;padding:18px 20px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,0.02),0 1px 2px rgba(0,0,0,0.05);border:1px solid #e2edf2">
+              <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:#1f3a5f">Choose Resume Template</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+                <div class="template-card active" data-template="classic" onclick="setResumeTemplate('classic')"
+                  style="background:#f9fbfd;border:1.5px solid #e2edf2;border-radius:16px;padding:12px 8px;text-align:center;cursor:pointer;transition:all 0.2s">
+                  <div style="font-size:28px;margin-bottom:6px;font-weight:700">A</div>
+                  <div style="font-size:12px;font-weight:600">Classic</div>
+                </div>
+                <div class="template-card" data-template="modern" onclick="setResumeTemplate('modern')"
+                  style="background:#f9fbfd;border:1.5px solid #e2edf2;border-radius:16px;padding:12px 8px;text-align:center;cursor:pointer;transition:all 0.2s">
+                  <div style="font-size:28px;margin-bottom:6px;font-weight:700">M</div>
+                  <div style="font-size:12px;font-weight:600">Modern</div>
+                </div>
+                <div class="template-card" data-template="minimal" onclick="setResumeTemplate('minimal')"
+                  style="background:#f9fbfd;border:1.5px solid #e2edf2;border-radius:16px;padding:12px 8px;text-align:center;cursor:pointer;transition:all 0.2s">
+                  <div style="font-size:28px;margin-bottom:6px;font-weight:700">C</div>
+                  <div style="font-size:12px;font-weight:600">Minimal</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 320px;gap:24px">
+              <div>
+                <div class="card"
+                  style="background:white;border-radius:24px;padding:20px;margin-bottom:24px;border:1px solid #e2edf2;box-shadow:0 4px 12px rgba(0,0,0,0.02)">
+                  <div
+                    style="font-weight:700;font-size:16px;margin-bottom:18px;color:#1f3a5f;display:flex;align-items:center;gap:8px;border-left:4px solid #1e6fdf;padding-left:12px">
+                    Type Bar — Edit Resume in Real Time</div>
+
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+                    <div>
+                      <div
+                        style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#5b7a9a;margin-bottom:4px">
+                        FULL NAME</div>
+                      <input type="text" id="editName" placeholder="Your full name" value="Alex Morgan"
+                        style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit"
+                        onchange="syncResumeFields()">
+                    </div>
+                    <div>
+                      <div
+                        style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#5b7a9a;margin-bottom:4px">
+                        TITLE / HEADLINE</div>
+                      <input type="text" id="editTitle" placeholder="e.g. Full Stack Developer"
+                        value="Computer Science Student & Frontend Intern"
+                        style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit"
+                        onchange="syncResumeFields()">
+                    </div>
+                  </div>
+
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+                    <div>
+                      <div
+                        style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#5b7a9a;margin-bottom:4px">
+                        EMAIL</div>
+                      <input type="email" id="editEmail" placeholder="email@college.edu"
+                        value="alex.morgan@university.edu"
+                        style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit"
+                        onchange="syncResumeFields()">
+                    </div>
+                    <div>
+                      <div
+                        style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#5b7a9a;margin-bottom:4px">
+                        PHONE</div>
+                      <input type="text" id="editPhone" placeholder="+1 234 567 890" value="+1 987 654 3210"
+                        style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit"
+                        onchange="syncResumeFields()">
+                    </div>
+                    <div>
+                      <div
+                        style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#5b7a9a;margin-bottom:4px">
+                        LOCATION</div>
+                      <input type="text" id="editLocation" placeholder="City, Country" value="San Francisco, CA"
+                        style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit"
+                        onchange="syncResumeFields()">
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:12px">
+                    <div
+                      style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#5b7a9a;margin-bottom:4px">
+                      PROFESSIONAL SUMMARY</div>
+                    <textarea id="editSummary" rows="2" placeholder="Brief introduction about yourself..."
+                      style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit;resize:vertical"
+                      onchange="syncResumeFields()">Ambitious Computer Science student with 3+ years of project experience in web development and data analytics. Strong aptitude in problem-solving, team collaboration, and building scalable applications.</textarea>
+                  </div>
+
+                  <div style="margin-bottom:12px">
+                    <div
+                      style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#5b7a9a;margin-bottom:4px">
+                      SKILLS (comma separated)</div>
+                    <input type="text" id="editSkills" placeholder="React, Python, SQL, Figma, Node.js"
+                      value="React, JavaScript, Python, Node.js, SQL, Tailwind CSS, Git"
+                      style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit"
+                      onchange="syncResumeFields()">
+                  </div>
+
+                  <div style="margin-bottom:12px">
+                    <div
+                      style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#5b7a9a;margin-bottom:4px">
+                      EXPERIENCE</div>
+                    <input type="text" id="editExpCompany" placeholder="Company name" value="TechSolutions Inc."
+                      style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit;margin-bottom:8px"
+                      onchange="syncResumeFields()">
+                    <div style="display:flex;gap:10px;margin-bottom:8px">
+                      <input type="text" id="editExpTitle" placeholder="Job title" value="Frontend Developer Intern"
+                        style="flex:1;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit"
+                        onchange="syncResumeFields()">
+                      <input type="text" id="editExpDuration" placeholder="Duration" value="Jun 2024 – Present"
+                        style="flex:1;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit"
+                        onchange="syncResumeFields()">
+                    </div>
+                    <textarea id="editExpDesc" rows="2" placeholder="Description of achievements"
+                      style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit;resize:vertical"
+                      onchange="syncResumeFields()">Developed responsive components using React and Tailwind, improved performance by 20%. Collaborated with design team to implement UI/UX mockups and integrated RESTful APIs.</textarea>
+                  </div>
+
+                  <div style="margin-bottom:12px">
+                    <div
+                      style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#5b7a9a;margin-bottom:4px">
+                      EDUCATION</div>
+                    <textarea id="editEducation" rows="2" placeholder="Degree, University, Year, GPA"
+                      style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit;resize:vertical"
+                      onchange="syncResumeFields()">B.S. in Computer Science, Stanford University, 2023–2027 | GPA: 3.8/4.0</textarea>
+                  </div>
+
+                  <div>
+                    <div
+                      style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#5b7a9a;margin-bottom:4px">
+                      ACHIEVEMENTS</div>
+                    <textarea id="editAchievements" rows="3" placeholder="Award 1&#10;Award 2"
+                      style="width:100%;padding:10px 12px;border:1px solid #dce5ec;border-radius:14px;font-size:13px;background:#ffffff;transition:0.15s;font-family:inherit;resize:vertical"
+                      onchange="syncResumeFields()">Dean's List 2024, 2025
+Hackathon Winner - CodeFest 2024
+Published Technical Blog on React Performance</textarea>
+                  </div>
+                </div>
+
+                <div style="background:white;border-radius:24px;border:1px solid #e2edf2;overflow:hidden">
+                  <div
+                    style="background:#f8fafd;padding:14px 20px;border-bottom:1px solid #e2edf2;font-weight:700;font-size:14px">
+                    Live Resume Preview (updates as you type)</div>
+                  <div id="resumeExportArea" style="padding:4px;background:white"></div>
+                </div>
+
+                <div id="uploadSection" style="display:none;margin-top:20px">
+                  <div
+                    style="background:white;border-radius:24px;padding:20px;border:1px solid #e2edf2;box-shadow:0 4px 12px rgba(0,0,0,0.02)">
+                    <div
+                      style="font-weight:700;font-size:16px;margin-bottom:18px;color:#1f3a5f;display:flex;align-items:center;gap:8px;border-left:4px solid #1e6fdf;padding-left:12px">
+                      Upload Resume Document</div>
+                    <div id="uploadDropZone"
+                      style="border:2px dashed #cbdde9;border-radius:20px;padding:28px 16px;text-align:center;cursor:pointer;transition:0.2s;background:#fafdff"
+                      onclick="document.getElementById('resumeFileInput').click()">
+                      <div style="font-size:28px;font-weight:700;color:#1e6fdf">UP</div>
+                      <div style="font-weight:600;margin-top:8px">Click or drop your resume</div>
+                      <div style="font-size:12px;color:#5f7f9e">PDF, DOC, DOCX — auto-fills Type Bar fields</div>
+                      <div id="uploadStatusMsg" style="margin-top:12px;font-size:13px;color:#2b6e3c"></div>
+                    </div>
+                    <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx" style="display:none">
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div
+                  style="background:white;border-radius:24px;padding:20px;border:1px solid #e2edf2;margin-bottom:24px">
+                  <div
+                    style="font-weight:700;font-size:16px;margin-bottom:16px;color:#1f3a5f;display:flex;align-items:center;gap:8px;border-left:4px solid #2c7a4d;padding-left:12px">
+                    ATS Compatibility Score</div>
+                  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:16px">
+                    <div
+                      style="width:80px;height:80px;border-radius:50%;background:#eef3fc;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#1e6fdf;border:3px solid #1e6fdf"
+                      id="atsScoreCircle">82</div>
+                    <div>
+                      <div style="font-weight:800;font-size:19px"><span id="atsScoreNumber">82</span>/100</div>
+                      <div style="font-size:11px;color:#4b6f8e">Keyword optimization</div>
+                      <div id="keywordSuggestions" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+                        <span
+                          style="background:#f0f4f9;padding:4px 12px;border-radius:30px;font-size:11px;font-weight:500">React</span>
+                        <span
+                          style="background:#f0f4f9;padding:4px 12px;border-radius:30px;font-size:11px;font-weight:500">Node.js</span>
+                        <span
+                          style="background:#f0f4f9;padding:4px 12px;border-radius:30px;font-size:11px;font-weight:500">API</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button class="btn btn-p" onclick="boostAtsResume()"
+                    style="width:100%;justify-content:center;margin-top:20px;background:#1e3c72;border:1px solid #1e3c72;color:white;padding:10px 20px;border-radius:40px;font-weight:600;font-size:13px;cursor:pointer">Boost
+                    ATS with AI Keywords</button>
+                  <hr style="margin:16px 0;border-color:#e9f0f5">
+                  <button class="btn btn-p" onclick="exportPdfResume()"
+                    style="width:100%;justify-content:center;background:#1f5e3a;border:1px solid #1f5e3a;color:white;padding:10px 20px;border-radius:40px;font-weight:600;font-size:13px;cursor:pointer;margin-top:8px">Export
+                    as PDF (Dynamic Template)</button>
+                  <div style="font-size:11px;text-align:center;margin-top:12px;color:#6c8eaa">Generates PDF according to
+                    selected template</div>
+                </div>
+                <div style="background:white;border-radius:24px;padding:20px;border:1px solid #e2edf2">
+                  <div
+                    style="font-weight:700;font-size:16px;margin-bottom:12px;color:#1f3a5f;display:flex;align-items:center;gap:8px;border-left:4px solid #d97706;padding-left:12px">
+                    Tips</div>
+                  <ul style="font-size:12px;margin-left:18px;color:#2c4c6e;line-height:1.8">
+                    <li>Type bar updates resume preview instantly</li>
+                    <li>Switch template to change PDF style</li>
+                    <li>Click "Export as PDF" to download resume</li>
+                    <li>Upload document → fields auto-populate</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ MOCK INTERVIEW ══ -->
+        <div class="screen" id="screen-iv">
+          <div id="iv-role-sel">
+            <div class="ph">
+              <div class="pt">Mock Interviewer</div>
+              <div class="ps">30+ job roles · 15 questions · 1:00 min each · Live AI suggestions + authenticity engine
+              </div>
+            </div>
+            <div class="card" style="margin-bottom:16px">
+              <div class="ct">Interview Type</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+                <button class="btn btn-p btn-sm">Campus Placement</button>
+                <button class="btn btn-o btn-sm">HR Round</button>
+                <button class="btn btn-o btn-sm">Technical</button>
+                <button class="btn btn-purple btn-sm"
+                  onclick="showToast('Paste your JD to generate custom questions')">Custom Role (JD)</button>
+              </div>
+              <div class="ct" style="margin-bottom:12px">Choose a Job Role</div>
+              <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+                <button class="role-cat-btn active" onclick="filterRoles('all',this)">All Roles</button>
+                <button class="role-cat-btn" onclick="filterRoles('tech',this)">Tech / Engineering</button>
+                <button class="role-cat-btn" onclick="filterRoles('commerce',this)">Commerce / Finance</button>
+              </div>
+              <div class="jgrid" id="job-grid"></div>
+            </div>
+          </div>
+          <div id="iv-active" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div>
+                <div class="pt" style="font-size:18px" id="iv-role-title">Full Stack Developer</div>
+                <div class="ps">Question <span id="iv-qn">1</span> of 15 · 1:00 per question</div>
+              </div>
+              <div id="iv-dots" style="display:flex;gap:5px;align-items:center"></div>
+            </div>
+            <div class="ivl">
+              <div class="ivp">
+                <div class="tbar">
+                  <div class="tf" id="iv-tbar" style="width:100%"></div>
+                </div>
+                <div class="phead"><span
+                    style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:7px">
+                    <div class="hr-av" style="width:24px;height:24px;font-size:9px">HR</div>AI Interviewer · <span
+                      id="iv-timer">1:00</span>
+                  </span><span class="badge bp">Q<span id="iv-qbadge">1</span>/15</span></div>
+                <div class="pbody" style="display:flex;flex-direction:column">
+                  <div
+                    style="background:var(--purple-l);border:1px solid rgba(108,92,231,.18);border-radius:var(--r2);padding:14px 16px;margin-bottom:14px;font-size:14px;color:var(--text);font-weight:500;line-height:1.62"
+                    id="iv-question">Tell me about a full-stack project you've built. What technology choices did you
+                    make and why?</div>
+                  <textarea class="fi" id="iv-ans" rows="6" placeholder="Type your answer here..."
+                    style="resize:none;line-height:1.65;flex:1" oninput="onAnsInput(this.value)"></textarea>
+                  <div style="display:flex;gap:8px;margin-top:12px">
+                    <button class="btn btn-p btn-sm" onclick="nextIV()">Next Question →</button>
+                    <button class="btn btn-g btn-sm" onclick="skipIV()">Skip</button>
+                  </div>
+                </div>
+              </div>
+              <div class="ivp">
+                <div class="phead"><span
+                    style="font-size:13px;font-weight:700;color:var(--purple);display:flex;align-items:center;gap:6px">
+                    Live Suggestions <span
+                      style="font-size:10px;color:var(--muted);font-weight:400">(private)</span></span><span
+                    class="badge bgr" id="auth-lbl"> Your own words</span></div>
+                <div class="pbody" id="sug-body">
+                  <div class="sitem">
+                    <div class="sico" style="background:var(--green-l);color:var(--green)"><svg viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="3" width="9" height="9">
+                        <polyline points="20,6 9,17 4,12" />
+                      </svg></div>
+                    <div class="stxt"><strong style="color:var(--green)">STAR Structure</strong><br>Situation → Task →
+                      Action → Result. Make sure all 4 are present.</div>
+                  </div>
+                  <div class="sitem">
+                    <div class="sico" style="background:var(--accent-l);color:var(--accent)"><svg viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2.5" width="9" height="9">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg></div>
+                    <div class="stxt"><strong style="color:var(--accent)">Keywords to include</strong><br>React,
+                      Node.js, REST API, scalability, trade-offs, performance</div>
+                  </div>
+                  <div class="sitem">
+                    <div class="sico" style="background:var(--amber-l);color:var(--amber)"><svg viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2.5" width="9" height="9">
+                        <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" />
+                      </svg></div>
+                    <div class="stxt"><strong style="color:var(--amber)"> Tip</strong><br>Quantify your impact. "Reduced
+                      load time by 40%" is stronger than just describing what you built.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ SUBSCRIPTIONS ══ -->
+        <div class="screen" id="screen-subs">
+          <div class="ph" style="text-align:center">
+            <div class="pt">Plans &amp; Pricing</div>
+            <div class="ps">Start free. Upgrade anytime.</div>
+          </div>
+          <div class="btog"><button class="btog-btn on" id="bt-m" onclick="setBilling('m')">Monthly</button><button
+              class="btog-btn" id="bt-y" onclick="setBilling('y')">Yearly</button></div>
+          <div id="billing-save" style="text-align:center;margin-bottom:20px;display:none"><span class="badge bg">Save
+              ₹488 · 2 months free</span></div>
+          <div class="plan-cs">
+            <div class="pcard">
+              <div class="plbl">Base</div>
+              <div class="pval"><span class="prs">₹</span>0</div>
+              <div class="pper">forever free</div>
+              <button class="btn btn-o btn-sm" style="width:100%;justify-content:center;margin-bottom:18px"
+                disabled>Current plan</button>
+              <div class="fr">
+                <div class="fck fyes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                    width="9" height="9">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg></div>
+                <div class="ftxt">Adaptive practice — unlimited questions</div>
+              </div>
+              <div class="fr">
+                <div class="fck fyes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                    width="9" height="9">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg></div>
+                <div class="ftxt"><strong>5 tests total</strong> across all modules</div>
+              </div>
+              <div class="fr">
+                <div class="fck fyes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                    width="9" height="9">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg></div>
+                <div class="ftxt"><strong>2 resume builds</strong> (fresh or upload)</div>
+              </div>
+              <div class="fr">
+                <div class="fck fyes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                    width="9" height="9">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg></div>
+                <div class="ftxt"><strong>1 MNC company</strong> · 1 attempt</div>
+              </div>
+              <div class="fr">
+                <div class="fck fno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    width="9" height="9">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg></div>
+                <div class="ftxt dim">Leaderboard ranking</div>
+              </div>
+              <div class="fr">
+                <div class="fck fno"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    width="9" height="9">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg></div>
+                <div class="ftxt dim">All 10 MNC companies</div>
+              </div>
+            </div>
+            <div class="pcard pro">
+              <div style="position:absolute;top:16px;right:16px"><span class="badge bb">Most popular</span></div>
+              <div class="plbl" style="color:var(--accent)">Pro</div>
+              <div class="pval" style="color:var(--text)"><span class="prs" style="color:var(--accent)">₹</span><span
+                  id="pro-price">299</span></div>
+              <div class="pper" id="pro-period">per month · billed monthly</div>
+              <button class="btn btn-p btn-sm" style="width:100%;justify-content:center;margin-bottom:18px"
+                onclick="showToast('Redirecting to payment...')">Upgrade to Pro</button>
+              <div class="fr">
+                <div class="fck fyes" style="background:var(--accent-l);color:var(--accent)"><svg viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="3" width="9" height="9">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg></div>
+                <div class="ftxt"><strong>Unlimited tests</strong> — all modules</div>
+              </div>
+              <div class="fr">
+                <div class="fck fyes" style="background:var(--accent-l);color:var(--accent)"><svg viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="3" width="9" height="9">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg></div>
+                <div class="ftxt"><strong>Unlimited resume builds</strong> — all templates</div>
+              </div>
+              <div class="fr">
+                <div class="fck fyes" style="background:var(--accent-l);color:var(--accent)"><svg viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="3" width="9" height="9">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg></div>
+                <div class="ftxt"><strong>Unlimited mock interviews</strong> — all 30+ roles</div>
+              </div>
+              <div class="fr">
+                <div class="fck fyes" style="background:var(--accent-l);color:var(--accent)"><svg viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="3" width="9" height="9">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg></div>
+                <div class="ftxt"><strong>All 10 MNC companies</strong> · unlimited retries</div>
+              </div>
+              <div class="fr">
+                <div class="fck fyes" style="background:var(--accent-l);color:var(--accent)"><svg viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="3" width="9" height="9">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg></div>
+                <div class="ftxt"><strong>Full leaderboard ranking</strong> + badge visibility</div>
+              </div>
+              <div class="fr">
+                <div class="fck fyes" style="background:var(--accent-l);color:var(--accent)"><svg viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="3" width="9" height="9">
+                    <polyline points="20,6 9,17 4,12" />
+                  </svg></div>
+                <div class="ftxt">Visible to HR recruiters · shareable profile</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ══ SETTINGS SCREEN (v3 Refined) ══ -->
+        <div class="screen" id="screen-settings">
+          <div class="ph">
+            <div class="pt">Account Settings</div>
+            <div class="ps">Manage your personal information, professional identity, and account security.</div>
+          </div>
+
+          <div class="settings-v3-container">
+            <!-- Sidebar Nav -->
+            <div class="settings-v3-sidebar">
+              <button class="sv3-nav-btn active" onclick="st('general', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Profile Settings
+              </button>
+              <button class="sv3-nav-btn" onclick="st('security', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0110 0v4" />
+                </svg>
+                Password & Security
+              </button>
+              <button class="sv3-nav-btn" onclick="st('links', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                </svg>
+                Social Links
+              </button>
+              <button class="sv3-nav-btn" onclick="st('badges', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <circle cx="12" cy="8" r="7" />
+                  <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+                </svg>
+                Achievements
+              </button>
+            </div>
+
+            <!-- Main Content -->
+            <div class="settings-v3-content">
+              <!-- Profile Pane -->
+              <div class="sv3-pane active" id="pane-general">
+                <div class="sv3-header">
+                  <h2>Personal Information</h2>
+                  <p>Update your photo and personal details here.</p>
+                </div>
+
+                <div class="sv3-avatar-section">
+                  <div class="sv3-avatar-wrapper">
+                    <div class="sv3-avatar-initials" id="st-avatar-initials">S</div>
+                    <img class="sv3-avatar-img" id="st-avatar-img" style="display:none">
+                    <div class="sv3-avatar-badge" onclick="document.getElementById('st-avatar-input').click()">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14"
+                        height="14">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                    </div>
+                    <input type="file" id="st-avatar-input" hidden accept="image/*" onchange="handleAvatarUpload(this)">
+                  </div>
+                  <div class="sv3-avatar-actions">
+                    <button class="sv3-save-btn" style="padding: 10px 20px; font-size: 13px"
+                      onclick="document.getElementById('st-avatar-input').click()">Upload New</button>
+                    <button class="sv3-nav-btn" style="border: 1px solid var(--sv3-border)"
+                      onclick="currentUser.avatar=null; initSettings()">Delete avatar</button>
+                  </div>
+                </div>
+
+                <div class="sv3-form-grid">
+                  <div class="sv3-field-group">
+                    <label class="sv3-label">Full Name <span>*</span></label>
+                    <input type="text" class="sv3-input" id="st-field-name" placeholder="E.g. Rajesh Kumar"
+                      oninput="updateProfileHealth()">
+                  </div>
+                  <div class="sv3-field-group">
+                    <label class="sv3-label">Mobile Number <span>*</span></label>
+                    <div style="display:flex; gap:8px">
+                      <div class="sv3-input"
+                        style="width: 80px; display: flex; align-items: center; gap: 8px; cursor: default">
+                        <img src="https://flagcdn.com/w20/in.png" width="16" height="12" alt="IN"> +91
+                      </div>
+                      <input type="text" class="sv3-input" placeholder="806 123 7890">
+                    </div>
+                  </div>
+                  <div class="sv3-field-group">
+                    <label class="sv3-label">Email</label>
+                    <input type="email" class="sv3-input" id="st-field-email" disabled placeholder="examples@gmail.com">
+                  </div>
+                  <div class="sv3-field-group">
+                    <label class="sv3-label">Student ID / Roll No</label>
+                    <input type="text" class="sv3-input" placeholder="1559 000 7788 8DER">
+                  </div>
+                  <div class="sv3-field-group">
+                    <label class="sv3-label">Gender</label>
+                    <div class="gender-toggle-group">
+                      <div class="gender-option active">Male</div>
+                      <div class="gender-option">Female</div>
+                    </div>
+                  </div>
+                  <div class="sv3-field-group sv3-field-full">
+                    <label class="sv3-label">Professional Bio</label>
+                    <textarea class="sv3-input" id="st-field-bio" style="height:100px; resize:none"
+                      placeholder="Briefly describe your career goals..." oninput="updateProfileHealth()"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Security Pane -->
+              <div class="sv3-pane" id="pane-security">
+                <div class="sv3-header">
+                  <h2>Account Security</h2>
+                  <p>Manage your password and authentication settings.</p>
+                </div>
+                <div class="sv3-form-grid">
+                  <div class="sv3-field-group sv3-field-full">
+                    <label class="sv3-label">Current Password</label>
+                    <input type="password" class="sv3-input" placeholder="••••••••">
+                  </div>
+                  <div class="sv3-field-group">
+                    <label class="sv3-label">New Password</label>
+                    <input type="password" class="sv3-input" id="st-field-newpass"
+                      placeholder="Create a strong password">
+                  </div>
+                  <div class="sv3-field-group">
+                    <label class="sv3-label">Confirm Password</label>
+                    <input type="password" class="sv3-input" placeholder="Repeat new password">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Links Pane -->
+              <div class="sv3-pane" id="pane-links">
+                <div class="sv3-header">
+                  <h2>Social Links</h2>
+                  <p>Connect your professional profiles for better visibility.</p>
+                </div>
+                <div class="sv3-form-grid">
+                  <div class="sv3-field-group">
+                    <label class="sv3-label">GitHub Profile</label>
+                    <input type="text" class="sv3-input" id="st-field-github" placeholder="github.com/username">
+                  </div>
+                  <div class="sv3-field-group">
+                    <label class="sv3-label">LinkedIn Profile</label>
+                    <input type="text" class="sv3-input" id="st-field-linkedin" placeholder="linkedin.com/in/username">
+                  </div>
+                  <div class="sv3-field-group sv3-field-full">
+                    <label class="sv3-label">Portfolio / Website</label>
+                    <input type="text" class="sv3-input" id="st-field-portfolio" placeholder="yourportfolio.me">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Badges Pane -->
+              <div class="sv3-pane" id="pane-badges">
+                <div class="sv3-header">
+                  <h2>Vault of Achievements</h2>
+                  <p>Your earned recognition and skill certifications.</p>
+                </div>
+                <div class="badge-creative-grid" id="st-badges-grid">
+                  <!-- Populated via renderSettingsBadges() -->
+                </div>
+              </div>
+
+              <div class="sv3-footer">
+                <button class="sv3-save-btn" onclick="saveUserSettings()">Save Changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- Shared Modals -->
+  <div class="modal-overlay" id="student-modal" onclick="if(event.target===this)closeStudentModal()">
+    <div class="pmodal">
+      <button class="pmodal-close" onclick="closeStudentModal()"><svg viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg></button>
+      <div class="pmodal-hero">
+        <div class="pmodal-av" id="sm-av">—</div>
+        <div>
+          <div class="pmodal-name" id="sm-name">—</div>
+          <div class="pmodal-meta" id="sm-meta">—</div>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap" id="sm-badges"></div>
+        </div>
+      </div>
+      <div class="pmodal-body">
+        <div>
+          <div class="pmodal-sec-title">Accuracy</div>
+          <div class="pmodal-chart-wrap"><canvas id="sm-pie-chart"></canvas></div>
+        </div>
+        <div>
+          <div class="pmodal-sec-title">Score Trend</div>
+          <div style="position:relative;height:160px"><canvas id="sm-line-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="qbank.js"></script>
+  <script src="core.js"></script>
+  <script src="learner.js"></script>
+</body>
+
+</html>

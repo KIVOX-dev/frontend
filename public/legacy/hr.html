@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HR Portal | SkilloWait</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="settings_v3.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+  <div id="toast"></div>
+
+  <!-- ════════ HR LOGIN SCREEN ════════ -->
+  <div id="hr-login-page" style="position:fixed;inset:0;z-index:200;display:flex;background:var(--bg)">
+    <div class="lp-left">
+      <div class="lp-logo">
+        <img src="logo.png" alt="SKILLOVATE" class="lp-brand-logo">
+      </div>
+      <div class="lp-body">
+        <div class="lp-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="10"
+            height="10">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+          </svg>HR & Recruiter Platform</div>
+        <div class="lp-title">Hire smarter.<br>Source better.</div>
+        <div class="lp-sub">AI-ranked aptitude profiles, interview scores, and placement-ready talent — all in one
+          recruiter dashboard.</div>
+        <div class="lp-stats">
+          <div class="lp-stat">
+            <div class="lp-stat-val">450+</div>
+            <div class="lp-stat-lbl">Colleges enrolled</div>
+          </div>
+          <div class="lp-stat">
+            <div class="lp-stat-val">2.4L+</div>
+            <div class="lp-stat-lbl">Scored profiles</div>
+          </div>
+          <div class="lp-stat">
+            <div class="lp-stat-val">94%</div>
+            <div class="lp-stat-lbl">Hire success rate</div>
+          </div>
+          <div class="lp-stat">
+            <div class="lp-stat-val">30+</div>
+            <div class="lp-stat-lbl">Partner companies</div>
+          </div>
+        </div>
+        <div class="lp-avs">
+          <div class="lp-av-stack">
+            <div class="lp-av">ZO</div>
+            <div class="lp-av">TC</div>
+            <div class="lp-av">IN</div>
+            <div class="lp-av">HX</div>
+          </div>
+          <span class="lp-av-text">Trusted by top MNC recruiters</span>
+        </div>
+      </div>
+    </div>
+    <div class="lp-right">
+      <div class="lp-card">
+        <div class="lp-heading">
+          <h2>HR / Recruiter Login</h2>
+          <p>Sign in to access your talent sourcing dashboard</p>
+        </div>
+        <div class="linfo"><strong>Demo credentials:</strong> Any work email &amp; password <strong>hr123</strong></div>
+        <div id="hr-login-view">
+          <div style="display:flex; justify-content:space-between; align-items:flex-end">
+            <label class="lbl">Password</label>
+            <a href="javascript:void(0)" onclick="doHRForgotPassword()"
+              style="font-size:12px; margin-bottom:6px; color:var(--accent)">-?</a>
+          </div>
+          <input type="password" class="fi" id="hr-login-pass" placeholder="••••••••" style="margin-bottom:14px"
+            onkeydown="if(event.key==='Enter')doHRPortalLogin()">
+          <div id="hr-login-err" class="auth-warn" style="display:none;margin-bottom:12px"></div>
+          <button class="l-submit l-submit-blue" onclick="doHRPortalLogin()">Access HR Dashboard
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+              <polyline points="9,18 15,12 9,6" />
+            </svg>
+          </button>
+          <div class="or-div" style="margin-top:16px">OR</div>
+          <div class="google-login-btn-container" data-role="hr"
+            style="display:flex; justify-content:center; width: 100%; margin: 10px 0;"></div>
+          <div class="l-footer">New company? <a href="javascript:void(0)" onclick="toggleHRAuth(true)">Create
+              Account</a></div>
+        </div>
+
+        <!-- HR Signup Panel -->
+        <div id="hr-signup-view" style="display:none">
+          <label class="lbl">Full Name</label>
+          <input type="text" class="fi" id="hr-reg-name" placeholder="John Doe" style="margin-bottom:12px">
+          <label class="lbl">Work Email</label>
+          <input type="email" class="fi" id="hr-reg-email" placeholder="john@company.com" style="margin-bottom:12px">
+          <label class="lbl">Company Name</label>
+          <input type="text" class="fi" id="hr-reg-company" placeholder="Skillovate Global" style="margin-bottom:12px">
+          <label class="lbl">Create Password</label>
+          <input type="password" class="fi" id="hr-reg-pass" placeholder="••••••••" style="margin-bottom:14px">
+          <div id="hr-reg-err" class="auth-warn" style="display:none;margin-bottom:12px"></div>
+          <button class="l-submit l-submit-blue" onclick="doHRPortalRegister()">Register Company
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+              <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <polyline points="16,11 18,13 22,9" />
+            </svg>
+          </button>
+          <div class="l-footer">Already registered? <a href="javascript:void(0)" onclick="toggleHRAuth(false)">Back to
+              Login</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ HR APP ════════ -->
+  <div id="app">
+    <!-- Sidebar -->
+    <div id="sidebar" style="border-right-color:rgba(108,92,231,.15)">
+      <div class="s-logo"
+        style="background:linear-gradient(135deg,rgba(108,92,231,.08),transparent);border-bottom-color:rgba(108,92,231,.15); flex-direction:column; align-items:flex-start; height:auto; padding:20px">
+        <img src="logo.png" alt="SKILLOVATE" class="brand-logo" style="margin-bottom:8px">
+        <div class="logo-text" style="font-size:11px; opacity:0.6; text-transform:uppercase; letter-spacing:1px">
+          Recruiter Portal</div>
+      </div>
+
+      <div id="hrnav">
+        <div class="nav-sec">Talent Sourcing</div>
+        <div class="nav-item active" id="nav-hr-dash" onclick="ss('hr-dash','nav-hr-dash')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+          </svg>
+          <span class="nav-lbl">Dashboard</span>
+        </div>
+        <div class="nav-item" id="nav-hr-vac" onclick="ss('hr-vac','nav-hr-vac')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+            <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
+          </svg>
+          <span class="nav-lbl">Post Vacancy</span>
+        </div>
+        <div class="nav-item" id="nav-hr-app" onclick="ss('hr-app','nav-hr-app')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+          </svg>
+          <span class="nav-lbl">Applicants</span>
+        </div>
+        <div class="nav-item" id="nav-hr-lb" onclick="ss('hr-lb','nav-hr-lb')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+          <span class="nav-lbl">Talent Board</span>
+        </div>
+
+        <div class="nav-sec">Insights</div>
+        <div class="nav-item" id="nav-hr-analytics" onclick="ss('hr-analytics','nav-hr-analytics')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          <span class="nav-lbl">Candidate Analytics</span>
+        </div>
+        <div class="nav-item" id="nav-hr-settings" onclick="ss('hr-settings','nav-hr-settings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+          <span class="nav-lbl">Settings</span>
+        </div>
+      </div>
+
+      <div class="s-foot">
+        <div class="ui-toggle-wrap" onclick="toggleUIMode()">
+          <div class="ui-toggle-track">
+            <div class="ui-toggle-thumb"></div>
+          </div>
+          <div class="ui-toggle-lbl" id="ui-mode-lbl">Recruiter View</div>
+        </div>
+        <button class="collapse-btn" onclick="toggleSidebar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7" />
+            <polyline points="18 17 13 12 18 7" />
+          </svg>
+          <span>Collapse</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div id="main">
+      <div id="topbar">
+        <div id="mob-menu-btn" onclick="toggleSidebar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </div>
+        <div class="sw">
+          <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg></span>
+          <input type="text" placeholder="Search applicants, roles, skills...">
+        </div>
+        <div class="tbr">
+          <div class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <div class="nd"></div>
+          </div>
+          <div class="uc">
+            <div class="uav" style="background:linear-gradient(135deg,var(--purple),var(--pink))" id="user-initials">HR
+            </div>
+            <div style="display:flex;flex-direction:column"><span class="un" id="user-name">HR Manager</span><span
+                class="ur">Zoho Corporation</span></div>
+          </div>
+          <div class="ib" onclick="doLogout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg></div>
+        </div>
+      </div>
+
+      <div id="content">
+        <!-- ══ HR DASHBOARD ══ -->
+        <div class="screen" id="screen-hr-dash">
+          <div class="hero">
+            <div class="hero-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                width="10" height="10">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+              </svg>HR Dashboard · Zoho Corporation</div>
+            <div class="hero-title">Find Your Next<br>Top Talent.</div>
+            <div class="hero-sub">Browse AI-scored aptitude profiles, view job-role badges, and shortlist directly from
+              the SkilloWait leaderboard.</div>
+            <div class="hero-acts">
+              <button class="hbtn hbtn-w" onclick="ss('hr-vac','nav-hr-vac')">Post a Vacancy</button>
+              <button class="hbtn hbtn-gh" onclick="ss('hr-lb','nav-hr-lb')">View Talent Board</button>
+            </div>
+          </div>
+          <div class="sg">
+            <div class="sc">
+              <div class="si2" style="background:var(--accent-l)"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="var(--accent)" stroke-width="2" width="15" height="15">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                </svg></div>
+              <div class="sv">0</div>
+              <div class="sl">Active Vacancies</div>
+              <div class="sd neu">—</div>
+            </div>
+            <div class="sc">
+              <div class="si2" style="background:var(--green-l)"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="var(--green)" stroke-width="2" width="15" height="15">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg></div>
+              <div class="sv">0</div>
+              <div class="sl">Total Applicants</div>
+              <div class="sd neu">—</div>
+            </div>
+            <div class="sc">
+              <div class="si2" style="background:var(--purple-l)"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="var(--purple)" stroke-width="2" width="15" height="15">
+                  <polygon
+                    points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+                </svg></div>
+              <div class="sv">0</div>
+              <div class="sl">Shortlisted</div>
+              <div class="sd neu">—</div>
+            </div>
+            <div class="sc">
+              <div class="si2" style="background:var(--amber-l)"><svg viewBox="0 0 24 24" fill="none"
+                  stroke="var(--amber)" stroke-width="2" width="15" height="15">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12,6 12,12 16,14" />
+                </svg></div>
+              <div class="sv">—</div>
+              <div class="sl">Top Score (Avg)</div>
+              <div class="sd neu">No data yet</div>
+            </div>
+          </div>
+          <div class="gms">
+            <div class="card">
+              <div class="ct">Recent Applicants <span onclick="ss('hr-app','nav-hr-app')">View all</span></div>
+              <div style="text-align:center;padding:36px;color:var(--muted);font-size:13px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"
+                  style="display:block;margin:0 auto 10px;opacity:.3">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg>
+                No applicants yet. Post a vacancy to get started.
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div class="card">
+                <div class="ct">Your Vacancies</div>
+                <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
+                  <div class="vcard">
+                    <div class="vtit">Full Stack Developer</div>
+                    <div class="vco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        width="11" height="11">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                      </svg>Zoho Corporation · Internship</div><span class="badge bg">Active · 31 applied</span>
+                  </div>
+                  <div class="vcard">
+                    <div class="vtit">Backend Engineer</div>
+                    <div class="vco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        width="11" height="11">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                      </svg>Zoho Corporation · Full-time</div><span class="badge bg">Active · 16 applied</span>
+                  </div>
+                </div>
+                <button class="btn btn-p btn-sm" style="width:100%;justify-content:center"
+                  onclick="ss('hr-vac','nav-hr-vac')">+ Post New Vacancy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ HR POST VACANCY ══ -->
+        <div class="screen" id="screen-hr-vac">
+          <div class="ph">
+            <div class="pt">Post a Vacancy</div>
+            <div class="ps">Once posted, eligible students can apply directly from their Profile Summarizer</div>
+          </div>
+          <div class="g2">
+            <div class="card">
+              <div class="ct">Vacancy Details</div>
+              <label class="input-lbl">Job Title</label><input class="input-field"
+                placeholder="e.g. Full Stack Developer">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
+                <div><label class="input-lbl">Role Type</label><select class="input-field" style="margin-bottom:0">
+                    <option>Full-time</option>
+                    <option>Internship</option>
+                    <option>Contract</option>
+                  </select></div>
+                <div><label class="input-lbl">Deadline</label><input class="input-field" type="date"
+                    style="margin-bottom:0"></div>
+              </div>
+              <div style="height:12px"></div>
+              <label class="input-lbl">Required Subjects / Skills</label>
+              <div
+                style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;border:1.5px solid var(--border);border-radius:var(--r2);background:var(--surface);margin-bottom:12px">
+                <span class="badge bb">Quantitative<button onclick="showToast('Removed')"
+                    style="background:none;border:none;cursor:pointer;margin-left:4px;color:var(--accent)">×</button></span>
+                <span class="badge bb">Logical Reasoning<button onclick="showToast('Removed')"
+                    style="background:none;border:none;cursor:pointer;margin-left:4px;color:var(--accent)">×</button></span>
+                <button class="btn btn-g btn-sm" onclick="showToast('Add subject filter')">+ Add</button>
+              </div>
+              <label class="input-lbl">Minimum Aptitude Score <span
+                  style="color:var(--faint);font-weight:400">(optional)</span></label><input class="input-field"
+                type="number" placeholder="e.g. 70">
+              <label class="input-lbl">Graduation Year</label><select class="input-field">
+                <option>Any year</option>
+                <option>2025</option>
+                <option>2026</option>
+                <option>2027</option>
+              </select>
+              <label class="input-lbl">Job Description</label><textarea class="input-field" rows="4"
+                placeholder="Paste JD here — students see this before applying" style="resize:none"></textarea>
+              <button class="btn btn-p" onclick="postVacancyLive(this)" style="width:100%;justify-content:center">Post
+                Vacancy Live</button>
+            </div>
+            <div class="card" style="background:var(--surface2)">
+              <div class="ct">Live Preview</div>
+              <div
+                style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px">
+                <div
+                  style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px">
+                  Full Stack Developer</div>
+                <div
+                  style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-bottom:12px">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                  </svg>Zoho Corporation · Internship
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"><span
+                    class="badge bb">Quantitative</span><span class="badge bb">Logical Reasoning</span><span
+                    class="badge ba">Min Score: 70</span></div>
+                <button class="btn btn-p btn-sm" style="width:100%;justify-content:center"
+                  onclick="showToast('Apply button — live for students')">Apply Now</button>
+              </div>
+              <div
+                style="background:var(--green-l);border:1.5px solid rgba(14,159,110,.18);border-radius:var(--r2);padding:12px;font-size:12px;color:var(--text);line-height:1.6">
+                <strong style="color:var(--green)">Who sees this?</strong> All SkilloWait students matching your filters
+                will see this vacancy in their Profile Summarizer → Open Roles tab.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ HR APPLICANTS ══ -->
+        <div class="screen" id="screen-hr-app">
+          <div class="ph" style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div>
+              <div class="pt">Applicants</div>
+              <div class="ps">Full Stack Developer · Zoho Corporation · 47 applicants</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <select class="fi" style="width:auto;padding:7px 12px;font-size:12px">
+                <option>All Statuses</option>
+                <option>Shortlisted</option>
+                <option>Under Review</option>
+                <option>Rejected</option>
+              </select>
+              <select class="fi" style="width:auto;padding:7px 12px;font-size:12px">
+                <option>Score ↓</option>
+                <option>Name</option>
+                <option>Date</option>
+              </select>
+            </div>
+          </div>
+          <div class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Applicant</th>
+                  <th>College</th>
+                  <th>Score</th>
+                  <th>Top Subjects</th>
+                  <th>Interview</th>
+                  <th>Badge</th>
+                  <th>Resume</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="tn"
+                      style="color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px"
+                      onclick="openStudentProfile('Rajesh K.')">Rajesh K.</div>
+                    <div class="ts"><a href="/cdn-cgi/l/email-protection" class="__cf_email__"
+                        data-cfemail="3143505b544259714142561f545544">[email&#160;protected]</a></div>
+                  </td>
+                  <td>PSG College</td>
+                  <td><span
+                      style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--green)">97</span>
+                    <div class="ts">Top 3%</div>
+                  </td>
+                  <td><span class="badge bb">Logical</span></td>
+                  <td><span style="font-weight:700;color:var(--green)">91/100</span></td>
+                  <td><span class="badge bp"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"
+                        style="vertical-align:middle;color:#7C3AED">
+                        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                      </svg> Expert</span></td>
+                  <td><button class="btn btn-g btn-sm" onclick="viewApplicantResume(this)">View Resume</button></td>
+                  <td><button class="btn btn-green btn-sm" onclick="showToast('Shortlisted!')">Shortlist</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="tn"
+                      style="color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px"
+                      onclick="openStudentProfile('Priya M.')">Priya M.</div>
+                    <div class="ts"><a href="/cdn-cgi/l/email-protection" class="__cf_email__"
+                        data-cfemail="bacac8d3c3dbfadbd4d4dbcfd4d3cc94dfdecf">[email&#160;protected]</a></div>
+                  </td>
+                  <td>Anna University</td>
+                  <td><span
+                      style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--green)">94</span>
+                    <div class="ts">Top 5%</div>
+                  </td>
+                  <td><span class="badge bb">Verbal</span></td>
+                  <td><span style="font-weight:700;color:var(--green)">88/100</span></td>
+                  <td><span class="badge bp"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"
+                        style="vertical-align:middle;color:#7C3AED">
+                        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                      </svg> Expert</span></td>
+                  <td><button class="btn btn-g btn-sm" onclick="viewApplicantResume(this)">View Resume</button></td>
+                  <td><span class="badge bg"> Shortlisted</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="tn"
+                      style="color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px"
+                      onclick="openStudentProfile('Sunita V.')">Sunita V.</div>
+                    <div class="ts"><a href="/cdn-cgi/l/email-protection" class="__cf_email__"
+                        data-cfemail="dcafa9b2b5a8bd9caab5a8f2b9b8a9">[email&#160;protected]</a></div>
+                  </td>
+                  <td>VIT Vellore</td>
+                  <td><span
+                      style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--accent)">89</span>
+                    <div class="ts">Top 8%</div>
+                  </td>
+                  <td><span class="badge bg">Quant</span></td>
+                  <td><span style="font-weight:700;color:var(--accent)">83/100</span></td>
+                  <td><span class="badge ba"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        width="11" height="11" style="vertical-align:middle;color:#D97706">
+                        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                      </svg> Advanced</span></td>
+                  <td><button class="btn btn-g btn-sm" onclick="viewApplicantResume(this)">View Resume</button></td>
+                  <td><button class="btn btn-green btn-sm" onclick="showToast('Shortlisted!')">Shortlist</button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="tn"
+                      style="color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px"
+                      onclick="openStudentProfile('Arjun R.')">Arjun R.</div>
+                    <div class="ts"><a href="/cdn-cgi/l/email-protection" class="__cf_email__"
+                        data-cfemail="e2839088978ca2929185cc878697">[email&#160;protected]</a></div>
+                  </td>
+                  <td>PSG College</td>
+                  <td><span
+                      style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--amber)">74</span>
+                    <div class="ts">Top 18%</div>
+                  </td>
+                  <td><span class="badge ba">DI</span></td>
+                  <td><span style="font-weight:700;color:var(--amber)">74/100</span></td>
+                  <td><span class="badge bb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        width="11" height="11" style="vertical-align:middle;color:#1B6FE6">
+                        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                      </svg> Proficient</span></td>
+                  <td><button class="btn btn-g btn-sm" onclick="viewApplicantResume(this)">View Resume</button></td>
+                  <td><button class="btn btn-o btn-sm" onclick="showToast('Under review')">Review</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ══ HR TALENT BOARD (Premium v2) ══ -->
+        <div class="screen lb-v2-screen" id="screen-hr-lb" style="position:relative;">
+          <!-- Immersive Mesh Background -->
+          <div class="settings-immersive-canvas">
+            <div class="mesh-container">
+              <div class="mesh-sphere mesh-sphere-1"></div>
+              <div class="mesh-sphere mesh-sphere-2"></div>
+              <div class="mesh-sphere mesh-sphere-3"></div>
+            </div>
+          </div>
+
+          <div class="leaderboard-v2-active">
+            <div class="ph"
+              style="display:flex;align-items:flex-start;justify-content:space-between;position:relative;z-index:1">
+              <div>
+                <div class="pt">Global Talent Board</div>
+                <div class="ps">Executive sourcing view · Unified ranking across all partner institutions</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <span class="badge bp">Network: Global</span>
+                <span class="badge ba">Total Reach: 450+ Colleges</span>
+              </div>
+            </div>
+
+            <!-- Metric Strip -->
+            <div class="lb-metric-strip" style="position:relative;z-index:1">
+              <div class="lb-metric-card creative-tilt-card">
+                <div class="lb-metric-icon" style="background:#FEF3C7;color:#D97706">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                    <path d="M16 3.13a4 4 0 010 7.75" />
+                  </svg>
+                </div>
+                <div class="lb-metric-val">2.4L+</div>
+                <div class="lb-metric-lbl">Total Profiles Scored</div>
+              </div>
+              <div class="lb-metric-card creative-tilt-card">
+                <div class="lb-metric-icon" style="background:#DCFCE7;color:#16A34A">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
+                <div class="lb-metric-val">12k+</div>
+                <div class="lb-metric-lbl">Placement Ready</div>
+              </div>
+              <div class="lb-metric-card creative-tilt-card">
+                <div class="lb-metric-icon" style="background:#FCE7F3;color:#DB2777">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                    <line x1="4" y1="22" x2="4" y2="15" />
+                  </svg>
+                </div>
+                <div class="lb-metric-val">30+</div>
+                <div class="lb-metric-lbl">Partner Companies</div>
+              </div>
+              <div class="lb-metric-card creative-tilt-card">
+                <div class="lb-metric-icon" style="background:#E0E7FF;color:#4F46E5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                </div>
+                <div class="lb-metric-val">88%</div>
+                <div class="lb-metric-lbl">Top percentile avg</div>
+              </div>
+            </div>
+
+            <!-- Control Bar -->
+            <div class="lb-control-bar" style="position:relative;z-index:1">
+              <div class="lb-search-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" placeholder="Search by name, college, or role..."
+                  oninput="filterLeaderboard(this.value)">
+              </div>
+              <div class="lb-filter-pill active">Global Talent</div>
+              <div class="lb-filter-pill">Top 1% Profiles</div>
+              <div class="lb-filter-pill">Engineering</div>
+              <div class="lb-filter-pill">Management</div>
+              <div class="lb-filter-pill">Shortlisted</div>
+            </div>
+
+            <!-- Premium Table -->
+            <div class="lb-table-container extreme-glass" style="position:relative;z-index:1">
+              <table class="lb-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Candidate</th>
+                    <th>Job Role</th>
+                    <th>College</th>
+                    <th>Badge Tier</th>
+                    <th>Performance</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="lb-table-body">
+                  <!-- JS Rendered -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="tn" style="color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px"
+          onclick="openStudentProfile('Priya M.')">Priya M.</div>
+        </td>
+        <td>
+          <div style="font-size:12px;color:var(--accent)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__"
+              data-cfemail="8afaf8e3f3ebcaebe4e4ebffe4e3fca4efeeff">[email&#160;protected]</a></div>
+        </td>
+        <td>Anna University</td>
+        <td><span style="font-weight:700;color:var(--green)">94/100</span></td>
+        <td><span class="badge bp"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"
+              style="vertical-align:middle;color:#7C3AED">
+              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+            </svg> Expert</span></td>
+        <td><button class="btn btn-p btn-sm" onclick="showToast('Invite sent to Priya!')">Invite</button></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="lbrk bronze" style="display:inline-flex">#3</div>
+          </td>
+          <td>
+            <div class="tn">Karthik S.</div>
+          </td>
+          <td>
+            <div style="font-size:12px;color:var(--accent)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__"
+                data-cfemail="b7dcd6c5c3dfdedcf7c7c4d099d2d3c2">[email&#160;protected]</a>
+            </div>
+          </td>
+          <td>PSG College</td>
+          <td><span style="font-weight:700;color:var(--teal)">91/100</span></td>
+          <td><span class="badge ba"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                width="11" height="11" style="vertical-align:middle;color:#D97706">
+                <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+              </svg> Advanced</span></td>
+          <td><button class="btn btn-o btn-sm" onclick="showToast('Invite sent!')">Invite</button></td>
+        </tr>
+        </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ HR ANALYTICS ══ -->
+    <div class="screen" id="screen-hr-analytics">
+      <div class="ph">
+        <div class="pt">Candidate Analytics</div>
+        <div class="ps">Subject breakdown · Score trends · Batch info · Placement readiness for all applicants</div>
+      </div>
+      <div id="hr-analytics-body"></div>
+    </div>
+
+    <!-- ══ HR SETTINGS ══ -->
+    <!-- ══ HR SETTINGS (v3 Refined) ══ -->
+    <div class="screen" id="screen-hr-settings">
+      <div class="ph">
+        <div class="pt">Recruiter Console Settings</div>
+        <div class="ps">Manage your professional identity, company details, and hiring credentials.</div>
+      </div>
+
+      <div class="settings-v3-container">
+        <!-- Sidebar Nav -->
+        <div class="settings-v3-sidebar">
+          <button class="sv3-nav-btn active" onclick="st('general', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Profile & Company
+          </button>
+          <button class="sv3-nav-btn" onclick="st('security', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+            Security
+          </button>
+          <button class="sv3-nav-btn" onclick="st('links', this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+            </svg>
+            Social Links
+          </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="settings-v3-content">
+          <!-- Profile Pane -->
+          <div class="sv3-pane active" id="pane-general">
+            <div class="sv3-header">
+              <h2>Recruiter Identity</h2>
+              <p>Manage how you and your company appear to candidates.</p>
+            </div>
+
+            <div class="sv3-avatar-section">
+              <div class="sv3-avatar-wrapper">
+                <div class="sv3-avatar-initials" id="hr-avatar-initials">HR</div>
+                <img class="sv3-avatar-img" id="hr-avatar-img" style="display:none">
+                <div class="sv3-avatar-badge" onclick="document.getElementById('hr-avatar-input').click()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                </div>
+                <input type="file" id="hr-avatar-input" hidden accept="image/*" onchange="handleAvatarUpload(this)">
+              </div>
+              <div class="sv3-avatar-actions">
+                <button class="sv3-save-btn" style="padding: 10px 20px; font-size: 13px"
+                  onclick="document.getElementById('hr-avatar-input').click()">Upload Photo</button>
+                <button class="sv3-nav-btn" style="border: 1px solid var(--sv3-border)"
+                  onclick="currentUser.avatar=null; initSettings()">Reset</button>
+              </div>
+            </div>
+
+            <div class="sv3-form-grid">
+              <div class="sv3-field-group">
+                <label class="sv3-label">Full Name <span>*</span></label>
+                <input type="text" class="sv3-input" id="st-field-name" placeholder="E.g. Priya Sharma">
+              </div>
+              <div class="sv3-field-group">
+                <label class="sv3-label">Company Name <span>*</span></label>
+                <input type="text" class="sv3-input" id="st-field-company" placeholder="E.g. Tech Solution Corp">
+              </div>
+              <div class="sv3-field-group">
+                <label class="sv3-label">Work Email</label>
+                <input type="email" class="sv3-input" id="st-field-email" disabled placeholder="recuiter@company.com">
+              </div>
+              <div class="sv3-field-group">
+                <label class="sv3-label">Tax ID / Incorporation No</label>
+                <input type="text" class="sv3-input" placeholder="1559 000 7788 8DER">
+              </div>
+              <div class="sv3-field-group sv3-field-full">
+                <label class="sv3-label">Company Overview / Recruiter Intro</label>
+                <textarea class="sv3-input" id="st-field-bio" style="height:120px; resize:none"
+                  placeholder="Write a brief recruiter intro..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Security Pane -->
+          <div class="sv3-pane" id="pane-security">
+            <div class="sv3-header">
+              <h2>Account Security</h2>
+              <p>Manage your recruiter console access credentials.</p>
+            </div>
+            <div class="sv3-form-grid">
+              <div class="sv3-field-group">
+                <label class="sv3-label">New Password</label>
+                <input type="password" class="sv3-input" id="st-field-newpass" placeholder="Enter new password">
+              </div>
+              <div class="sv3-field-group">
+                <label class="sv3-label">Confirm Password</label>
+                <input type="password" class="sv3-input" placeholder="Repeat password">
+              </div>
+            </div>
+          </div>
+
+          <!-- Links Pane -->
+          <div class="sv3-pane" id="pane-links">
+            <div class="sv3-header">
+              <h2>Social & Professional</h2>
+              <p>Link your company's social presence.</p>
+            </div>
+            <div class="sv3-form-grid">
+              <div class="sv3-field-group">
+                <label class="sv3-label">LinkedIn Company Page</label>
+                <input type="text" class="sv3-input" id="st-field-linkedin" placeholder="linkedin.com/company/username">
+              </div>
+              <div class="sv3-field-group">
+                <label class="sv3-label">Company Website</label>
+                <input type="text" class="sv3-input" placeholder="www.company.com">
+              </div>
+            </div>
+          </div>
+
+          <div class="sv3-footer">
+            <button class="sv3-save-btn" onclick="saveUserSettings()">Update Console Profile</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <script src="data.js"></script>
+  <script src="qbank.js"></script>
+  <script src="core.js"></script>
+  <script src="hr.js"></script>
+</body>
+
+</html>
