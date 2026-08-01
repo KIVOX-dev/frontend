@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { motion, useInView, AnimatePresence } from "framer-motion";
+import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { RevealHeading } from "./RevealHeading";
 
 const tabs = [
   {
@@ -41,32 +42,32 @@ function AnalyticsView() {
   const bars = [72, 85, 61, 90, 78, 95, 83, 68, 77, 88, 92, 74];
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Avg Score", value: "82.4", delta: "+5.2", positive: true },
-          { label: "Completion", value: "91%", delta: "+12%", positive: true },
-          { label: "Dropouts", value: "3.1%", delta: "-2.1%", positive: true },
+          { label: "Avg Score", value: "82.4", delta: "+5.2" },
+          { label: "Completion", value: "91%", delta: "+12%" },
+          { label: "Dropouts", value: "3.1%", delta: "-2.1%" },
         ].map((s) => (
-          <div key={s.label} className="bg-white/[0.04] rounded-xl p-3.5 border border-white/[0.07]">
-            <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{s.label}</p>
-            <p className="text-white font-bold text-xl mb-1">{s.value}</p>
-            <span className="text-emerald-400 text-[11px] font-semibold">{s.delta}</span>
+          <div key={s.label} className="bg-scale-50 rounded-xl p-3.5 border border-scale-line">
+            <p className="text-scale-ink-faint text-[10px] uppercase tracking-looser font-semibold mb-1.5">{s.label}</p>
+            <p className="text-scale-ink font-extrabold text-xl tracking-tight mb-1">{s.value}</p>
+            <span className="text-scale-600 text-[11px] font-bold">{s.delta}</span>
           </div>
         ))}
       </div>
-      <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
+      <div className="bg-scale-50 rounded-xl p-4 border border-scale-line">
         <div className="flex items-end gap-1.5 h-24">
           {bars.map((h, i) => (
             <motion.div
               key={i}
               initial={{ scaleY: 0 }}
               animate={{ scaleY: 1 }}
-              transition={{ duration: 0.5, delay: i * 0.04, ease: "easeOut" }}
+              transition={{ duration: 0.55, delay: i * 0.035, ease: [0.16, 1, 0.3, 1] }}
               style={{ height: `${h}%`, originY: 1 }}
-              className="flex-1 rounded-t-sm bg-green-gradient opacity-80 hover:opacity-100 transition-opacity relative group cursor-pointer"
+              className="flex-1 rounded-t-[3px] bg-scale-300 hover:bg-scale-500 transition-colors duration-200 relative group cursor-pointer"
             >
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white/10 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-scale-900 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                 {h}%
               </div>
             </motion.div>
@@ -74,7 +75,7 @@ function AnalyticsView() {
         </div>
         <div className="flex justify-between mt-2">
           {months.map((m) => (
-            <span key={m} className="text-white/25 text-[8px] flex-1 text-center">{m}</span>
+            <span key={m} className="text-scale-ink-faint text-[8px] flex-1 text-center">{m}</span>
           ))}
         </div>
       </div>
@@ -90,32 +91,32 @@ function TrackingView() {
     { name: "Divya R.", score: 76, rank: 4, status: "Needs Help", dept: "CSE" },
   ];
   const statusColors: Record<string, string> = {
-    Placed: "text-emerald-400 bg-emerald-400/10",
-    Active: "text-blue-400 bg-blue-400/10",
-    "Needs Help": "text-amber-400 bg-amber-400/10",
+    Placed: "text-scale-600 bg-scale-100 border-scale-300/50",
+    Active: "text-scale-ink bg-scale-50 border-scale-line",
+    "Needs Help": "text-status-warning bg-status-warning/10 border-status-warning/25",
   };
   return (
     <div className="space-y-2.5">
       {students.map((s, i) => (
         <motion.div
           key={s.name}
-          initial={{ opacity: 0, x: -16 }}
+          initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: i * 0.08 }}
-          className="flex items-center gap-3 bg-white/[0.04] rounded-xl px-4 py-3 border border-white/[0.06] hover:border-emerald-brand/30 transition-colors"
+          transition={{ delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+          className="flex items-center gap-3 bg-scale-50 rounded-xl px-4 py-3 border border-scale-line hover:border-scale-300 hover:shadow-scale-card transition-all duration-300 ease-expo"
         >
-          <div className="w-8 h-8 rounded-full bg-green-gradient/30 flex items-center justify-center text-white font-bold text-xs shrink-0">
+          <div className="w-8 h-8 rounded-full bg-scale-50 border border-scale-line flex items-center justify-center text-scale-ink font-bold text-[11px] shrink-0">
             #{s.rank}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white font-semibold text-sm truncate">{s.name}</p>
-            <p className="text-white/40 text-[11px]">{s.dept}</p>
+            <p className="text-scale-ink font-semibold text-sm truncate">{s.name}</p>
+            <p className="text-scale-ink-faint text-[11px]">{s.dept}</p>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-white font-bold">{s.score}</p>
-            <p className="text-white/30 text-[10px]">score</p>
+            <p className="text-scale-ink font-extrabold">{s.score}</p>
+            <p className="text-scale-ink-faint text-[10px]">score</p>
           </div>
-          <span className={`text-[10px] font-semibold px-2 py-1 rounded-full shrink-0 ${statusColors[s.status]}`}>
+          <span className={`text-[10px] font-bold px-2 py-1 rounded-md border shrink-0 ${statusColors[s.status]}`}>
             {s.status}
           </span>
         </motion.div>
@@ -136,19 +137,19 @@ function ReportsView() {
       {reports.map((r, i) => (
         <motion.div
           key={r.title}
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.07 }}
-          className="flex items-center gap-3.5 bg-white/[0.04] rounded-xl px-4 py-3.5 border border-white/[0.06] hover:border-emerald-brand/30 hover:bg-emerald-brand/5 transition-all cursor-pointer group"
+          transition={{ delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+          className="flex items-center gap-3.5 bg-scale-50 rounded-xl px-4 py-3.5 border border-scale-line hover:border-scale-300 hover:shadow-scale-card transition-all duration-300 ease-expo cursor-pointer group"
         >
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-bold shrink-0 ${r.type === "PDF" ? "bg-red-500/15 text-red-400" : r.type === "XLSX" ? "bg-emerald-500/15 text-emerald-400" : "bg-blue-500/15 text-blue-400"}`}>
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-extrabold shrink-0 bg-scale-50 border border-scale-line text-scale-ink-muted group-hover:bg-scale-900 group-hover:text-scale-500 group-hover:border-scale-900 transition-all duration-300">
             {r.type}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white font-medium text-sm truncate group-hover:text-emerald-300 transition-colors">{r.title}</p>
-            <p className="text-white/35 text-[11px]">{r.size} · {r.date}</p>
+            <p className="text-scale-ink font-semibold text-sm truncate">{r.title}</p>
+            <p className="text-scale-ink-faint text-[11px]">{r.size} · {r.date}</p>
           </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-white/30 group-hover:text-emerald-400 transition-colors shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-scale-ink-faint group-hover:text-scale-600 transition-colors shrink-0">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </motion.div>
@@ -168,63 +169,74 @@ export default function ProductShowcase() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
   const [activeTab, setActiveTab] = useState("analytics");
 
+  // Scroll-linked 3D tilt — the dashboard window leans back like it's lying
+  // flat on a table as it enters, then rises upright to face the viewer.
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "center center"] });
+  const windowRotateX = useTransform(scrollYProgress, [0, 1], [18, 0]);
+
   return (
-    <section ref={ref} id="product" className="bg-jet-dark py-24 lg:py-32 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section ref={ref} id="product" className="relative bg-scale-50 ui-section border-t border-scale-line overflow-hidden">
+      {/* Faint lime wash behind the window */}
+      <div className="absolute inset-x-0 top-1/4 h-[520px] bg-scale-glow blur-2xl pointer-events-none" />
+
+      <div className="relative ui-container">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="text-center mb-16"
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center max-w-2xl mx-auto mb-14"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-white/60 text-sm font-medium mb-5">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M3 9h18" stroke="currentColor" strokeWidth="2"/></svg>
+          <div className="scale-eyebrow mb-5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M3 9h18" stroke="currentColor" strokeWidth="2"/>
+            </svg>
             Live Product
           </div>
-          <h2 className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-4">
-            See it{" "}
-            <span className="text-transparent bg-clip-text bg-green-gradient">in action</span>
-          </h2>
-          <p className="text-white/45 text-lg max-w-2xl mx-auto leading-relaxed">
+          <RevealHeading className="ui-section-title mb-4">
+            See it <span className="scale-mark">in action</span>
+          </RevealHeading>
+          <p className="ui-lede">
             A real-time intelligence layer for every stakeholder — beautifully surfaced in one unified workspace.
           </p>
         </motion.div>
 
         {/* Dashboard window */}
         <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.97 }}
+          initial={{ opacity: 0, y: 32, scale: 0.98 }}
           animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
-          transition={{ duration: 0.8, delay: 0.15, ease: "easeOut" }}
-          className="relative max-w-4xl mx-auto"
+          transition={{ duration: 0.85, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          style={{ rotateX: windowRotateX, transformPerspective: 1500 }}
+          className="relative max-w-5xl mx-auto"
         >
-          {/* Glow */}
-          <div className="absolute -inset-px rounded-2xl bg-green-gradient opacity-30 blur-md" />
-          <div className="absolute inset-0 bg-cta-glow blur-3xl opacity-30 rounded-full scale-75" />
-
-          {/* Window chrome */}
-          <div className="relative bg-jet/95 border border-white/10 rounded-2xl overflow-hidden shadow-dark-card">
+          <div className="relative bg-white border border-scale-line rounded-2xl overflow-hidden shadow-scale-illustration">
             {/* Title bar */}
-            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.07] bg-white/[0.02]">
+            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-scale-line bg-scale-50">
               <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-500/70" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400/70" />
-                <div className="w-3 h-3 rounded-full bg-emerald-400/70" />
+                <div className="w-3 h-3 rounded-full bg-scale-line" />
+                <div className="w-3 h-3 rounded-full bg-scale-line" />
+                <div className="w-3 h-3 rounded-full bg-scale-400" />
               </div>
-              <div className="flex-1 h-6 bg-white/[0.04] rounded-md mx-4 flex items-center px-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-pulse" />
-                <span className="text-white/25 text-[11px] font-mono">app.buddies.ai/dashboard</span>
+              <div className="flex-1 h-7 bg-white border border-scale-line rounded-lg mx-4 flex items-center px-3 min-w-0">
+                <span className="relative flex w-2 h-2 mr-2 shrink-0">
+                  <span className="absolute inline-flex w-full h-full rounded-full bg-scale-400 opacity-60 animate-ping" />
+                  <span className="relative inline-flex w-2 h-2 rounded-full bg-scale-500" />
+                </span>
+                <span className="text-scale-ink-faint text-[11px] font-mono truncate">app.upscaler-ai.com/dashboard</span>
               </div>
-              <div className="flex gap-2">
+              <div className="hidden sm:flex gap-2">
                 {["Share","Export"].map((btn) => (
-                  <button key={btn} className="text-[11px] text-white/30 hover:text-white/60 transition-colors px-2.5 py-1 rounded bg-white/[0.04] border border-white/[0.07]">{btn}</button>
+                  <button key={btn} className="text-[11px] font-semibold text-scale-ink-muted hover:text-scale-ink hover:border-scale-900 transition-colors px-2.5 py-1 rounded-md bg-white border border-scale-line">
+                    {btn}
+                  </button>
                 ))}
               </div>
             </div>
 
             <div className="flex h-[480px]">
               {/* Sidebar */}
-              <div className="w-48 border-r border-white/[0.07] p-4 flex flex-col gap-1 bg-white/[0.01] shrink-0">
+              <div className="hidden sm:flex w-48 border-r border-scale-line p-3 flex-col gap-1 bg-scale-50 shrink-0">
                 {[
                   { label: "Dashboard", icon: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" },
                   { label: "Students", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
@@ -234,8 +246,15 @@ export default function ProductShowcase() {
                 ].map((item, i) => (
                   <button
                     key={item.label}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm transition-colors ${i === 0 ? "bg-emerald-brand/20 text-emerald-300 font-semibold" : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"}`}
+                    className={`relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-[13px] transition-colors duration-200 ${
+                      i === 0
+                        ? "bg-white border border-scale-line text-scale-ink font-semibold shadow-scale-card"
+                        : "text-scale-ink-muted hover:text-scale-ink hover:bg-white/70 border border-transparent"
+                    }`}
                   >
+                    {i === 0 && (
+                      <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-scale-gradient" />
+                    )}
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                       <path d={item.icon} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
@@ -245,28 +264,26 @@ export default function ProductShowcase() {
               </div>
 
               {/* Main content */}
-              <div className="flex-1 p-5 overflow-hidden">
+              <div className="flex-1 p-5 overflow-y-auto bg-scale-50">
                 {/* Tab bar */}
-                <div className="flex gap-1 bg-white/[0.04] p-1 rounded-xl mb-5 w-fit">
+                <div className="flex gap-1 bg-white border border-scale-line p-1 rounded-xl mb-5 w-fit">
                   {tabs.map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        activeTab === tab.id
-                          ? "text-white bg-emerald-brand/30 shadow-green-glow-sm"
-                          : "text-white/40 hover:text-white/70"
+                      className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors duration-200 ${
+                        activeTab === tab.id ? "text-white" : "text-scale-ink-muted hover:text-scale-ink"
                       }`}
                     >
-                      {tab.icon}
-                      {tab.label}
                       {activeTab === tab.id && (
-                        <motion.div
-                          layoutId="activeTab"
-                          className="absolute inset-0 bg-emerald-brand/20 rounded-lg -z-10 border border-emerald-brand/30"
-                          transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
+                        <motion.span
+                          layoutId="showcaseTab"
+                          className="absolute inset-0 bg-scale-900 rounded-lg -z-10"
+                          transition={{ type: "spring", bounce: 0.15, duration: 0.45 }}
                         />
                       )}
+                      {tab.icon}
+                      {tab.label}
                     </button>
                   ))}
                 </div>
@@ -275,10 +292,10 @@ export default function ProductShowcase() {
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.2 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                   >
                     {tabContent[activeTab]}
                   </motion.div>

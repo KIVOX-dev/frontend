@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
+import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 
@@ -9,6 +10,7 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,7 +28,8 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
       }
 
       if (isSignUp) {
-        const payload = { name, email, password, role: "college_admin" };
+        const payload: Record<string, unknown> = { name, email, password, role: "college_admin" };
+        if (phone.trim()) payload.phone = phone.trim();
         await api.post("/auth/register", payload);
         alert("Registration request submitted! Please wait for super admin approval.");
         setIsSignUp(false);
@@ -42,6 +45,7 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
             email: user.email,
             role: user.role,
             college_id: user.college_id || user.collegeId,
+            college_name: user.college_name,
           },
           access_token
         );
@@ -133,6 +137,15 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+            <label className="lbl">Phone Number (optional)</label>
+            <input
+              type="tel"
+              className="fi"
+              placeholder="+91 98765 43210"
+              style={{ marginBottom: "12px" }}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
             <label className="lbl">Password</label>
             <input
               type="password"
@@ -176,6 +189,10 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
             <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={handleLogin} disabled={loading}>
               {loading ? "Signing in..." : "Sign In to Portal"}
             </button>
+            <div className="or-div" style={{ marginTop: "16px" }}>
+              OR
+            </div>
+            <GoogleLoginButton onError={setError} />
           </div>
         )}
       </div>

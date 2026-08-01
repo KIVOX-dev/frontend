@@ -2,6 +2,8 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { TiltCard } from "./TiltCard";
+import { RevealHeading } from "./RevealHeading";
 
 const features = [
   {
@@ -77,59 +79,60 @@ export default function FeatureGrid() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} id="features" className="bg-white py-24 lg:py-32">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section ref={ref} id="features" className="bg-scale-100 ui-section border-t border-scale-line">
+      <div className="ui-container">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="text-center mb-16"
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center max-w-2xl mx-auto mb-14"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-forest-50 border border-forest-100 text-forest-DEFAULT text-sm font-medium mb-5">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2.5"/></svg>
+          <div className="scale-eyebrow mb-5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2.5"/>
+            </svg>
             Platform Features
           </div>
-          <h2 className="text-4xl lg:text-5xl font-extrabold text-jet tracking-tight mb-4">
-            Designed for{" "}
-            <span className="text-transparent bg-clip-text bg-green-gradient">Scale & Success</span>
-          </h2>
-          <p className="text-gray-muted text-lg max-w-2xl mx-auto leading-relaxed">
+          <RevealHeading className="ui-section-title mb-4">
+            Designed for <span className="scale-mark">Scale &amp; Success</span>
+          </RevealHeading>
+          <p className="ui-lede">
             Every feature is purpose-built to bridge the gap between academic learning and industry readiness.
           </p>
         </motion.div>
 
-        {/* Feature grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Feature grid — separate cards, spaced apart */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((feat, i) => (
-            <motion.div
-              key={feat.title}
-              initial={{ opacity: 0, y: 32 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.55, delay: 0.05 * i, ease: "easeOut" }}
-              className="group relative bg-white rounded-2xl p-7 border border-gray-100 shadow-card-lift hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 cursor-default overflow-hidden"
-            >
-              {/* Green left border accent on hover */}
-              <div className="absolute left-0 top-6 bottom-6 w-0.5 bg-green-gradient rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <TiltCard key={feat.title} maxTilt={6}>
+              <motion.div
+                initial={{ opacity: 0, y: 20, rotateX: -25 }}
+                animate={inView ? { opacity: 1, y: 0, rotateX: 0 } : {}}
+                transition={{ duration: 0.55, delay: 0.05 * i, ease: [0.16, 1, 0.3, 1] }}
+                style={{ transformPerspective: 800 }}
+                className="group scale-card-interactive relative h-full p-7 lg:p-8 overflow-hidden cursor-default"
+              >
+                {/* Dark-forest rail on hover */}
+                <span className="absolute left-0 top-6 bottom-6 w-[3px] origin-top scale-y-0 rounded-full bg-scale-gradient transition-transform duration-500 ease-expo group-hover:scale-y-100" />
 
-              {/* Badge */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-forest-50 text-forest-DEFAULT text-[10px] font-bold uppercase tracking-wider mb-5">
-                {feat.badge}
-              </div>
+                <div className="flex items-start justify-between gap-4 mb-6">
+                  {/* Icon */}
+                  <div className="w-12 h-12 rounded-xl bg-scale-50 border border-scale-line text-scale-ink flex items-center justify-center transition-all duration-300 ease-expo group-hover:bg-scale-900 group-hover:border-scale-900 group-hover:text-scale-500 group-hover:-translate-y-0.5">
+                    {feat.icon}
+                  </div>
+                  {/* Badge */}
+                  <span className="scale-chip-lime uppercase tracking-looser text-[10px]">
+                    {feat.badge}
+                  </span>
+                </div>
 
-              {/* Icon */}
-              <div className="w-12 h-12 rounded-xl bg-forest-50 text-forest-DEFAULT flex items-center justify-center mb-5 group-hover:bg-forest-DEFAULT group-hover:text-white transition-all duration-300 shadow-sm">
-                {feat.icon}
-              </div>
-
-              <h3 className="text-lg font-bold text-jet mb-2.5 group-hover:text-forest-DEFAULT transition-colors duration-300">
-                {feat.title}
-              </h3>
-              <p className="text-gray-muted text-sm leading-relaxed">{feat.desc}</p>
-
-              {/* Background glow on hover */}
-              <div className="absolute inset-0 bg-forest-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -z-10" />
-            </motion.div>
+                <h3 className="text-lg font-bold text-scale-ink mb-2.5">
+                  {feat.title}
+                </h3>
+                <p className="text-scale-ink-muted text-sm leading-relaxed">{feat.desc}</p>
+              </motion.div>
+            </TiltCard>
           ))}
         </div>
       </div>

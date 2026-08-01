@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ["skillovate.com", "via.placeholder.com"],
+    domains: ["upscaler-ai.com", "via.placeholder.com"],
   },
   typescript: {
     // Pre-existing type errors in legacy files (PlatformChat, Subscription, etc.)

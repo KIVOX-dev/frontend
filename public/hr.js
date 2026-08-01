@@ -82,7 +82,7 @@ async function doHRPortalRegister() {
     const result = await res.json();
     if (result.success) {
       localStorage.setItem('sk_token', result.data.token);
-      showToast('Account created successfully! Welcome to Skillovate.');
+      showToast('Account created successfully! Welcome to UpScaler-AI.');
       _handleHRGoogleLoginSuccess(result.data.user);
     } else {
       errEl.textContent = result.message || 'Registration failed';

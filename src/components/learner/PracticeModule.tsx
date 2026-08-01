@@ -112,14 +112,14 @@ export function PracticeModule() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("skillovate_practice_stats");
+      const saved = localStorage.getItem("upscaler_ai_practice_stats");
       if (saved) setCategoryStats(JSON.parse(saved));
     } catch { /* noop */ }
   }, []);
 
   const saveStats = useCallback((stats: typeof categoryStats) => {
     setCategoryStats(stats);
-    localStorage.setItem("skillovate_practice_stats", JSON.stringify(stats));
+    localStorage.setItem("upscaler_ai_practice_stats", JSON.stringify(stats));
   }, []);
 
   const loadCategory = async (cat: Category) => {

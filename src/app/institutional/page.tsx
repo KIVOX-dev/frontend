@@ -5,7 +5,8 @@ import { useUiStore } from "@/stores/uiStore";
 import { CollegeAdminLogin } from "@/components/auth/CollegeAdminLogin";
 import { FacultyLogin } from "@/components/auth/FacultyLogin";
 import { InstitutionalStudentLogin } from "@/components/auth/InstitutionalStudentLogin";
-import { LearnerShell } from "@/components/layout/LearnerShell"; 
+import { LearnerShell } from "@/components/layout/LearnerShell";
+import { CollegeAdminShell } from "@/components/layout/CollegeAdminShell";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { PlatformChat } from "@/components/shared/PlatformChat";
 import { SettingsPanel } from "@/components/shared/SettingsPanel";
@@ -28,6 +29,11 @@ import { useEffect, useState } from "react";
 
 type InstitutionalRole = "none" | "admin" | "faculty" | "student";
 
+// Auth is one shared store across every portal, so "isAuthenticated" alone
+// doesn't mean "authenticated *here*" — a super-admin or HR session is still
+// isAuthenticated, but has no business rendering this portal's dashboard.
+const INSTITUTIONAL_ROLES = ["college_admin", "institution_admin", "faculty", "student"];
+
 export default function InstitutionalPage() {
   const { isAuthenticated, user } = useAuthStore();
   const { activeScreen, setActiveScreen } = useUiStore();
@@ -40,8 +46,8 @@ export default function InstitutionalPage() {
 
   if (!mounted) return null;
 
-  // If they are not authenticated, show the Hub or the selected login
-  if (!isAuthenticated) {
+  // If they're not authenticated for THIS portal, show the Hub or the selected login
+  if (!isAuthenticated || !INSTITUTIONAL_ROLES.includes(user?.role ?? "")) {
     if (selectedRole === "admin") return <CollegeAdminLogin onBack={() => setSelectedRole("none")} />;
     if (selectedRole === "faculty") return <FacultyLogin onBack={() => setSelectedRole("none")} />;
     if (selectedRole === "student") return <InstitutionalStudentLogin onBack={() => setSelectedRole("none")} />;
@@ -117,7 +123,7 @@ export default function InstitutionalPage() {
   const renderScreen = () => {
     switch (activeScreen) {
       case "dash":
-        if (user?.role === "college_admin") return <CollegeAdminDashboard />;
+        if (user?.role === "college_admin" || user?.role === "institution_admin") return <CollegeAdminDashboard />;
         if (user?.role === "faculty") return <FacultyDashboard />;
         if (user?.role === "student") return <LearnerDashboard />;
         return (
@@ -129,6 +135,12 @@ export default function InstitutionalPage() {
       case "security":
         return <InstitutionalApproval />;
       case "assessments":
+        return <CollegeAdminDashboard />;
+      case "placements":
+        return <CollegeAdminDashboard />;
+      case "drives":
+        return <CollegeAdminDashboard />;
+      case "users":
         return <CollegeAdminDashboard />;
       case "tracking":
         return <StudentTracking />;
@@ -165,6 +177,10 @@ export default function InstitutionalPage() {
         );
     }
   };
+
+  if (user?.role === "college_admin" || user?.role === "institution_admin") {
+    return <CollegeAdminShell>{renderScreen()}</CollegeAdminShell>;
+  }
 
   return (
     <LearnerShell>

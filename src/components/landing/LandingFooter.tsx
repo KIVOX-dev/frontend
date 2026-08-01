@@ -7,7 +7,7 @@ const footerLinks = {
     { label: "Features", href: "#features" },
     { label: "Product", href: "#product" },
     { label: "How It Works", href: "#process" },
-    { label: "Pricing", href: "#" },
+    { label: "FAQ", href: "#faq" },
   ],
   Portals: [
     { label: "Student Login", href: "/learner" },
@@ -16,8 +16,7 @@ const footerLinks = {
     { label: "Institution", href: "/institutional" },
   ],
   Company: [
-    { label: "About Us", href: "#about" },
-    { label: "Mission", href: "#mission" },
+    { label: "Contact Us", href: "#contact" },
     { label: "Careers", href: "#" },
     { label: "Blog", href: "#" },
   ],
@@ -49,30 +48,32 @@ const socials = [
 
 export default function LandingFooter() {
   return (
-    <footer className="bg-jet-dark border-t border-white/[0.05]">
-      {/* Main content */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-10">
+    <footer className="bg-scale-50 border-t border-scale-line">
+      <div className="ui-container pt-16 pb-10">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10 mb-14">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
-            {/* Logo */}
             <div className="flex items-center gap-2.5 mb-5">
-              <img src="/buddies-logo.jpg" alt="BUDDIES" style={{ height: "36px", width: "auto", borderRadius: "8px", objectFit: "contain" }} />
-              <span className="text-white font-bold text-lg tracking-tight">BUDDIES</span>
+              <span className="w-8 h-8 rounded-xl bg-scale-900 flex items-center justify-center shrink-0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 19V5M5 12l7-7 7 7" stroke="#EDF1F5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="text-scale-ink font-extrabold text-lg tracking-tight">UpScaler AI</span>
             </div>
-            <p className="text-white/40 text-sm leading-relaxed mb-6 max-w-[220px]">
+            <p className="text-scale-ink-muted text-sm leading-relaxed mb-6 max-w-[240px]">
               Advanced AI ecosystem for aptitude training and campus-to-corporate placement readiness.
             </p>
             {/* Socials */}
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               {socials.map((s) => (
                 <a
                   key={s.label}
                   href={s.href}
                   aria-label={s.label}
-                  className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/40 hover:text-white hover:bg-forest-DEFAULT/30 hover:border-forest-500/30 transition-all duration-200"
+                  className="w-9 h-9 rounded-lg bg-white border border-scale-line flex items-center justify-center text-scale-ink-muted hover:text-scale-500 hover:bg-scale-900 hover:border-scale-900 transition-all duration-300 ease-expo"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d={s.icon} />
                   </svg>
                 </a>
@@ -83,14 +84,17 @@ export default function LandingFooter() {
           {/* Link columns */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h4 className="text-white/70 text-xs font-bold uppercase tracking-widest mb-5">{category}</h4>
+              <h4 className="text-scale-ink text-[11px] font-extrabold uppercase tracking-looser mb-5">
+                {category}
+              </h4>
               <ul className="flex flex-col gap-3">
                 {links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-white/35 text-sm hover:text-white transition-colors duration-200 hover:translate-x-0.5 inline-block transition-transform"
+                      className="group inline-flex items-center gap-1.5 text-scale-ink-muted text-sm hover:text-scale-ink transition-colors duration-200"
                     >
+                      <span className="h-px w-0 bg-scale-500 transition-all duration-300 ease-expo group-hover:w-3" />
                       {link.label}
                     </Link>
                   </li>
@@ -101,13 +105,16 @@ export default function LandingFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-white/25 text-sm">
-            © 2026 BUDDIES. All rights reserved.
+        <div className="pt-8 border-t border-scale-line flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-scale-ink-faint text-[13px]">
+            © 2026 UpScaler AI. All rights reserved.
           </p>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-brand animate-pulse" />
-            <span className="text-white/25 text-xs">All systems operational</span>
+            <span className="relative flex w-2 h-2">
+              <span className="absolute inline-flex w-full h-full rounded-full bg-scale-400 opacity-60 animate-ping" />
+              <span className="relative inline-flex w-2 h-2 rounded-full bg-scale-500" />
+            </span>
+            <span className="text-scale-ink-faint text-xs">All systems operational</span>
           </div>
         </div>
       </div>

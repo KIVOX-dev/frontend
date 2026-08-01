@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:me.muz.li)",
+      "Bash(grep -n \"#[0-9A-Fa-f]\\\\{3,6\\\\}\" d:/Upscaler-frontend/src/app/globals.css)",
+      "Bash(sed -i 's/hover:bg-red-100/hover:bg-status-danger\\\\/20/' src/components/superadmin/SuperAdminDashboard.tsx)",
+      "Bash(sed -i 's/hover:bg-blue-700/hover:bg-status-info\\\\/20/' src/components/superadmin/SuperAdminDashboard.tsx)",
+      "Bash(grep -nE \"#[0-9a-fA-F]{3,6}|rgba\\\\\\(2[0-9]{2}, ?[0-9]|rgba\\\\\\(15, ?107\" d:/Upscaler-frontend/src/styles/theme-refined.css)",
+      "Bash(node scripts/validate_palette.js \"#1f5c8f,#b8632f,#0d8c76,#b98a2e,#a13d5c,#6b7a2e,#6a4a94,#a83a30\" --mode dark --surface \"#111827\")",
+      "Bash(node scripts/validate_palette.js \"#4a90d9,#e08a52,#2fbfa3,#e0ac4c,#d1638a,#9aae4c,#9b7bc7,#d9634f\" --mode dark --surface \"#111827\")",
+      "Bash(node scripts/validate_palette.js \"#4a90d9,#cc7538,#22a58c,#c99838,#d1638a,#87a03c,#9b7bc7,#d9634f\" --mode dark --surface \"#111827\")",
+      "Bash(node scripts/validate_palette.js \"#4a90d9,#cc7538,#22a58c,#bb8730,#d1638a,#87a03c,#9b7bc7,#d9634f\" --mode dark --surface \"#111827\")",
+      "Bash(curl -s -o /dev/null -w \"landing: %{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(curl -s -o /dev/null -w \"hr: %{http_code}\\\\n\" http://localhost:3000/hr)",
+      "Bash(curl -s -o /dev/null -w \"faculty: %{http_code}\\\\n\" http://localhost:3000/faculty)",
+      "Bash(curl -s http://localhost:3000/institutional -o /dev/null -w \"recompile check: %{http_code} in %{time_total}s\\\\n\")",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(grep -oE \"<style[^>]*>.{0,200}\")",
+      "Bash(xargs grep -l \"ReactLenis\\\\|useLenis\")",
+      "Bash(curl -s -o /dev/null -w \"landing \\(recheck\\): %{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(sed -i 's/border-forest-100/border-forest-500\\\\/20/g' src/components/landing/LandingCta.tsx)",
+      "Bash(sed -i -e 's/group-hover:text-forest-50/group-hover:text-forest-500\\\\/20/' -e 's/bg-forest-50 border border-forest-100/bg-forest-500\\\\/10 border border-forest-500\\\\/25/' src/components/landing/ProblemSection.tsx)",
+      "Bash(curl -s -o /dev/null -w \"frontend: %{http_code}\\\\n\" --max-time 3 http://localhost:3000)",
+      "Bash(curl -s -o /dev/null -w \"backend: %{http_code}\\\\n\" --max-time 3 http://127.0.0.1:8000/health)",
+      "Bash(git diff HEAD -- src/components/superadmin/SuperAdminDashboard.tsx | wc -l *)",
+      "Bash(git checkout *)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
+    ]
+  }
+}

@@ -1,8 +1,43 @@
 import React, { useState } from "react";
 import { api } from "@/lib/api";
 import * as XLSX from "xlsx";
+import { useAuthStore } from "@/stores/authStore";
+import { getDepartmentOptions } from "@/lib/departmentCatalog";
+
+// Sheets in the wild name these columns all sorts of ways ("Roll No.",
+// "Reg. Number", "Student Name", "E-mail" …). Match on a normalized key
+// (lowercased, punctuation/spaces stripped) against an alias list instead of
+// a handful of exact-cased guesses, so column naming/order doesn't matter.
+const FIELD_ALIASES: Record<string, string[]> = {
+  name: ["name", "fullname", "studentname", "candidatename"],
+  email: ["email", "emailid", "emailaddress", "mail", "mailid"],
+  roll: [
+    "roll", "rollno", "rollnumber", "rollnum", "rollnumb",
+    "studentid", "regno", "registrationno", "registrationnumber",
+    "enrollmentno", "enrollmentnumber", "admissionno", "admissionnumber", "id",
+  ],
+  password: ["password", "pwd", "pass"],
+  department: ["department", "dept", "branch", "course", "stream"],
+  year: ["year", "graduationyear", "gradyear", "batch", "batchyear", "passingyear"],
+};
+
+function normalizeKey(key: string): string {
+  return key.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function extractField(row: Record<string, unknown>, aliases: string[]): string | undefined {
+  for (const [rawKey, value] of Object.entries(row)) {
+    if (value === undefined || value === null) continue;
+    const stringValue = String(value).trim();
+    if (!stringValue) continue;
+    if (aliases.includes(normalizeKey(rawKey))) return stringValue;
+  }
+  return undefined;
+}
 
 export function FacultyUpload() {
+  const { user } = useAuthStore();
+  const departmentOptions = getDepartmentOptions(user?.college_name);
   const [file, setFile] = useState<File | null>(null);
   const [department, setDepartment] = useState("");
   const [year, setYear] = useState("");
@@ -25,27 +60,50 @@ export function FacultyUpload() {
       const workbook = XLSX.read(data);
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      // Expecting columns: Name, Email, Roll, Password (optional)
-      const json = XLSX.utils.sheet_to_json(worksheet) as any[];
-      
+      const json = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
+
+      const students = json
+        .map((row) => {
+          const name = extractField(row, FIELD_ALIASES.name);
+          const email = extractField(row, FIELD_ALIASES.email);
+          let roll = extractField(row, FIELD_ALIASES.roll);
+          // The backend requires a roll/student id per row; if the sheet only
+          // has name+email, derive one from the email's local part rather
+          // than rejecting the whole row.
+          if (!roll && email) roll = email.split("@")[0].toUpperCase();
+          const rowYear = extractField(row, FIELD_ALIASES.year);
+
+          return {
+            name,
+            email,
+            roll,
+            password: extractField(row, FIELD_ALIASES.password),
+            department: extractField(row, FIELD_ALIASES.department),
+            year: rowYear ? parseInt(rowYear, 10) : undefined,
+          };
+        })
+        // Drop rows that are entirely blank (trailing empty spreadsheet rows).
+        .filter((s) => s.name || s.email || s.roll);
+
       const payload = {
-        department,
+        department: department || undefined,
         year: year ? parseInt(year) : undefined,
-        students: json.map((row) => ({
-          name: row.Name || row.name,
-          email: row.Email || row.email,
-          roll: row.Roll || row.roll || row.StudentId || row.studentId,
-          password: row.Password || row.password,
-          department: row.Department || row.department,
-          year: row.Year || row.year,
-        })),
+        students,
       };
 
       const res = await api.post("/students/batch", payload);
       setResult(res.data.message);
       setFile(null);
-    } catch (err: any) {
-      setResult(err.response?.data?.detail || "Upload failed. Please check file format.");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; details?: string[]; detail?: unknown } } };
+      const details = error?.response?.data?.details;
+      const detail = error?.response?.data?.detail;
+      const message =
+        (Array.isArray(details) ? details.join(", ") : undefined) ||
+        (Array.isArray(detail) ? detail.map((d: { msg?: string }) => d.msg).join(", ") : typeof detail === "string" ? detail : undefined) ||
+        error?.response?.data?.message ||
+        "Upload failed. Please check file format.";
+      setResult(message);
     } finally {
       setLoading(false);
     }
@@ -69,13 +127,16 @@ export function FacultyUpload() {
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Default Department</label>
-            <input 
-              type="text" 
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-              placeholder="e.g. Computer Science" 
+            <select
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-            />
+            >
+              <option value="">Select</option>
+              {departmentOptions.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Graduation Year</label>

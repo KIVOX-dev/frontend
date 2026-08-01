@@ -1,4 +1,4 @@
-// Skillovate High-Performance Question Bank Fallback
+// UpScaler-AI High-Performance Question Bank Fallback
 // This file serves as a local data source if the JSON server is unavailable.
 
 window.BERTH_QBANK = {

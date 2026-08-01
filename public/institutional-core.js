@@ -626,7 +626,7 @@ function _enterInstitutionalUI(role, data) {
   if (navSuper) navSuper.style.display = (role === 'super-admin' || role === 'super_admin' ? 'block' : 'none');
 
   if (brandEl) {
-    brandEl.textContent = (role === 'col-student' ? 'SKILLOVATE' : 'College Admin');
+    brandEl.textContent = (role === 'col-student' ? 'UPSCALER-AI' : 'College Admin');
   }
   if (toggleWrap) {
     toggleWrap.style.display = (role === 'col-student' ? 'none' : 'flex');
@@ -706,7 +706,7 @@ async function doAdminLogin() {
     const authResult = await apiFetch('/auth/login', {
       method: 'POST',
       body: JSON.stringify({
-        email: 'admin@skillovate.com',
+        email: 'admin@upscaler-ai.com',
         password: 'admin123',
         role: 'super_admin'
       })

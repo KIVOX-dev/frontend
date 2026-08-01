@@ -3,12 +3,14 @@
 import React, { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
+import { getDepartmentOptions } from "@/lib/departmentCatalog";
 
 export function AddStudentPanel() {
   const { user } = useAuthStore();
   const [form, setForm] = useState({ name: "", email: "", password: "student123", department: "", year: "" });
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
+  const departmentOptions = getDepartmentOptions(user?.college_name);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +62,12 @@ export function AddStudentPanel() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "18px" }}>
             <div>
               <label className="lbl">Department</label>
-              <input type="text" className="fi" placeholder="e.g. CSE" value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} />
+              <select className="fi" value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}>
+                <option value="">Select</option>
+                {departmentOptions.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="lbl">Year</label>

@@ -18,32 +18,18 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
   } = useUiStore();
 
   const { user, logout } = useAuthStore();
-  
-  const [pendingCount, setPendingCount] = React.useState(0);
 
   React.useEffect(() => {
+    // Session check on mount; its result is intentionally unused — a 401 here
+    // is handled by the shared axios interceptor, not by this component.
     import("@/lib/api").then(({ api }) => {
       api.get("/auth/me").catch(() => {});
-      if (user?.role === "college_admin" || user?.role === "super_admin") {
-        api.get("/users/pending").then((res) => {
-          setPendingCount(res.data.length);
-        }).catch(() => {});
-      }
     });
-  }, [user?.role]);
+  }, []);
 
   const isInstitutionalStudent = user?.role === "student" && !!user?.college_id;
 
-  const navItems = user?.role === "college_admin" 
-    ? [
-        { id: "dash", label: "Dashboard", section: "Master Console", icon: <DashboardIcon /> },
-        { id: "security", label: "Security & Approvals", icon: <PracticeIcon /> },
-        { id: "assessments", label: "Assessments", icon: <TestsIcon /> },
-        { id: "tracking", label: "Student Tracking", icon: <ProfileIcon /> },
-        { id: "chat", label: "Messages", icon: <ChatIcon /> },
-        { id: "settings", label: "Settings", icon: <SettingsIcon /> },
-      ]
-    : user?.role === "faculty"
+  const navItems = user?.role === "faculty"
     ? [
         { id: "dash", label: "Dashboard", section: "Faculty Portal", icon: <DashboardIcon /> },
         { id: "tracking", label: "Student Tracking", icon: <ProfileIcon /> },
@@ -141,20 +127,13 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 01-3.46 0" />
               </svg>
-              {pendingCount > 0 && (
-                <div style={{ position: "absolute", top: "-2px", right: "-2px", background: "red", color: "white", fontSize: "10px", fontWeight: "bold", width: "16px", height: "16px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {pendingCount}
-                </div>
-              )}
             </div>
             <div className="uc">
               <div className="uav">{user?.name?.charAt(0) || "S"}</div>
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <span className="un">{user?.name || "Student"}</span>
                 <span className="ur">
-                  {user?.role === "college_admin" ? "Institution Admin" : 
-                   user?.role === "faculty" ? "Faculty Portal" : 
-                   user?.role === "super_admin" ? "Master Console" : "Learner Portal"}
+                  {user?.role === "faculty" ? "Faculty Portal" : "Learner Portal"}
                 </span>
               </div>
             </div>

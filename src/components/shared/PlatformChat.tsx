@@ -2,20 +2,32 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/stores/authStore";
-import { api } from "@/lib/api";
+import { api, getApiUrl } from "@/lib/api";
 
 type Contact = {
-  id: number;
+  id: string | number;
   name: string;
   email: string;
   role: string;
 };
 
+// The Node API returns full_name + a uuid id, not the name/numeric-id shape
+// this chat panel was originally built against — normalize at the boundary
+// rather than assuming the raw response already matches Contact.
+function toContact(raw: Record<string, unknown>): Contact {
+  return {
+    id: (raw.id as string | number) ?? (raw._id as string | number),
+    name: (raw.full_name as string) || (raw.name as string) || "Unknown",
+    email: (raw.email as string) || "",
+    role: (raw.role as string) || "",
+  };
+}
+
 type Message = {
-  sender_id?: number;
+  sender_id?: string | number;
   sender_name?: string;
   sender_role?: string;
-  receiver_id?: number;
+  receiver_id?: string | number;
   content: string;
   timestamp?: string;
   isMe?: boolean;
@@ -45,11 +57,13 @@ export function PlatformChat() {
   useEffect(() => {
     const fetchContacts = async () => {
       try {
-        const res = await api.get("/users");
-        let allUsers = res.data.filter((u: Contact) => u.id !== user?.id);
-        
+        const res = await api.get("/users/");
+        let allUsers = (res.data as Record<string, unknown>[])
+          .map(toContact)
+          .filter((c) => String(c.id) !== String(user?.id));
+
         // Add virtual broadcast contacts for admins
-        if (user?.role === "super_admin" || user?.role === "college_admin") {
+        if (user?.role === "super_admin" || user?.role === "institution_admin") {
           allUsers = [
             { id: -3, name: "📢 Broadcast to Everyone", email: "Sends to all users", role: "broadcast" },
             { id: -2, name: "📢 Broadcast to Faculty", email: "Sends to all faculty", role: "broadcast" },
@@ -62,7 +76,11 @@ export function PlatformChat() {
         // If not authorized to list users, try students endpoint
         try {
           const res = await api.get("/students");
-          setContacts(res.data.filter((u: Contact) => u.id !== user?.id));
+          setContacts(
+            (res.data as Record<string, unknown>[])
+              .map(toContact)
+              .filter((c) => String(c.id) !== String(user?.id))
+          );
         } catch {
           setContacts([]);
         }
@@ -76,7 +94,8 @@ export function PlatformChat() {
     if (!user || !token) return;
 
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//localhost:8000/api/v1/chat/ws?token=${token}`;
+    const baseUrl = getApiUrl();
+    const wsUrl = baseUrl.replace(/^http(s)?:/, wsProtocol) + `/chat/ws?token=${token}`;
     ws.current = new WebSocket(wsUrl);
 
     ws.current.onopen = () => console.log("WebSocket connected");
@@ -87,14 +106,14 @@ export function PlatformChat() {
         const sc = selectedContactRef.current;
         // Only show messages from/to the currently selected contact
         const isRelevant = sc && (
-          (msg.sender_id === sc.id && msg.receiver_id === user.id) ||
-          (msg.sender_id === user.id && msg.receiver_id === sc.id)
+          (String(msg.sender_id) === String(sc.id) && String(msg.receiver_id) === String(user.id)) ||
+          (String(msg.sender_id) === String(user.id) && String(msg.receiver_id) === String(sc.id))
         );
         if (!isRelevant) return;
         setMessages((prev) => {
-          const exists = prev.find(p => p.timestamp === msg.timestamp && p.content === msg.content && p.sender_id === msg.sender_id);
+          const exists = prev.find(p => p.timestamp === msg.timestamp && p.content === msg.content && String(p.sender_id) === String(msg.sender_id));
           if (exists) return prev;
-          return [...prev, { ...msg, isMe: msg.sender_id === user.id }];
+          return [...prev, { ...msg, isMe: String(msg.sender_id) === String(user.id) }];
         });
       } catch (e) {
         console.error("Failed to parse ws message", e);
@@ -114,7 +133,7 @@ export function PlatformChat() {
         const res = await api.get(`/chat/history/${selectedContact.id}`);
         const history = (res.data.messages || []).map((m: any) => ({
           ...m,
-          isMe: m.sender_id === user?.id
+          isMe: String(m.sender_id) === String(user?.id)
         }));
         setMessages(history);
       } catch {
@@ -127,10 +146,10 @@ export function PlatformChat() {
   const handleSend = () => {
     if (!input.trim() || !ws.current || ws.current.readyState !== WebSocket.OPEN || !selectedContact) return;
 
-    if (selectedContact.id < 0) {
+    if (typeof selectedContact.id === "number" && selectedContact.id < 0) {
       // Broadcast mode
       const targets = contacts.filter(c => {
-        if (c.id < 0) return false; // skip virtual contacts
+        if (typeof c.id === "number" && c.id < 0) return false; // skip virtual contacts
         if (selectedContact.id === -1) return c.role === "student";
         if (selectedContact.id === -2) return c.role === "faculty";
         if (selectedContact.id === -3) return true; // everyone
@@ -168,7 +187,9 @@ export function PlatformChat() {
     switch (role) {
       case "faculty": return { bg: "#ede9fe", color: "#7c3aed" };
       case "student": return { bg: "#dbeafe", color: "#2563eb" };
-      case "college_admin": return { bg: "#fef3c7", color: "#b45309" };
+      case "hr": return { bg: "#d1fae5", color: "#047857" };
+      case "college_admin":
+      case "institution_admin": return { bg: "#fef3c7", color: "#b45309" };
       case "super_admin": return { bg: "#fee2e2", color: "#dc2626" };
       case "broadcast": return { bg: "#fce7f3", color: "#db2777" };
       default: return { bg: "#f3f4f6", color: "#6b7280" };

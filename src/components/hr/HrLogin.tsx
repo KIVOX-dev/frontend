@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
+import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 
@@ -188,9 +189,7 @@ export function HrLogin() {
             <div className="or-div" style={{ marginTop: "16px" }}>
               OR
             </div>
-            <div className="google-login-btn-container" style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-              {/* Google Login Placeholder */}
-            </div>
+            <GoogleLoginButton onError={setError} />
             <div className="l-footer">
               New company? <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(false); setError(""); }}>Create Account</a>
             </div>

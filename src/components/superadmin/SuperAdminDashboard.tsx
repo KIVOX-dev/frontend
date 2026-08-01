@@ -1,26 +1,85 @@
 import React, { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, type ApiRequestConfig } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 
 type User = {
-  id: number;
-  name: string;
+  id: string;
+  full_name: string;
   email: string;
   role: string;
   created_at: string;
   status: string;
-  college_id?: number | null;
+  institution_id?: string | null;
+  department?: string | null;
   preferences?: { plan?: "base" | "pro" } | null;
+};
+
+// The dashboard's role dropdowns use the friendlier labels the rest of the
+// app already uses ("College Admin", "Recruiter"); the Node API's actual
+// role enum is student|faculty|hr|institution_admin|super_admin. Map at the
+// API boundary rather than renaming the dropdown values everywhere.
+const ROLE_API_VALUE: Record<string, string> = {
+  student: "student",
+  faculty: "faculty",
+  recruiter: "hr",
+  college_admin: "institution_admin",
+  super_admin: "super_admin",
+};
+
+const ROLE_DISPLAY_LABEL: Record<string, string> = {
+  institution_admin: "College Admin",
+  hr: "Recruiter",
+  faculty: "Faculty",
+  student: "Student",
+  super_admin: "Super Admin",
+};
+
+function roleLabel(role: string): string {
+  return ROLE_DISPLAY_LABEL[role] || role.replace("_", " ");
+}
+
+type Institution = {
+  id: string;
+  name: string;
+  code: string;
+  address?: string | null;
+  location?: string | null;
+  website?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+const EMPTY_INSTITUTION_FORM = {
+  name: "",
+  code: "",
+  location: "",
+  contact_email: "",
+  contact_phone: "",
+  website: "",
+};
+
+type Student = {
+  id: string;
+  user_id: string;
+  roll_number?: string | null;
 };
 
 export function SuperAdminDashboard() {
   const { user, logout } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<"pending" | "all" | "assessments">("pending");
+  const [activeTab, setActiveTab] = useState<"pending" | "all" | "assessments" | "institutions">("pending");
   const [users, setUsers] = useState<User[]>([]);
   const [assessments, setAssessments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, pending: 0 });
   const [sortBy, setSortBy] = useState<"name" | "role" | "status" | "date">("date");
+
+  // Filters — college/role always apply; department only makes sense once
+  // narrowed to students, so it's hidden until the role filter is "student".
+  const [filterCollege, setFilterCollege] = useState("");
+  const [filterRole, setFilterRole] = useState("");
+  const [filterDepartment, setFilterDepartment] = useState("");
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editFormData, setEditFormData] = useState({ name: "", email: "", role: "", status: "", plan: "base", college_id: "" });
@@ -28,13 +87,28 @@ export function SuperAdminDashboard() {
   // Create Modal State
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [createFormData, setCreateFormData] = useState({ name: "", email: "", role: "student", password: "", college_id: "" });
-  const [colleges, setColleges] = useState<{id: number, name: string}[]>([]);
+  const [colleges, setColleges] = useState<{id: string, name: string}[]>([]);
+
+  // Institutions tab state
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [institutionsLoading, setInstitutionsLoading] = useState(false);
+  const [isCreatingInstitution, setIsCreatingInstitution] = useState(false);
+  const [institutionForm, setInstitutionForm] = useState(EMPTY_INSTITUTION_FORM);
+  const [institutionError, setInstitutionError] = useState("");
+
+  // Roll numbers live on a separate `students` collection, joined here by
+  // user_id — the /users endpoints never embed them.
+  const [students, setStudents] = useState<Student[]>([]);
+  const rollNumberByUserId = new Map(students.map((s) => [s.user_id, s.roll_number]));
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
       const endpoint = activeTab === "pending" ? "/users/pending" : "/users/";
-      const res = await api.get(endpoint);
+      // Admin views must always reflect the live approval state, not a
+      // cached read from moments before someone else's action (e.g. a
+      // faculty batch upload creating new pending students).
+      const res = await api.get(endpoint, { cache: false } as ApiRequestConfig);
       setUsers(res.data);
     } catch (err) {
       console.error("Failed to fetch users", err);
@@ -43,18 +117,27 @@ export function SuperAdminDashboard() {
     }
   };
 
+  const fetchStudents = async () => {
+    try {
+      const res = await api.get("/students", { params: { limit: 200 }, cache: false } as ApiRequestConfig);
+      setStudents(res.data);
+    } catch (err) {
+      console.error("Failed to fetch students", err);
+    }
+  };
+
   const fetchStats = async () => {
     try {
       const [allRes, pendingRes] = await Promise.all([
-        api.get("/users/"),
-        api.get("/users/pending")
+        api.get("/users/", { cache: false } as ApiRequestConfig),
+        api.get("/users/pending", { cache: false } as ApiRequestConfig)
       ]);
       setStats({ total: allRes.data.length, pending: pendingRes.data.length });
     } catch (err) {
       console.error("Failed to fetch stats", err);
     }
     try {
-      const assessRes = await api.get("/assessments/");
+      const assessRes = await api.get("/tests");
       setAssessments(assessRes.data);
     } catch (err) {
       console.error("Failed to fetch assessments", err);
@@ -63,22 +146,80 @@ export function SuperAdminDashboard() {
 
   const fetchColleges = async () => {
     try {
-      const res = await api.get("/colleges/");
+      const res = await api.get("/institutions/public");
       setColleges(res.data);
     } catch (err) {
       console.error("Failed to fetch colleges", err);
     }
   };
 
+  const fetchInstitutions = async () => {
+    setInstitutionsLoading(true);
+    try {
+      const res = await api.get("/institutions", { cache: false } as ApiRequestConfig);
+      setInstitutions(res.data);
+    } catch (err) {
+      console.error("Failed to fetch institutions", err);
+    } finally {
+      setInstitutionsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "pending" || activeTab === "all") {
       fetchUsers();
+      fetchStudents();
+    }
+    if (activeTab === "institutions") {
+      fetchInstitutions();
     }
     fetchStats();
     fetchColleges();
   }, [activeTab]);
 
-  const handleAction = async (id: number, action: "approve" | "reject") => {
+  const handleCreateInstitution = async () => {
+    setInstitutionError("");
+    if (!institutionForm.name.trim() || !institutionForm.code.trim()) {
+      setInstitutionError("Name and code are required.");
+      return;
+    }
+    try {
+      const payload: Record<string, unknown> = {
+        name: institutionForm.name.trim(),
+        code: institutionForm.code.trim(),
+      };
+      if (institutionForm.location.trim()) payload.location = institutionForm.location.trim();
+      if (institutionForm.contact_email.trim()) payload.contact_email = institutionForm.contact_email.trim();
+      if (institutionForm.contact_phone.trim()) payload.contact_phone = institutionForm.contact_phone.trim();
+      if (institutionForm.website.trim()) payload.website = institutionForm.website.trim();
+
+      await api.post("/institutions", payload);
+      setIsCreatingInstitution(false);
+      setInstitutionForm(EMPTY_INSTITUTION_FORM);
+      fetchInstitutions();
+      fetchColleges();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; details?: string[] } } };
+      const details = error?.response?.data?.details;
+      setInstitutionError(
+        (Array.isArray(details) ? details.join(", ") : error?.response?.data?.message) ||
+          "Failed to create institution."
+      );
+    }
+  };
+
+  const handleDeleteInstitution = async (id: string) => {
+    if (!window.confirm("Delete this institution permanently?")) return;
+    try {
+      await api.delete(`/institutions/${id}`);
+      setInstitutions((prev) => prev.filter((i) => i.id !== id));
+      fetchColleges();
+    } catch (err) {
+      alert("Failed to delete institution");
+    }
+  };
+
+  const handleAction = async (id: string, action: "approve" | "reject") => {
     try {
       await api.put(`/users/${id}/${action}`);
       if (activeTab === "pending") {
@@ -92,7 +233,7 @@ export function SuperAdminDashboard() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this user permanently?")) return;
     try {
       await api.delete(`/users/${id}`);
@@ -105,13 +246,13 @@ export function SuperAdminDashboard() {
 
   const handleEditClick = (u: User) => {
     setEditingUser(u);
-    setEditFormData({ 
-      name: u.name, 
-      email: u.email, 
-      role: u.role, 
+    setEditFormData({
+      name: u.full_name,
+      email: u.email,
+      role: u.role,
       status: u.status,
       plan: u.preferences?.plan || "base",
-      college_id: u.college_id ? String(u.college_id) : ""
+      college_id: u.institution_id || ""
     });
   };
 
@@ -119,40 +260,68 @@ export function SuperAdminDashboard() {
     if (!editingUser) return;
     try {
       const preferences = editingUser.preferences || {};
-      const payload: any = {
-        name: editFormData.name,
+      const payload: Record<string, unknown> = {
+        full_name: editFormData.name,
         email: editFormData.email,
-        role: editFormData.role,
+        role: ROLE_API_VALUE[editFormData.role] || editFormData.role,
         status: editFormData.status,
         preferences: { ...preferences, plan: editFormData.plan },
-        college_id: editFormData.college_id ? parseInt(editFormData.college_id) : null
+        institution_id: editFormData.college_id || null,
       };
       await api.put(`/users/${editingUser.id}`, payload);
       setEditingUser(null);
       fetchUsers();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Update failed", err);
-      alert("Failed to update user");
+      const error = err as { response?: { data?: { message?: string; details?: string[] } } };
+      const details = error?.response?.data?.details;
+      alert((Array.isArray(details) ? details.join(", ") : error?.response?.data?.message) || "Failed to update user");
     }
   };
 
   const handleCreateSave = async () => {
     try {
-      await api.post("/users/", {
-        ...createFormData,
-        college_id: createFormData.college_id ? parseInt(createFormData.college_id) : undefined
-      });
+      const payload: Record<string, unknown> = {
+        full_name: createFormData.name,
+        email: createFormData.email,
+        password: createFormData.password,
+        role: ROLE_API_VALUE[createFormData.role] || createFormData.role,
+      };
+      if (createFormData.college_id) payload.institution_id = createFormData.college_id;
+
+      await api.post("/users/", payload);
       setIsCreatingUser(false);
       fetchUsers();
       fetchStats();
       setCreateFormData({ name: "", email: "", role: "student", password: "", college_id: "" });
-    } catch (err: any) {
-      alert(err.response?.data?.detail || "Failed to create user");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; details?: string[] } } };
+      const details = error?.response?.data?.details;
+      alert((Array.isArray(details) ? details.join(", ") : error?.response?.data?.message) || "Failed to create user");
     }
   };
 
-  const sortedUsers = [...users].sort((a, b) => {
-    if (sortBy === "name") return a.name.localeCompare(b.name);
+  // Department options are derived from whatever students are currently
+  // loaded rather than a fixed catalog — department is free text set at
+  // onboarding time (see FacultyUpload), so the real values in use are
+  // whatever faculty actually typed/uploaded.
+  const departmentOptions = Array.from(
+    new Set(
+      users
+        .filter((u) => u.role === "student" && u.department)
+        .map((u) => u.department as string)
+    )
+  ).sort();
+
+  const filteredUsers = users.filter((u) => {
+    if (filterCollege && u.institution_id !== filterCollege) return false;
+    if (filterRole && u.role !== filterRole) return false;
+    if (filterRole === "student" && filterDepartment && u.department !== filterDepartment) return false;
+    return true;
+  });
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    if (sortBy === "name") return a.full_name.localeCompare(b.full_name);
     if (sortBy === "role") return a.role.localeCompare(b.role);
     if (sortBy === "status") return a.status.localeCompare(b.status);
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -258,45 +427,112 @@ export function SuperAdminDashboard() {
         >
           Assessments
         </button>
+        <button
+          onClick={() => setActiveTab("institutions")}
+          className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "institutions"
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+        >
+          Institutions
+        </button>
       </div>
 
-      {activeTab !== "assessments" ? (
+      {activeTab === "pending" || activeTab === "all" ? (
       <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-          <h2 className="font-semibold text-gray-700">
-            {activeTab === "pending" ? "Pending Approvals" : "All Users"} ({users.length})
-          </h2>
-          <div className="flex space-x-3">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col gap-3">
+          <div className="flex justify-between items-center">
+            <h2 className="font-semibold text-gray-700">
+              {activeTab === "pending" ? "Pending Approvals" : "All Users"} ({sortedUsers.length}{sortedUsers.length !== users.length ? ` of ${users.length}` : ""})
+            </h2>
+            <div className="flex space-x-3">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="text-sm border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
+              >
+                <option value="date">Sort by Date</option>
+                <option value="name">Sort by Name</option>
+                <option value="role">Sort by Role</option>
+                <option value="status">Sort by Status</option>
+              </select>
+              <button onClick={() => setIsCreatingUser(true)} className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors">
+                + Add User
+              </button>
+              <button onClick={fetchUsers} className="text-sm text-blue-600 hover:bg-blue-700 font-medium transition-colors py-1.5">
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
             <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              value={filterCollege}
+              onChange={(e) => setFilterCollege(e.target.value)}
               className="text-sm border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
             >
-              <option value="date">Sort by Date</option>
-              <option value="name">Sort by Name</option>
-              <option value="role">Sort by Role</option>
-              <option value="status">Sort by Status</option>
+              <option value="">All Colleges</option>
+              {colleges.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
             </select>
-            <button onClick={() => setIsCreatingUser(true)} className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors">
-              + Add User
-            </button>
-            <button onClick={fetchUsers} className="text-sm text-blue-600 hover:bg-blue-700 font-medium transition-colors py-1.5">
-              Refresh
-            </button>
+
+            <select
+              value={filterRole}
+              onChange={(e) => {
+                setFilterRole(e.target.value);
+                if (e.target.value !== "student") setFilterDepartment("");
+              }}
+              className="text-sm border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
+            >
+              <option value="">All Roles</option>
+              {Object.entries(ROLE_DISPLAY_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+
+            {filterRole === "student" && (
+              <select
+                value={filterDepartment}
+                onChange={(e) => setFilterDepartment(e.target.value)}
+                className="text-sm border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
+              >
+                <option value="">All Departments</option>
+                {departmentOptions.map((dept) => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+            )}
+
+            {(filterCollege || filterRole) && (
+              <button
+                onClick={() => { setFilterCollege(""); setFilterRole(""); setFilterDepartment(""); }}
+                className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         </div>
 
         {loading ? (
           <div className="p-12 text-center text-gray-400">Loading requests...</div>
-        ) : users.length === 0 ? (
+        ) : sortedUsers.length === 0 ? (
           <div className="p-16 text-center flex flex-col items-center">
             <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900">All caught up!</h3>
-            <p className="text-gray-500 mt-1">There are no {activeTab === "pending" ? "pending" : ""} accounts to review.</p>
+            <h3 className="text-lg font-medium text-gray-900">
+              {users.length === 0 ? "All caught up!" : "No matching users"}
+            </h3>
+            <p className="text-gray-500 mt-1">
+              {users.length === 0
+                ? `There are no ${activeTab === "pending" ? "pending" : ""} accounts to review.`
+                : "Try clearing or adjusting the filters above."}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -305,6 +541,7 @@ export function SuperAdminDashboard() {
                 <tr className="bg-gray-50/50 text-gray-500 text-sm border-b border-gray-100">
                   <th className="px-6 py-4 font-medium">Name</th>
                   <th className="px-6 py-4 font-medium">Email</th>
+                  <th className="px-6 py-4 font-medium">Roll No.</th>
                   <th className="px-6 py-4 font-medium">Role</th>
                   <th className="px-6 py-4 font-medium">Status</th>
                   <th className="px-6 py-4 font-medium">Date</th>
@@ -315,18 +552,21 @@ export function SuperAdminDashboard() {
                 {sortedUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-gray-50/30 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {u.name}
+                      {u.full_name}
 
-                      {u.college_id && (
+                      {u.institution_id && (
                         <div className="text-xs text-gray-400 mt-0.5 font-normal">
-                          {colleges.find(c => c.id === u.college_id)?.name || `College ID: ${u.college_id}`}
+                          {colleges.find(c => c.id === u.institution_id)?.name || `Institution: ${u.institution_id}`}
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4 text-gray-500">{u.email}</td>
+                    <td className="px-6 py-4 text-gray-500 text-sm">
+                      {u.role === "student" ? (rollNumberByUserId.get(u.id) || "—") : "—"}
+                    </td>
                     <td className="px-6 py-4">
                       <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 capitalize border border-blue-100">
-                        {u.role.replace("_", " ")}
+                        {roleLabel(u.role)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -381,7 +621,7 @@ export function SuperAdminDashboard() {
           </div>
         )}
       </div>
-      ) : (
+      ) : activeTab === "assessments" ? (
       <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
           <h2 className="font-semibold text-gray-700">All Assessments ({assessments.length})</h2>
@@ -423,6 +663,74 @@ export function SuperAdminDashboard() {
             </tbody>
           </table>
         </div>
+      </div>
+      ) : (
+      <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+          <h2 className="font-semibold text-gray-700">Institutions ({institutions.length})</h2>
+          <div className="flex space-x-3">
+            <button onClick={() => setIsCreatingInstitution(true)} className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors">
+              + Add Institution
+            </button>
+            <button onClick={fetchInstitutions} className="text-sm text-blue-600 hover:bg-blue-700 font-medium transition-colors py-1.5">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {institutionsLoading ? (
+          <div className="p-12 text-center text-gray-400">Loading institutions...</div>
+        ) : institutions.length === 0 ? (
+          <div className="p-16 text-center flex flex-col items-center">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">No institutions yet</h3>
+            <p className="text-gray-500 mt-1">Add a college so it can be assigned to users and registrations.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50/50 text-gray-500 text-sm border-b border-gray-100">
+                  <th className="px-6 py-4 font-medium">Name</th>
+                  <th className="px-6 py-4 font-medium">Code</th>
+                  <th className="px-6 py-4 font-medium">Location</th>
+                  <th className="px-6 py-4 font-medium">Contact</th>
+                  <th className="px-6 py-4 font-medium">Status</th>
+                  <th className="px-6 py-4 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {institutions.map((inst) => (
+                  <tr key={inst.id} className="hover:bg-gray-50/30 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{inst.name}</td>
+                    <td className="px-6 py-4 text-gray-500 text-sm">{inst.code}</td>
+                    <td className="px-6 py-4 text-gray-500 text-sm">{inst.location || "—"}</td>
+                    <td className="px-6 py-4 text-gray-500 text-sm">{inst.contact_email || "—"}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize border ${
+                        inst.is_active ? "bg-green-50 text-green-700 border-green-100" : "bg-gray-50 text-gray-500 border-gray-100"
+                      }`}>
+                        {inst.is_active ? "active" : "inactive"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleDeleteInstitution(inst.id)}
+                        className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
       )}
 
@@ -581,11 +889,99 @@ export function SuperAdminDashboard() {
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleCreateSave}
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-sm transition-colors"
               >
                 Create User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Institution Modal */}
+      {isCreatingInstitution && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4">Add Institution</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Institution Name</label>
+                <input
+                  type="text"
+                  value={institutionForm.name}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, name: e.target.value })}
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  placeholder="Example Institute of Technology"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                <input
+                  type="text"
+                  value={institutionForm.code}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, code: e.target.value })}
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  placeholder="EIT"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location (optional)</label>
+                <input
+                  type="text"
+                  value={institutionForm.location}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, location: e.target.value })}
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  placeholder="City, State"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email (optional)</label>
+                <input
+                  type="email"
+                  value={institutionForm.contact_email}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, contact_email: e.target.value })}
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  placeholder="admin@college.edu"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone (optional)</label>
+                <input
+                  type="tel"
+                  value={institutionForm.contact_phone}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, contact_phone: e.target.value })}
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Website (optional)</label>
+                <input
+                  type="text"
+                  value={institutionForm.website}
+                  onChange={(e) => setInstitutionForm({ ...institutionForm, website: e.target.value })}
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  placeholder="https://college.edu"
+                />
+              </div>
+              {institutionError && (
+                <p className="text-sm text-red-600">{institutionError}</p>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => { setIsCreatingInstitution(false); setInstitutionError(""); setInstitutionForm(EMPTY_INSTITUTION_FORM); }}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateInstitution}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-sm transition-colors"
+              >
+                Create Institution
               </button>
             </div>
           </div>

@@ -4,91 +4,119 @@
 
 @layer base {
   :root {
+    /* ── Core shadcn tokens, retuned for the white theme ── */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 160 14% 8%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 160 14% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --popover-foreground: 160 14% 8%;
 
-    /* Legacy compatibility for new components */
-    --lp-bg: #FCFDFF;
-    --lp-text: #1E2350;
-    --lp-accent: #0B3D2E;
-    --lp-accent-dark: #082D22;
-    --lp-accent-light: rgba(11, 61, 46, 0.12);
-    --lp-accent-faint: rgba(11, 61, 46, 0.05);
-    --lp-muted: #6B7280;
-    --lp-surface: #E8F5F0;
-    --lp-border: rgba(11, 61, 46, 0.15);
-  }
- 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* primary = ink (black). Every button derives from this. */
+    --primary: 0 0% 4%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 156 18% 96%;
+    --secondary-foreground: 160 14% 10%;
+    --muted: 150 12% 96%;
+    --muted-foreground: 158 6% 38%;
+
+    /* accent = forest green, for highlights only */
+    --accent: 156 18% 95%;
+    --accent-foreground: 162 76% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 156 10% 91%;
+    --input: 156 10% 89%;
+    --ring: 162 76% 24%;
+    --radius: 0.75rem;
+
+    /* ── Semantic design tokens ── */
+    --ink: #0a0a0a;
+    --ink-hover: #1c1c1c;
+    --ink-muted: #5a6560;
+    --ink-faint: #8b928e;
+
+    --paper: #ffffff;
+    --paper-soft: #fafbfa;
+    --paper-tint: #f5f8f6;
+    --paper-sunken: #eff3f1;
+
+    --hairline: #e7ebe9;
+    --hairline-soft: #f0f3f1;
+
+    --green: #0f6b4f;
+    --green-deep: #0b3d2e;
+    --green-soft: #def0e6;
+    --green-wash: #f1f8f4;
+
+    --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Legacy compatibility for existing components */
+    --lp-bg: #ffffff;
+    --lp-text: #0f1512;
+    --lp-accent: #0b3d2e;
+    --lp-accent-dark: #082d22;
+    --lp-accent-light: rgba(11, 61, 46, 0.1);
+    --lp-accent-faint: rgba(11, 61, 46, 0.04);
+    --lp-muted: #5a6560;
+    --lp-surface: #f1f8f4;
+    --lp-border: #e7ebe9;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   html {
     scroll-behavior: smooth;
   }
 
-  ::selection {
-    background: rgba(15, 107, 79, 0.3);
-    color: #ffffff;
+  /* Tighter optical tracking on display type */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.025em;
   }
 
+  ::selection {
+    background: rgba(15, 107, 79, 0.16);
+    color: #0b3d2e;
+  }
+
+  /* Light, unobtrusive scrollbars */
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 10px;
+    height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: #0A0A0A;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #0B3D2E;
-    border-radius: 3px;
+    background: #dbe2de;
+    border-radius: 999px;
+    border: 3px solid #ffffff;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #0F6B4F;
+    background: #c2cdc7;
+  }
+
+  /* Consistent, accessible focus ring in green */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 2px;
+    border-radius: 6px;
   }
 
   .legacy-shell {
@@ -105,3 +133,253 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════
+   Component layer — the shared vocabulary.
+   Buttons are BLACK only; green appears as accent ink.
+   ═══════════════════════════════════════════════════ */
+@layer components {
+  /* ── Buttons ───────────────────────────────────── */
+  .ui-btn {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-xl
+           text-sm font-semibold whitespace-nowrap select-none
+           transition-all duration-300 ease-expo
+           disabled:pointer-events-none disabled:opacity-45;
+  }
+
+  /* Primary — solid black */
+  .ui-btn-primary {
+    @apply ui-btn px-6 py-3 bg-ink text-white shadow-ink
+           hover:bg-ink-hover hover:shadow-ink-hover hover:-translate-y-[1px]
+           active:translate-y-0 active:shadow-ink;
+  }
+
+  /* Secondary — outlined black on white */
+  .ui-btn-secondary {
+    @apply ui-btn px-6 py-3 bg-white text-ink border border-line-strong
+           shadow-card-lift
+           hover:border-ink hover:shadow-card-hover hover:-translate-y-[1px]
+           active:translate-y-0;
+  }
+
+  /* Ghost — text only */
+  .ui-btn-ghost {
+    @apply ui-btn px-4 py-2.5 bg-transparent text-ink-muted
+           hover:text-ink hover:bg-paper-tint;
+  }
+
+  .ui-btn-sm {
+    @apply px-4 py-2 text-[13px] rounded-lg;
+  }
+
+  .ui-btn-lg {
+    @apply px-8 py-4 text-base rounded-xl;
+  }
+
+  /* Arrow inside a button nudges on hover */
+  .ui-btn .ui-btn-arrow {
+    @apply transition-transform duration-300 ease-expo;
+  }
+  .ui-btn:hover .ui-btn-arrow {
+    @apply translate-x-1;
+  }
+
+  /* ── Surfaces ──────────────────────────────────── */
+  .ui-card {
+    @apply relative bg-white rounded-2xl border border-line shadow-card-lift
+           transition-all duration-300 ease-expo;
+  }
+
+  .ui-card-interactive {
+    @apply ui-card hover:shadow-card-hover hover:-translate-y-1 hover:border-line-strong;
+  }
+
+  /* ── Eyebrow badge — where green lives ─────────── */
+  .ui-eyebrow {
+    @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
+           bg-forest-50 border border-forest-100
+           text-forest-500 text-xs font-semibold tracking-wide;
+  }
+
+  .ui-chip {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
+           bg-paper-tint border border-line text-ink-muted
+           text-[11px] font-semibold;
+  }
+
+  .ui-chip-green {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
+           bg-forest-50 border border-forest-100 text-forest-500
+           text-[11px] font-semibold;
+  }
+
+  /* ── Type scale helpers ────────────────────────── */
+  .ui-display {
+    @apply font-extrabold text-ink tracking-tightest leading-[1.05];
+  }
+
+  .ui-section-title {
+    @apply text-3xl lg:text-[2.75rem] font-extrabold text-ink tracking-tightest leading-[1.1];
+  }
+
+  .ui-lede {
+    @apply text-ink-muted text-base lg:text-lg leading-relaxed;
+  }
+
+  /* Green underline accent for a highlighted word */
+  .ui-mark {
+    @apply relative inline-block text-forest-500;
+  }
+  .ui-mark::after {
+    content: "";
+    @apply absolute left-0 -bottom-0.5 h-[3px] w-full rounded-full bg-forest-200;
+  }
+
+  /* ── Section rhythm ────────────────────────────── */
+  .ui-section {
+    @apply py-20 lg:py-28;
+  }
+
+  /* Widened from max-w-7xl (1280px) so the site reads as a wide, premium
+     canvas rather than a narrow centered column — every landing section
+     shares this one class, so widening it here widens everything at once.
+     Padding scale: mobile 20-24px, tablet 40-56px, desktop 64-96px. */
+  .ui-container {
+    @apply max-w-[1600px] mx-auto px-5 sm:px-6 md:px-10 lg:px-14 xl:px-16 2xl:px-24;
+  }
+
+  /* Hairline divider between stacked white sections */
+  .ui-rule {
+    @apply border-t border-line;
+  }
+
+  /* ── UpScaler AI rebrand — pill buttons ──────────
+     Separate from .ui-btn-* (which stays black-only per
+     the old system) so sections not yet migrated are
+     unaffected. Rolling out section by section. */
+  .scale-btn {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-full
+           px-7 py-3.5 text-[15px] font-semibold whitespace-nowrap select-none
+           transition-all duration-300 ease-expo
+           disabled:pointer-events-none disabled:opacity-45;
+  }
+
+  .scale-btn-primary {
+    @apply scale-btn bg-scale-900 text-white shadow-scale-btn
+           hover:bg-scale-600 hover:-translate-y-[1px]
+           active:translate-y-0;
+  }
+
+  .scale-btn-secondary {
+    @apply scale-btn bg-white text-scale-ink border-2 border-scale-900
+           hover:bg-scale-50 hover:-translate-y-[1px]
+           active:translate-y-0;
+  }
+
+  /* ── UpScaler AI rebrand — surfaces & typography accents ── */
+  .scale-card {
+    @apply relative bg-white rounded-2xl border border-scale-line shadow-scale-card
+           transition-all duration-300 ease-expo;
+  }
+
+  .scale-card-interactive {
+    @apply scale-card hover:shadow-scale-illustration hover:-translate-y-1 hover:border-scale-300;
+  }
+
+  .scale-eyebrow {
+    @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
+           bg-white border border-scale-300/60 shadow-scale-card
+           text-scale-900 text-xs font-semibold tracking-wide;
+  }
+
+  .scale-chip {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
+           bg-scale-50 border border-scale-line text-scale-ink-muted
+           text-[11px] font-semibold;
+  }
+
+  .scale-chip-lime {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
+           bg-scale-100 border border-scale-300/50 text-scale-900
+           text-[11px] font-semibold;
+  }
+
+  .scale-mark {
+    @apply relative inline-block text-scale-900;
+  }
+  .scale-mark::after {
+    content: "";
+    @apply absolute left-0 -bottom-0.5 h-[3px] w-full rounded-full bg-scale-400;
+  }
+
+  /* ══════════════════════════════════════════════════
+     Nova — the dark glassmorphism redesign system.
+     Lives alongside `scale-*` (light-mode) rather than
+     replacing it, since sections not yet rebuilt still
+     use the light system until they're migrated too.
+     ══════════════════════════════════════════════════ */
+
+  .nova-glass {
+    @apply relative bg-nova-card-gradient rounded-[24px] border border-nova-line
+           backdrop-blur-xl shadow-nova-glass;
+  }
+
+  .nova-glass-interactive {
+    @apply nova-glass transition-all duration-300 ease-expo
+           hover:border-nova-line-strong hover:-translate-y-1 hover:shadow-nova-glass-hover;
+  }
+
+  .nova-btn {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-full
+           px-7 py-3.5 text-[15px] font-semibold whitespace-nowrap select-none font-inter
+           transition-all duration-300 ease-expo
+           disabled:pointer-events-none disabled:opacity-45;
+  }
+
+  .nova-btn-primary {
+    @apply nova-btn bg-nova-btn-gradient text-white shadow-nova-btn-glow
+           hover:shadow-nova-btn-glow-lg hover:-translate-y-[1px]
+           active:translate-y-0;
+  }
+
+  .nova-btn-secondary {
+    @apply nova-btn bg-white/5 text-nova-text border border-nova-line-strong backdrop-blur-xl
+           hover:bg-white/10 hover:-translate-y-[1px]
+           active:translate-y-0;
+  }
+
+  .nova-eyebrow {
+    @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
+           bg-white/5 border border-nova-line backdrop-blur-xl
+           text-nova-text text-xs font-semibold tracking-wide font-inter;
+  }
+
+  .nova-chip {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
+           bg-white/5 border border-nova-line text-nova-text-muted
+           text-[11px] font-semibold font-inter;
+  }
+
+  .nova-mark {
+    @apply bg-nova-hero-gradient bg-clip-text text-transparent;
+  }
+
+  .nova-heading {
+    @apply font-grotesk font-semibold text-nova-text tracking-tight;
+  }
+
+  .nova-section {
+    @apply py-24 lg:py-32;
+  }
+}
+
+/* Respect reduced-motion across every animated surface */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

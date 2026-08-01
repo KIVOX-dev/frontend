@@ -14,7 +14,7 @@ async function loadExternalSubjectBank(subj) {
   let fileName = fileMap[subj] || 'logical_mcq_500.json';
   if (window.BERTH_QBANK_CACHE[fileName]) return window.BERTH_QBANK_CACHE[fileName];
 
-  // Potential endpoints: relative path or the Skillovate API server
+  // Potential endpoints: relative path or the UpScaler-AI API server
   const API_HOST = window.location.hostname === 'localhost' ? 'localhost:5000' : `${window.location.hostname}:5000`;
   const endpoints = [
     'question_bank/' + fileName,

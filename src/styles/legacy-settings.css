@@ -5,15 +5,15 @@
 
 :root {
     --sv3-bg: #FFFFFF;
-    --sv3-sidebar-bg: #F8FAFC;
-    --sv3-border: #E2E8F0;
-    --sv3-text: #1E293B;
-    --sv3-muted: #64748B;
-    --sv3-accent: #2563EB;
-    --sv3-accent-l: rgba(37, 99, 235, 0.08);
-    --sv3-input-bg: #F8FAFC;
-    --sv3-radius: 20px;
-    --sv3-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    --sv3-sidebar-bg: #FAFBFA;
+    --sv3-border: #E7EBE9;
+    --sv3-text: #0F1512;
+    --sv3-muted: #5A6560;
+    --sv3-accent: #0F6B4F;
+    --sv3-accent-l: rgba(15, 107, 79, 0.07);
+    --sv3-input-bg: #FAFBFA;
+    --sv3-radius: 16px;
+    --sv3-shadow: 0 1px 2px rgba(16, 24, 20, .04), 0 4px 12px rgba(16, 24, 20, .05);
 }
 
 .sv3-container {
@@ -93,7 +93,7 @@
 
 .sv3-avatar-edit:hover {
     transform: scale(1.1);
-    background: #1D4ED8;
+    background: var(--sv3-accent);
 }
 
 .sv3-profile-info h3 {
@@ -135,7 +135,7 @@
 }
 
 .sv3-nav-btn:hover {
-    background: rgba(37, 99, 235, 0.04);
+    background: rgba(15, 107, 79, 0.04);
     color: var(--sv3-accent);
 }
 
@@ -177,7 +177,7 @@
 
 .sv3-health-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--sv3-accent), #818CF8);
+    background: linear-gradient(90deg, var(--sv3-accent), #0B3D2E);
     border-radius: 3px;
     transition: width 0.5s ease;
 }
@@ -249,7 +249,7 @@
 
 .sv3-field input, 
 .sv3-field textarea {
-    background: var(--sv3-input-bg);
+    background: #FFFFFF;
     border: 1px solid var(--sv3-border);
     border-radius: 12px;
     padding: 14px 18px;
@@ -269,7 +269,7 @@
     outline: none;
     border-color: var(--sv3-accent);
     background: #FFFFFF;
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+    box-shadow: 0 0 0 4px rgba(15, 107, 79, 0.08);
 }
 
 .sv3-field input:disabled {
@@ -281,7 +281,7 @@
 .sv3-input-affix {
     display: flex;
     align-items: center;
-    background: var(--sv3-input-bg);
+    background: #FFFFFF;
     border: 1px solid var(--sv3-border);
     border-radius: 12px;
     overflow: hidden;
@@ -290,7 +290,7 @@
 
 .sv3-input-affix:focus-within {
     border-color: var(--sv3-accent);
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+    box-shadow: 0 0 0 4px rgba(15, 107, 79, 0.08);
     background: #FFFFFF;
 }
 
@@ -347,9 +347,9 @@
 }
 
 .sv3-save-btn:hover {
-    background: #1D4ED8;
+    background: var(--sv3-accent);
     transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 8px 20px rgba(15, 107, 79, 0.25);
 }
 
 .sv3-save-btn:active {

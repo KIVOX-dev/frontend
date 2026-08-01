@@ -40,7 +40,7 @@ export function AptitudeTests() {
 
   const fetchAssessments = async () => {
     try {
-      const res = await api.get("/assessments");
+      const res = await api.get("/tests");
       setAssessments(res.data);
     } catch (err) {
       console.error(err);

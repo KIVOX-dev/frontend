@@ -218,7 +218,7 @@ export default function HrPage() {
               <div className="sd neu">No data yet</div>
             </div>
           </div>
-          
+
           <div className="gms">
             <div className="card">
               <div className="ct">Recent Applicants <span onClick={() => setActiveScreen("hr-app")} style={{ cursor: "pointer", color: "var(--accent)" }}>View all</span></div>
@@ -275,7 +275,7 @@ export default function HrPage() {
           </div>
         </div>
       )}
-      
+
       {currentScreen === "hr-vac" && (
         <div className="screen active" id="screen-hr-vac">
           <div className="ph">
@@ -365,7 +365,7 @@ export default function HrPage() {
           </div>
         </div>
       )}
-      
+
       {currentScreen === "hr-app" && (
         <div className="screen active" id="screen-hr-app">
           <div className="ph" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>

@@ -10,21 +10,25 @@ export function SuperAdminLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
+
   const login = useAuthStore((state) => state.login);
 
+  /* Exchange whatever was typed for a real JWT. There is no offline fallback
+     here on purpose: a fake session that looks logged in but can never fetch
+     real data just hides the actual failure — every request after it 401s
+     silently instead of surfacing "please log in again". If the backend is
+     unreachable, that has to be a visible error, not a session. */
   const handleLogin = async () => {
     setError("");
+
+    if (!email || !password) {
+      setError("Enter credentials");
+      return;
+    }
+
     setLoading(true);
     try {
-      if (!email || !password) {
-        setError("Enter credentials");
-        setLoading(false);
-        return;
-      }
-      const payload = { email, password };
-      const res = await api.post("/auth/login", payload);
-
+      const res = await api.post("/auth/login", { email, password });
       const { user, access_token } = res.data;
       login(
         {
@@ -33,20 +37,14 @@ export function SuperAdminLogin() {
           email: user.email,
           role: user.role,
           college_id: user.college_id || user.collegeId,
+          college_name: user.college_name,
         },
         access_token
       );
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: any } } };
-      let errMsg = "Invalid credentials. Please try again.";
-      if (error?.response?.data?.detail) {
-        if (Array.isArray(error.response.data.detail)) {
-          errMsg = error.response.data.detail.map((e: any) => e.msg).join(", ");
-        } else if (typeof error.response.data.detail === "string") {
-          errMsg = error.response.data.detail;
-        }
-      }
-      setError(errMsg);
+      const error = err as { response?: { data?: { detail?: unknown } } };
+      const detail = error?.response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Invalid credentials. Please try again.");
     } finally {
       setLoading(false);
     }

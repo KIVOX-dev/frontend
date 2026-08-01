@@ -34,13 +34,14 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       login: (user, token) => {
         // Match exact localStorage keys used by the old HTML/JS frontend
-        localStorage.setItem('skillovate_token', token);
-        localStorage.setItem('skillovate_user', JSON.stringify(user));
+        localStorage.setItem('upscaler_ai_token', token);
+        localStorage.setItem('upscaler_ai_user', JSON.stringify(user));
         set({ user, token, isAuthenticated: true });
       },
       logout: () => {
-        localStorage.removeItem('skillovate_token');
-        localStorage.removeItem('skillovate_user');
+        localStorage.removeItem('upscaler_ai_token');
+        localStorage.removeItem('upscaler_ai_user');
+        localStorage.removeItem('upscaler_ai_refresh_token');
         set({ user: null, token: null, isAuthenticated: false });
       },
       updateUser: (updatedUser) =>
@@ -49,7 +50,7 @@ export const useAuthStore = create<AuthState>()(
         })),
     }),
     {
-      name: 'skillovate-auth', // persisted key in localStorage
+      name: 'upscaler-ai-auth', // persisted key in localStorage
     }
   )
 );

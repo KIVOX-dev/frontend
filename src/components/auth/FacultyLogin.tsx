@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
+import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 
@@ -33,6 +34,7 @@ export function FacultyLogin({ onBack }: { onBack?: () => void }) {
           email: user.email,
           role: user.role,
           college_id: user.college_id || user.collegeId,
+          college_name: user.college_name,
         },
         access_token
       );
@@ -114,6 +116,10 @@ export function FacultyLogin({ onBack }: { onBack?: () => void }) {
           <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={handleLogin} disabled={loading}>
             {loading ? "Signing in..." : "Sign In to Portal"}
           </button>
+          <div className="or-div" style={{ marginTop: "16px" }}>
+            OR
+          </div>
+          <GoogleLoginButton onError={setError} />
         </div>
       </div>
     </AuthSplitLayout>

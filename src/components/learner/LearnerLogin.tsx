@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
+import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 
@@ -177,6 +178,10 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
                 </svg>
               )}
             </button>
+            <div className="or-div" style={{ marginTop: "16px" }}>
+              OR
+            </div>
+            <GoogleLoginButton onError={setLoginError} />
             <div className="l-footer" style={{ marginTop: "16px" }}>
               No account?{" "}
               <a href="#" onClick={(e) => { e.preventDefault(); setTab("signup"); }}>

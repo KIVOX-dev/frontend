@@ -21,7 +21,7 @@ import { useSearchParams } from "next/navigation";
 
 // Separate component so useSearchParams is inside a Suspense boundary
 function LearnerContent() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const { activeScreen } = useUiStore();
   const [mounted, setMounted] = useState(false);
   const searchParams = useSearchParams();
@@ -33,7 +33,9 @@ function LearnerContent() {
 
   if (!mounted) return null;
 
-  if (!isAuthenticated) {
+  // Auth is one shared store across every portal, so a session authenticated
+  // elsewhere (e.g. super-admin) must not fall through to this dashboard.
+  if (!isAuthenticated || user?.role !== "student") {
     return <LearnerLogin initialMode={mode} />;
   }
 
