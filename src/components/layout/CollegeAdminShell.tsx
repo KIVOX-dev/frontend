@@ -3,6 +3,7 @@
 import React from "react";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
+import { Logo } from "@/components/shared/Logo";
 
 export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
   const {
@@ -48,9 +49,9 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
       <div id="sidebar" className={isSidebarCollapsed ? "collapsed" : ""}>
         <div className="s-logo" style={{ justifyContent: isSidebarCollapsed ? "center" : "flex-start", padding: isSidebarCollapsed ? "16px 0" : "16px 14px 15px" }}>
           {isSidebarCollapsed ? (
-            <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--accent)", letterSpacing: "-1px" }}>BU</div>
+            <Logo variant="icon" height={28} />
           ) : (
-            <img src="/buddies-logo.jpg" alt="BUDDIES" className="brand-logo" style={{ height: "36px", width: "auto", borderRadius: "6px", objectFit: "contain" }} />
+            <Logo variant="mark" height={36} className="brand-logo" />
           )}
         </div>
 

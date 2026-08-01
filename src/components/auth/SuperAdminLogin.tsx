@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
+import { Logo } from "@/components/shared/Logo";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 
@@ -54,11 +55,9 @@ export function SuperAdminLogin() {
     <AuthSplitLayout>
       <div className="lp-card">
         <div style={{ textAlign: "center", marginBottom: "30px" }}>
-          <img
-            src="/buddies-logo.jpg"
-            alt="BUDDIES"
-            style={{ height: "50px", marginBottom: "20px", borderRadius: "8px" }}
-          />
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+            <Logo variant="full" height={50} priority />
+          </div>
           <h2 style={{ fontSize: "24px", color: "var(--text)", fontWeight: 700, marginBottom: "8px" }}>
             Super Admin Portal
           </h2>
@@ -78,7 +77,7 @@ export function SuperAdminLogin() {
           <input
             type="email"
             className="fi"
-            placeholder="admin@buddies.com"
+            placeholder="admin@upscaler.ai"
             style={{ marginBottom: "12px" }}
             value={email}
             onChange={(e) => setEmail(e.target.value)}

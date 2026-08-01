@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type ApiRequestConfig } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -66,6 +66,92 @@ type Student = {
   roll_number?: string | null;
 };
 
+// Extracted + memoized so an unrelated dashboard re-render (typing in a
+// filter, opening a modal) doesn't re-render every row in a potentially
+// large user table — only rows whose own props actually changed do.
+const UserRow = React.memo(function UserRow({
+  user,
+  activeTab,
+  collegeName,
+  rollNumber,
+  onAction,
+  onEdit,
+  onDelete,
+}: {
+  user: User;
+  activeTab: string;
+  collegeName: string | null;
+  rollNumber: string | null;
+  onAction: (id: string, action: "approve" | "reject") => void;
+  onEdit: (user: User) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <tr className="hover:bg-gray-50/30 transition-colors">
+      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+        {user.full_name}
+        {collegeName && (
+          <div className="text-xs text-gray-400 mt-0.5 font-normal">{collegeName}</div>
+        )}
+      </td>
+      <td className="px-6 py-4 text-gray-500">{user.email}</td>
+      <td className="px-6 py-4 text-gray-500 text-sm">
+        {user.role === "student" ? (rollNumber || "—") : "—"}
+      </td>
+      <td className="px-6 py-4">
+        <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 capitalize border border-blue-100">
+          {roleLabel(user.role)}
+        </span>
+      </td>
+      <td className="px-6 py-4">
+        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize border ${
+          user.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
+          user.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
+          'bg-red-50 text-red-700 border-red-100'
+        }`}>
+          {user.status}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-gray-500 text-sm">
+        {new Date(user.created_at).toLocaleDateString()}
+      </td>
+      <td className="px-6 py-4 text-right space-x-3">
+        {activeTab === "pending" ? (
+          <>
+            <button
+              onClick={() => onAction(user.id, "reject")}
+              className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
+            >
+              Reject
+            </button>
+            <button
+              onClick={() => onAction(user.id, "approve")}
+              className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all hover:shadow focus:ring-2 focus:ring-gray-900 focus:ring-offset-2"
+            >
+              Approve
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => onEdit(user)}
+              className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => onDelete(user.id)}
+              className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
+            >
+              Delete
+            </button>
+          </>
+        )}
+      </td>
+    </tr>
+  );
+});
+
 export function SuperAdminDashboard() {
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<"pending" | "all" | "assessments" | "institutions">("pending");
@@ -99,9 +185,12 @@ export function SuperAdminDashboard() {
   // Roll numbers live on a separate `students` collection, joined here by
   // user_id — the /users endpoints never embed them.
   const [students, setStudents] = useState<Student[]>([]);
-  const rollNumberByUserId = new Map(students.map((s) => [s.user_id, s.roll_number]));
+  const rollNumberByUserId = useMemo(
+    () => new Map(students.map((s) => [s.user_id, s.roll_number])),
+    [students]
+  );
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const endpoint = activeTab === "pending" ? "/users/pending" : "/users/";
@@ -115,7 +204,7 @@ export function SuperAdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
 
   const fetchStudents = async () => {
     try {
@@ -126,13 +215,21 @@ export function SuperAdminDashboard() {
     }
   };
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
-      const [allRes, pendingRes] = await Promise.all([
-        api.get("/users/", { cache: false } as ApiRequestConfig),
-        api.get("/users/pending", { cache: false } as ApiRequestConfig)
-      ]);
-      setStats({ total: allRes.data.length, pending: pendingRes.data.length });
+      if (activeTab === "pending") {
+        // fetchUsers() already requested this exact list when the pending
+        // tab is active — stats.pending is derived from it reactively below
+        // instead of firing a second identical GET /users/pending here.
+        const allRes = await api.get("/users/", { cache: false } as ApiRequestConfig);
+        setStats((prev) => ({ ...prev, total: allRes.data.length }));
+      } else {
+        const [allRes, pendingRes] = await Promise.all([
+          api.get("/users/", { cache: false } as ApiRequestConfig),
+          api.get("/users/pending", { cache: false } as ApiRequestConfig)
+        ]);
+        setStats({ total: allRes.data.length, pending: pendingRes.data.length });
+      }
     } catch (err) {
       console.error("Failed to fetch stats", err);
     }
@@ -142,7 +239,15 @@ export function SuperAdminDashboard() {
     } catch (err) {
       console.error("Failed to fetch assessments", err);
     }
-  };
+  }, [activeTab]);
+
+  // Keeps stats.pending in sync with the pending list fetchUsers() already
+  // loaded, without a duplicate GET /users/pending (see fetchStats above).
+  useEffect(() => {
+    if (activeTab === "pending") {
+      setStats((prev) => ({ ...prev, pending: users.length }));
+    }
+  }, [activeTab, users]);
 
   const fetchColleges = async () => {
     try {
@@ -219,7 +324,7 @@ export function SuperAdminDashboard() {
     }
   };
 
-  const handleAction = async (id: string, action: "approve" | "reject") => {
+  const handleAction = useCallback(async (id: string, action: "approve" | "reject") => {
     try {
       await api.put(`/users/${id}/${action}`);
       if (activeTab === "pending") {
@@ -231,9 +336,9 @@ export function SuperAdminDashboard() {
     } catch (err) {
       alert(`Failed to ${action} user`);
     }
-  };
+  }, [activeTab, fetchUsers, fetchStats]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this user permanently?")) return;
     try {
       await api.delete(`/users/${id}`);
@@ -242,9 +347,9 @@ export function SuperAdminDashboard() {
     } catch (err) {
       alert("Failed to delete user");
     }
-  };
+  }, [fetchStats]);
 
-  const handleEditClick = (u: User) => {
+  const handleEditClick = useCallback((u: User) => {
     setEditingUser(u);
     setEditFormData({
       name: u.full_name,
@@ -254,7 +359,7 @@ export function SuperAdminDashboard() {
       plan: u.preferences?.plan || "base",
       college_id: u.institution_id || ""
     });
-  };
+  }, []);
 
   const handleUpdateUser = async () => {
     if (!editingUser) return;
@@ -550,71 +655,16 @@ export function SuperAdminDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {sortedUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {u.full_name}
-
-                      {u.institution_id && (
-                        <div className="text-xs text-gray-400 mt-0.5 font-normal">
-                          {colleges.find(c => c.id === u.institution_id)?.name || `Institution: ${u.institution_id}`}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">{u.email}</td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">
-                      {u.role === "student" ? (rollNumberByUserId.get(u.id) || "—") : "—"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 capitalize border border-blue-100">
-                        {roleLabel(u.role)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize border ${
-                        u.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
-                        u.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
-                        'bg-red-50 text-red-700 border-red-100'
-                      }`}>
-                        {u.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">
-                      {new Date(u.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-3">
-                      {activeTab === "pending" ? (
-                        <>
-                          <button
-                            onClick={() => handleAction(u.id, "reject")}
-                            className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
-                          >
-                            Reject
-                          </button>
-                          <button
-                            onClick={() => handleAction(u.id, "approve")}
-                            className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all hover:shadow focus:ring-2 focus:ring-gray-900 focus:ring-offset-2"
-                          >
-                            Approve
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleEditClick(u)}
-                            className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(u.id)}
-                            className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
+                  <UserRow
+                    key={u.id}
+                    user={u}
+                    activeTab={activeTab}
+                    collegeName={u.institution_id ? (colleges.find(c => c.id === u.institution_id)?.name || `Institution: ${u.institution_id}`) : null}
+                    rollNumber={rollNumberByUserId.get(u.id) ?? null}
+                    onAction={handleAction}
+                    onEdit={handleEditClick}
+                    onDelete={handleDelete}
+                  />
                 ))}
               </tbody>
             </table>

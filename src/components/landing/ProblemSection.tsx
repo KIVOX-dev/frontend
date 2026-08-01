@@ -59,7 +59,7 @@ export default function ProblemSection() {
           </RevealHeading>
           <p className="ui-lede">
             Students, institutions, and recruiters each face their own version of the same disconnect.
-            UpScaler AI fixes all three — simultaneously.
+            UpScaler fixes all three — simultaneously.
           </p>
         </motion.div>
 
@@ -108,7 +108,7 @@ export default function ProblemSection() {
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                 </svg>
-                The UpScaler AI Solution
+                The UpScaler Solution
               </div>
               <h3 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight mb-3">
                 One platform. Every stakeholder. Zero gaps.

@@ -1,16 +1,21 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { FacultyLogin } from "@/components/auth/FacultyLogin";
+import dynamic from "next/dynamic";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { LearnerShell } from "@/components/layout/LearnerShell";
-import { FacultyUpload } from "@/components/faculty/FacultyUpload";
-import { FacultyDashboard } from "@/components/institutional/FacultyDashboard";
-import { AddStudentPanel } from "@/components/institutional/AddStudentPanel";
-import { StudentTracking } from "@/components/institutional/StudentTracking";
-import { PlatformChat } from "@/components/shared/PlatformChat";
-import { SettingsPanel } from "@/components/shared/SettingsPanel";
+
+// Only one of these renders at a time (renderScreen switch below) —
+// dynamic-importing keeps every other screen's code out of this route's
+// bundle and out of the dev-server's first-compile graph.
+const FacultyLogin = dynamic(() => import("@/components/auth/FacultyLogin").then((m) => m.FacultyLogin));
+const FacultyUpload = dynamic(() => import("@/components/faculty/FacultyUpload").then((m) => m.FacultyUpload));
+const FacultyDashboard = dynamic(() => import("@/components/institutional/FacultyDashboard").then((m) => m.FacultyDashboard));
+const AddStudentPanel = dynamic(() => import("@/components/institutional/AddStudentPanel").then((m) => m.AddStudentPanel));
+const StudentTracking = dynamic(() => import("@/components/institutional/StudentTracking").then((m) => m.StudentTracking));
+const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").then((m) => m.PlatformChat));
+const SettingsPanel = dynamic(() => import("@/components/shared/SettingsPanel").then((m) => m.SettingsPanel));
 
 export default function FacultyPage() {
   const { isAuthenticated, user } = useAuthStore();

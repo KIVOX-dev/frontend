@@ -38,7 +38,7 @@ export default function LandingCta() {
               <span className="absolute inline-flex w-full h-full rounded-full bg-scale-400 opacity-60 animate-ping" />
               <span className="relative inline-flex w-2 h-2 rounded-full bg-scale-500" />
             </span>
-            Join 1000+ learners already on UpScaler AI
+            Join 1000+ learners already on UpScaler
           </div>
 
           <RevealHeading

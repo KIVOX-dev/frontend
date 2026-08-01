@@ -60,7 +60,7 @@ export default function ContactSection() {
 
     setStatus("submitting");
     try {
-      const subject = encodeURIComponent(`UpScaler AI inquiry from ${form.name}`);
+      const subject = encodeURIComponent(`UpScaler inquiry from ${form.name}`);
       const body = encodeURIComponent(
         `Name: ${form.name}\nEmail: ${form.email}\nInstitution: ${form.institution || "—"}\n\n${form.message}`
       );
@@ -96,7 +96,7 @@ export default function ContactSection() {
               Let&apos;s talk <span className="scale-mark">placements</span>
             </RevealHeading>
             <p className="ui-lede mb-8 max-w-md">
-              Whether you&apos;re an institution exploring UpScaler AI for your placement cell or a
+              Whether you&apos;re an institution exploring UpScaler for your placement cell or a
               recruiter with questions — send us a message and our team will follow up directly.
             </p>
 

@@ -1,23 +1,29 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
-import { LearnerLogin } from "@/components/learner/LearnerLogin";
 import { LearnerShell } from "@/components/layout/LearnerShell";
-import { LearnerDashboard } from "@/components/learner/LearnerDashboard";
-import { LearnerMockInterview } from "@/components/learner/LearnerMockInterview";
-import { ResumeBuilder } from "@/components/learner/ResumeBuilder";
-import { AptitudeTests } from "@/components/learner/AptitudeTests";
-import { PracticeModule } from "@/components/learner/PracticeModule";
-import { MNCTestModule } from "@/components/learner/MNCTestModule";
-import { Leaderboard } from "@/components/learner/Leaderboard";
-import { Subscription } from "@/components/learner/Subscription";
-import { ProfileSummarizer } from "@/components/learner/ProfileSummarizer";
-import { TestHistory } from "@/components/learner/TestHistory";
-import { PlatformChat } from "@/components/shared/PlatformChat";
-import { SettingsPanel } from "@/components/shared/SettingsPanel";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+
+// Only one of these renders at a time (renderScreen switch below) —
+// dynamic-importing keeps every other screen's code out of this route's
+// bundle and out of the dev-server's first-compile graph.
+const LearnerLogin = dynamic(() => import("@/components/learner/LearnerLogin").then((m) => m.LearnerLogin));
+const LearnerDashboard = dynamic(() => import("@/components/learner/LearnerDashboard").then((m) => m.LearnerDashboard));
+const LearnerMockInterview = dynamic(() => import("@/components/learner/LearnerMockInterview").then((m) => m.LearnerMockInterview));
+const ResumeBuilder = dynamic(() => import("@/components/learner/ResumeBuilder").then((m) => m.ResumeBuilder));
+const AptitudeTests = dynamic(() => import("@/components/learner/AptitudeTests").then((m) => m.AptitudeTests));
+const PracticeModule = dynamic(() => import("@/components/learner/PracticeModule").then((m) => m.PracticeModule));
+const MNCTestModule = dynamic(() => import("@/components/learner/MNCTestModule").then((m) => m.MNCTestModule));
+const Leaderboard = dynamic(() => import("@/components/learner/Leaderboard").then((m) => m.Leaderboard));
+const Subscription = dynamic(() => import("@/components/learner/Subscription").then((m) => m.Subscription));
+const ProfileSummarizer = dynamic(() => import("@/components/learner/ProfileSummarizer").then((m) => m.ProfileSummarizer));
+const TestHistory = dynamic(() => import("@/components/learner/TestHistory").then((m) => m.TestHistory));
+const PlacementOpportunities = dynamic(() => import("@/components/learner/PlacementOpportunities").then((m) => m.PlacementOpportunities));
+const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").then((m) => m.PlatformChat));
+const SettingsPanel = dynamic(() => import("@/components/shared/SettingsPanel").then((m) => m.SettingsPanel));
 
 // Separate component so useSearchParams is inside a Suspense boundary
 function LearnerContent() {
@@ -49,6 +55,14 @@ function LearnerContent() {
       case "profile": return <ProfileSummarizer />;
       case "resume": return <ResumeBuilder />;
       case "lb": return <Leaderboard />;
+      case "placements":
+        if (user?.college_id) return <PlacementOpportunities />;
+        return (
+          <div style={{ padding: "40px", textAlign: "center", color: "var(--muted)" }}>
+            <h2>Placements</h2>
+            <p>Placements is available for institutional students only.</p>
+          </div>
+        );
       case "history": return <TestHistory />;
       case "subs": return <Subscription />;
       case "chat": return <PlatformChat />;

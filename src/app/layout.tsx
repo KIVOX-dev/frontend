@@ -25,8 +25,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "UpScaler AI — AI Aptitude Trainer & Career Intelligence",
+  title: "UpScaler — AI Aptitude Trainer & Career Intelligence",
   description: "Campus Placement & Assessment Management Platform",
+  icons: {
+    icon: "/logos/app_icon_blue.png",
+    shortcut: "/logos/app_icon_blue.png",
+    apple: "/logos/app_icon_blue.png",
+  },
 };
 
 export default function RootLayout({

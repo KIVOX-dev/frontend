@@ -1,13 +1,65 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
+
+type StudentProfile = {
+  id: string;
+  department_id?: string | null;
+  roll_number?: string | null;
+  batch_year?: number | null;
+  cgpa?: number | null;
+  placement_status?: string | null;
+  year_of_study?: number | null;
+  semester?: number | null;
+  section?: string | null;
+  phone?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  address?: string | null;
+  tests_completed?: number | null;
+  avg_accuracy?: number | null;
+  streak_days?: number | null;
+  interviews_completed?: number | null;
+};
+
+type Department = { id: string; name: string };
+
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <span style={{ fontSize: "13px", color: "var(--muted)" }}>{label}</span>
+      <div style={{ fontWeight: 600, color: "var(--text)" }}>{value ?? "—"}</div>
+    </div>
+  );
+}
 
 export function SettingsPanel() {
   const { user, logout } = useAuthStore();
   const [pwdForm, setPwdForm] = useState({ current_password: "", new_password: "" });
   const [msg, setMsg] = useState("");
+
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [profileLoading, setProfileLoading] = useState(user?.role === "student");
+  const [profileMissing, setProfileMissing] = useState(false);
+
+  useEffect(() => {
+    if (user?.role !== "student") return;
+    Promise.all([
+      api.get<StudentProfile>("/students/profile"),
+      api.get<Department[]>("/departments").catch(() => ({ data: [] })),
+    ])
+      .then(([profileRes, deptRes]) => {
+        setStudentProfile(profileRes.data);
+        setDepartments(deptRes.data || []);
+      })
+      .catch(() => setProfileMissing(true))
+      .finally(() => setProfileLoading(false));
+  }, [user?.role]);
+
+  const departmentName = departments.find((d) => d.id === studentProfile?.department_id)?.name;
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +115,41 @@ export function SettingsPanel() {
             <button type="submit" className="btn btn-p" style={{ width: "100%" }}>Update Password</button>
           </form>
         </div>
+
+        {user?.role === "student" && (
+          <div className="card" style={{ padding: "24px", gridColumn: "1 / -1" }}>
+            <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "16px", color: "var(--text)" }}>Student Details</h3>
+            {profileLoading ? (
+              <p style={{ fontSize: "13px", color: "var(--muted)" }}>Loading...</p>
+            ) : profileMissing || !studentProfile ? (
+              <p style={{ fontSize: "13px", color: "var(--muted)" }}>
+                Your student profile hasn&apos;t been set up yet. Contact your institution admin.
+              </p>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "18px" }}>
+                <Field label="Student ID" value={studentProfile.id} />
+                <Field label="Roll Number" value={studentProfile.roll_number} />
+                <Field label="Department" value={departmentName} />
+                <Field label="Batch Year" value={studentProfile.batch_year} />
+                <Field label="Year of Study" value={studentProfile.year_of_study} />
+                <Field label="Semester" value={studentProfile.semester} />
+                <Field label="Section" value={studentProfile.section} />
+                <Field label="CGPA" value={studentProfile.cgpa} />
+                <Field label="Phone" value={studentProfile.phone} />
+                <Field label="Gender" value={studentProfile.gender} />
+                <Field label="Date of Birth" value={studentProfile.date_of_birth ? new Date(studentProfile.date_of_birth).toLocaleDateString() : undefined} />
+                <Field label="Placement Status" value={studentProfile.placement_status} />
+                <Field label="Tests Completed" value={studentProfile.tests_completed} />
+                <Field label="Avg Accuracy" value={studentProfile.avg_accuracy != null ? `${studentProfile.avg_accuracy}%` : undefined} />
+                <Field label="Day Streak" value={studentProfile.streak_days} />
+                <Field label="Interviews Completed" value={studentProfile.interviews_completed} />
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <Field label="Address" value={studentProfile.address} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

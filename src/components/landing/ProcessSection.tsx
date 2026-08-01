@@ -21,7 +21,7 @@ const steps = [
   {
     number: "03",
     title: "Targeted Training Begins",
-    desc: "Based on assessment results, UpScaler AI generates a personalised learning roadmap. Students practice daily with curated question banks and mock interviews.",
+    desc: "Based on assessment results, UpScaler generates a personalised learning roadmap. Students practice daily with curated question banks and mock interviews.",
     tags: ["Learning Path", "Daily Practice", "Mock Interviews"],
   },
   {

@@ -83,25 +83,26 @@ const config: Config = {
           strong: "#D5DCD8",
         },
 
-        /* Forest — the green accent scale */
+        /* Forest — kept as the accent-scale token name for backwards
+           compatibility, now Electric Blue instead of green */
         forest: {
-          DEFAULT: "#0B3D2E",
-          50: "#F1F8F4",
-          100: "#DEF0E6",
-          200: "#B9E2CC",
-          300: "#87CCA9",
-          400: "#4FAE81",
-          500: "#0F6B4F",
-          600: "#0B3D2E",
-          700: "#082D22",
-          800: "#061E17",
-          900: "#030F0B",
+          DEFAULT: "#0138C4",
+          50: "#EDF1F5",
+          100: "#DCE4F5",
+          200: "#B9CDF0",
+          300: "#7FA3EA",
+          400: "#4D74F5",
+          500: "#0145F2",
+          600: "#0138C4",
+          700: "#071A4D",
+          800: "#050F30",
+          900: "#030A20",
         },
 
         emerald: {
-          brand: "#0F6B4F",
-          light: "#DEF0E6",
-          glow: "rgba(15,107,79,0.18)",
+          brand: "#0145F2",
+          light: "#DCE4F5",
+          glow: "rgba(1,69,242,0.18)",
         },
 
         jet: {
@@ -192,9 +193,9 @@ const config: Config = {
           "50%": { transform: "translateY(-10px)" },
         },
         "pulse-ring": {
-          "0%": { boxShadow: "0 0 0 0 rgba(15,107,79,0.28)" },
-          "70%": { boxShadow: "0 0 0 10px rgba(15,107,79,0)" },
-          "100%": { boxShadow: "0 0 0 0 rgba(15,107,79,0)" },
+          "0%": { boxShadow: "0 0 0 0 rgba(1,69,242,0.28)" },
+          "70%": { boxShadow: "0 0 0 10px rgba(1,69,242,0)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(1,69,242,0)" },
         },
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
@@ -247,16 +248,16 @@ const config: Config = {
       },
       backgroundImage: {
         /* Kept for green *accent* surfaces — never used on buttons */
-        "green-gradient": "linear-gradient(135deg, #0B3D2E 0%, #0F6B4F 100%)",
+        "green-gradient": "linear-gradient(135deg, #071A4D 0%, #0145F2 100%)",
         "ink-gradient": "linear-gradient(135deg, #0A0A0A 0%, #242424 100%)",
         "hero-mesh":
-          "radial-gradient(ellipse 70% 55% at 50% -10%, rgba(15,107,79,0.10) 0%, transparent 65%)",
+          "radial-gradient(ellipse 70% 55% at 50% -10%, rgba(1,69,242,0.10) 0%, transparent 65%)",
         "cta-glow":
-          "radial-gradient(ellipse 65% 60% at 50% 50%, rgba(15,107,79,0.12) 0%, transparent 72%)",
+          "radial-gradient(ellipse 65% 60% at 50% 50%, rgba(1,69,242,0.12) 0%, transparent 72%)",
         "card-shine":
-          "linear-gradient(135deg, rgba(15,107,79,0.04) 0%, rgba(255,255,255,0) 58%)",
+          "linear-gradient(135deg, rgba(1,69,242,0.04) 0%, rgba(255,255,255,0) 58%)",
         "grid-faint":
-          "linear-gradient(rgba(11,61,46,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(11,61,46,0.045) 1px, transparent 1px)",
+          "linear-gradient(rgba(1,69,242,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(1,69,242,0.045) 1px, transparent 1px)",
         /* UpScaler AI rebrand gradients */
         "scale-gradient": "linear-gradient(135deg, #071A4D 0%, #0145F2 100%)",
         "scale-glow":
@@ -277,7 +278,7 @@ const config: Config = {
       },
       boxShadow: {
         /* Layered, low-opacity elevation — the professional look */
-        hair: "0 0 0 1px rgba(11,61,46,0.06)",
+        hair: "0 0 0 1px rgba(1,69,242,0.06)",
         "card-lift":
           "0 1px 2px rgba(16,24,20,0.04), 0 4px 12px rgba(16,24,20,0.05)",
         "card-hover":
@@ -287,9 +288,9 @@ const config: Config = {
         ink: "0 1px 2px rgba(10,10,10,0.16), 0 6px 18px rgba(10,10,10,0.18)",
         "ink-hover":
           "0 2px 4px rgba(10,10,10,0.20), 0 12px 28px rgba(10,10,10,0.26)",
-        "green-ring": "0 0 0 3px rgba(15,107,79,0.14)",
-        "green-glow": "0 6px 22px rgba(15,107,79,0.16)",
-        "green-glow-sm": "0 3px 12px rgba(15,107,79,0.14)",
+        "green-ring": "0 0 0 3px rgba(1,69,242,0.14)",
+        "green-glow": "0 6px 22px rgba(1,69,242,0.16)",
+        "green-glow-sm": "0 3px 12px rgba(1,69,242,0.14)",
         "dark-card": "0 1px 2px rgba(16,24,20,0.04), 0 8px 24px rgba(16,24,20,0.07)",
         /* UpScaler AI rebrand shadows */
         "scale-card": "0 8px 24px rgba(0,0,0,0.05)",

@@ -198,7 +198,7 @@ export function HrLogin() {
           <>
             <div className="lp-heading">
               <h2>Create HR Account</h2>
-              <p>Register your company on BUDDIES</p>
+              <p>Register your company on UpScaler</p>
             </div>
             <label className="lbl">Full Name</label>
             <input
@@ -222,7 +222,7 @@ export function HrLogin() {
             <input
               type="text"
               className="fi"
-              placeholder="BUDDIES Global"
+              placeholder="UpScaler Global"
               style={{ marginBottom: "12px" }}
               value={company}
               onChange={(e) => setCompany(e.target.value)}

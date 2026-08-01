@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
+import { api } from "@/lib/api";
 
 type Question = {
   id: number;
@@ -13,13 +14,23 @@ type Question = {
   data_presentation?: string;
 };
 
+// Matches the `category` enum test.model.js/test.validation.js accept on
+// the backend — these are the 4 seeded open practice-bank tests (see
+// scripts/seedPracticeTests.js), fetched from GET /tests instead of a
+// static public/*.json file.
 type Category = {
   id: string;
   label: string;
-  file: string;
+  category: string;
   icon: React.ReactNode;
   color: string;
   colorLight: string;
+  description: string;
+};
+
+type BackendTest = {
+  id: string;
+  category?: string | null;
   description: string;
 };
 
@@ -27,7 +38,7 @@ const CATEGORIES: Category[] = [
   {
     id: "quantitative",
     label: "Quantitative Aptitude",
-    file: "/quantitative_mcq.json",
+    category: "quantitative",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
         <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
@@ -40,7 +51,7 @@ const CATEGORIES: Category[] = [
   {
     id: "logical",
     label: "Logical Reasoning",
-    file: "/logical_mcq_500.json",
+    category: "logical",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
         <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
@@ -53,7 +64,7 @@ const CATEGORIES: Category[] = [
   {
     id: "verbal",
     label: "Verbal Ability",
-    file: "/verbal_json_20260418_40a84d.json",
+    category: "verbal",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
         <path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
@@ -64,9 +75,9 @@ const CATEGORIES: Category[] = [
     description: "Synonyms, Antonyms, Comprehension, Grammar",
   },
   {
-    id: "di",
+    id: "data_interpretation",
     label: "Data Interpretation",
-    file: "/datainterpretation_json_20260418_efaa7a.json",
+    category: "data_interpretation",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" />
@@ -94,6 +105,7 @@ export function PracticeModule() {
 
   // State
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const [activeTestId, setActiveTestId] = useState<string | null>(null);
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [sessionQuestions, setSessionQuestions] = useState<Question[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -126,9 +138,19 @@ export function PracticeModule() {
     setLoading(true);
     setActiveCategory(cat);
     try {
-      const res = await fetch(cat.file);
-      const data = await res.json();
-      const qs: Question[] = Array.isArray(data) ? data : (data.questions || []);
+      // GET /tests returns every test visible to this student — the 4 open
+      // practice banks plus anything explicitly assigned to them (see
+      // test.service.js#list). Find the one practice test for this category.
+      const res = await api.get<BackendTest[]>("/tests");
+      const match = res.data.find((t) => t.category === cat.category);
+      if (!match) {
+        alert("This practice category isn't available yet. Please check back later.");
+        setActiveCategory(null);
+        return;
+      }
+      setActiveTestId(match.id);
+      const parsed = JSON.parse(match.description);
+      const qs: Question[] = Array.isArray(parsed) ? parsed : (parsed.questions || []);
       setAllQuestions(qs);
       startSession(qs, questionCount);
     } catch (err) {
@@ -191,17 +213,17 @@ export function PracticeModule() {
         };
         saveStats(updated);
 
-        // Save to DB
-        if (user?.id) {
-          import("@/lib/api").then(({ api }) => {
-            api.post(`/students/${user.id}/tests`, {
-              score: finalCorrect,
-              total: sessionQuestions.length,
-              percentage: Math.round((finalCorrect / sessionQuestions.length) * 100),
-              testName: `${activeCategory.label} Practice`,
-              type: "practice"
-            }).catch(console.error);
-          });
+        // Save to DB — the real /tests/submit endpoint (not the old
+        // /students/:id/tests path, whose camelCase fields didn't match its
+        // Joi schema and were silently dropped, so every practice attempt
+        // used to log as a generic untitled "Practice Test").
+        if (user?.id && activeTestId) {
+          api.post("/tests/submit", {
+            test_id: activeTestId,
+            score: finalCorrect,
+            max_score: sessionQuestions.length,
+            percentage: Math.round((finalCorrect / sessionQuestions.length) * 100),
+          }).catch(console.error);
         }
       }
     }

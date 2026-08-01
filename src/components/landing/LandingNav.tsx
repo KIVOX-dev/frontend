@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { MagneticButton } from "./MagneticButton";
+import { Logo } from "@/components/shared/Logo";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -60,13 +61,8 @@ export default function LandingNav() {
       <div className="ui-container">
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-            <span className="w-8 h-8 rounded-xl bg-nova-btn-gradient flex items-center justify-center shrink-0 shadow-nova-btn-glow">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 19V5M5 12l7-7 7 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            <span className="font-grotesk font-semibold text-scale-ink text-lg tracking-tight">UpScaler AI</span>
+          <Link href="/" className="flex items-center group shrink-0">
+            <Logo variant="sidebar" height={56} priority />
           </Link>
 
           {/* Desktop Links */}

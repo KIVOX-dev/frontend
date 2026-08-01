@@ -16,17 +16,27 @@ export const api = axios.create({
   },
 });
 
-const readToken = () =>
-  typeof window !== "undefined"
-    ? localStorage.getItem("upscaler_ai_token") || localStorage.getItem("sk_token")
-    : null;
+import { useAuthStore } from "@/stores/authStore";
+import { isOfflineSession } from "@/lib/sampleAuth";
+
+/* localStorage['upscaler_ai_token'] is shared across every tab of this origin,
+   so reading it directly here — instead of this tab's own Zustand session —
+   meant that logging into a different account in ANOTHER tab silently swapped
+   the bearer token out from under a tab that was still showing (and believed
+   it was using) its own, different account. Each tab's Zustand store is its
+   own in-memory instance that other tabs can't overwrite, so prefer that; the
+   raw key is only a fallback for the brief window before Zustand hydrates. */
+const readToken = () => {
+  if (typeof window === "undefined") return null;
+  return useAuthStore.getState().token || localStorage.getItem("upscaler_ai_token") || localStorage.getItem("sk_token");
+};
 
 const REFRESH_TOKEN_KEY = "upscaler_ai_refresh_token";
 
 const readRefreshToken = () =>
   typeof window !== "undefined" ? localStorage.getItem(REFRESH_TOKEN_KEY) : null;
 
-// Request interceptor — attaches the 'upscaler_ai_token' bearer token
+// Request interceptor — attaches the bearer token for this tab's own session
 api.interceptors.request.use(
   (config) => {
     const token = readToken();
@@ -37,9 +47,6 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-
-import { useAuthStore } from "@/stores/authStore";
-import { isOfflineSession } from "@/lib/sampleAuth";
 
 /* Access tokens expire after 30 minutes (see ACCESS_TOKEN_EXPIRE_MINUTES on the
    backend); without this, any session older than that hit a 401 on its next

@@ -3,6 +3,7 @@
 import React from "react";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
+import { Logo } from "@/components/shared/Logo";
 
 export function HrShell({ children }: { children: React.ReactNode }) {
   const {
@@ -39,21 +40,21 @@ export function HrShell({ children }: { children: React.ReactNode }) {
   return (
     <div id="app" className={isMobileSidebarOpen ? "mob-sidebar-open" : ""}>
       {/* Sidebar */}
-      <div id="sidebar" className={isSidebarCollapsed ? "collapsed" : ""} style={{ borderRightColor: "rgba(108,92,231,.15)" }}>
-        <div className="s-logo" style={{ 
-          background: "linear-gradient(135deg,rgba(108,92,231,.08),transparent)", 
-          borderBottomColor: "rgba(108,92,231,.15)", 
-          flexDirection: isSidebarCollapsed ? "row" : "column", 
-          alignItems: isSidebarCollapsed ? "center" : "flex-start", 
+      <div id="sidebar" className={isSidebarCollapsed ? "collapsed" : ""} style={{ borderRightColor: "rgba(1,69,242,.15)" }}>
+        <div className="s-logo" style={{
+          background: "linear-gradient(135deg,rgba(1,69,242,.08),transparent)",
+          borderBottomColor: "rgba(1,69,242,.15)",
+          flexDirection: isSidebarCollapsed ? "row" : "column",
+          alignItems: isSidebarCollapsed ? "center" : "flex-start",
           justifyContent: isSidebarCollapsed ? "center" : "flex-start",
-          height: "auto", 
-          padding: isSidebarCollapsed ? "20px 0" : "20px" 
+          height: "auto",
+          padding: isSidebarCollapsed ? "20px 0" : "20px"
         }}>
           {isSidebarCollapsed ? (
-            <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--accent)", letterSpacing: "-1px" }}>BU</div>
+            <Logo variant="icon" height={28} />
           ) : (
             <>
-              <img src="/buddies-logo.jpg" alt="BUDDIES" className="brand-logo" style={{ marginBottom: "8px", height: "36px", width: "auto", borderRadius: "6px", objectFit: "contain" }} />
+              <Logo variant="mark" height={36} className="brand-logo" style={{ marginBottom: "8px" }} />
               <div className="logo-text" style={{ fontSize: "11px", opacity: 0.6, textTransform: "uppercase", letterSpacing: "1px" }}>Recruiter Portal</div>
             </>
           )}

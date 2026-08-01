@@ -6,8 +6,8 @@ import { RevealHeading } from "./RevealHeading";
 
 const faqs = [
   {
-    q: "What exactly is UpScaler AI, and who is it for?",
-    a: "UpScaler AI is an AI-powered aptitude training and campus placement platform. It's built for three audiences at once — students preparing for placements, faculty and institution admins running placement cells, and recruiters sourcing pre-verified campus talent.",
+    q: "What exactly is UpScaler, and who is it for?",
+    a: "UpScaler is an AI-powered aptitude training and campus placement platform. It's built for three audiences at once — students preparing for placements, faculty and institution admins running placement cells, and recruiters sourcing pre-verified campus talent.",
   },
   {
     q: "How does the free trial work?",

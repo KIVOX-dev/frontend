@@ -4,6 +4,7 @@ import React from "react";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import Link from "next/link";
+import { Logo } from "@/components/shared/Logo";
 
 export function LearnerShell({ children }: { children: React.ReactNode }) {
   const {
@@ -46,7 +47,8 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         { id: "mnc", label: "MNC Test", icon: <MncIcon /> },
         { id: "iv", label: "Mock Interviewer", icon: <IvIcon /> },
         ...(isInstitutionalStudent ? [
-          { id: "profile", label: "Profile Summarizer", section: "Professional Profile", icon: <ProfileIcon /> },
+          { id: "placements", label: "Placements", section: "Professional Profile", icon: <PlacementIcon /> },
+          { id: "profile", label: "Profile Summarizer", icon: <ProfileIcon /> },
           { id: "resume", label: "Resume Builder", icon: <ResumeIcon /> },
           { id: "lb", label: "Top Talent Board", icon: <LeaderboardIcon /> },
         ] : []),
@@ -60,9 +62,9 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
       <div id="sidebar" className={isSidebarCollapsed ? "collapsed" : ""}>
         <div className="s-logo" style={{ justifyContent: isSidebarCollapsed ? "center" : "flex-start", padding: isSidebarCollapsed ? "16px 0" : "16px 14px 15px" }}>
           {isSidebarCollapsed ? (
-            <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--accent)", letterSpacing: "-1px" }}>BU</div>
+            <Logo variant="icon" height={28} />
           ) : (
-            <img src="/buddies-logo.jpg" alt="BUDDIES" className="brand-logo" style={{ height: "36px", width: "auto", borderRadius: "6px", objectFit: "contain" }} />
+            <Logo variant="mark" height={36} className="brand-logo" />
           )}
         </div>
 
@@ -199,6 +201,17 @@ function IvIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+    </svg>
+  );
+}
+
+function PlacementIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M20 7h-9" />
+      <path d="M14 17H5" />
+      <circle cx="17" cy="17" r="3" />
+      <circle cx="7" cy="7" r="3" />
     </svg>
   );
 }

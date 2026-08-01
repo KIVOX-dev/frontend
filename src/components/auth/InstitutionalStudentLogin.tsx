@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
+import { Logo } from "@/components/shared/Logo";
 import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -69,8 +70,8 @@ export function InstitutionalStudentLogin({ onBack }: { onBack: () => void }) {
           </button>
         </div>
         <div style={{ textAlign: "center", marginBottom: "30px" }}>
-          <div className="text-3xl font-black tracking-wider text-transparent bg-clip-text bg-green-gradient mb-6">
-            BUDDIES
+          <div className="flex justify-center mb-6">
+            <Logo variant="full" height={48} priority />
           </div>
           <h2 style={{ fontSize: "24px", color: "var(--text)", fontWeight: 700, marginBottom: "8px" }}>
             Institutional Student Login

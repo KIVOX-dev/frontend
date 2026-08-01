@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Logo } from "@/components/shared/Logo";
 
 const footerLinks = {
   Platform: [
@@ -54,12 +55,8 @@ export default function LandingFooter() {
           {/* Brand column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-5">
-              <span className="w-8 h-8 rounded-xl bg-scale-900 flex items-center justify-center shrink-0">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 19V5M5 12l7-7 7 7" stroke="#EDF1F5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <span className="text-scale-ink font-extrabold text-lg tracking-tight">UpScaler AI</span>
+              <Logo variant="mark" height={28} />
+              <span className="text-scale-ink font-extrabold text-lg tracking-tight">UpScaler</span>
             </div>
             <p className="text-scale-ink-muted text-sm leading-relaxed mb-6 max-w-[240px]">
               Advanced AI ecosystem for aptitude training and campus-to-corporate placement readiness.
@@ -107,7 +104,7 @@ export default function LandingFooter() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-scale-line flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-scale-ink-faint text-[13px]">
-            © 2026 UpScaler AI. All rights reserved.
+            © 2026 UpScaler. All rights reserved.
           </p>
           <div className="flex items-center gap-2">
             <span className="relative flex w-2 h-2">

@@ -22,14 +22,41 @@ type User = {
 };
 
 type Assessment = {
-  id: number;
+  id: string;
   title: string;
-  assessment_type: string;
+  description?: string;
   status: string;
   difficulty: string;
   duration_minutes: number;
   total_marks: number;
   created_at: string;
+  // Set only on the 4 open practice-bank tests (see
+  // scripts/seedPracticeTests.js) — null/absent on a regular test this
+  // dashboard creates, which is what an "Assign" action targets.
+  category?: string | null;
+  // Which question-bank category this test auto-draws random questions
+  // from, and how many — set on every admin-authored test going forward.
+  source_category?: string | null;
+  question_count?: number | null;
+  start_at?: string | null;
+  end_at?: string | null;
+};
+
+type AttemptResult = {
+  id: string;
+  student_id: string;
+  student_name: string;
+  score: number;
+  max_score: number;
+  percentage: number;
+  passed: boolean;
+  completed_at?: string;
+};
+
+type Department = {
+  id: string;
+  name: string;
+  code?: string;
 };
 
 type Placement = {
@@ -61,7 +88,7 @@ type Drive = {
 
 // Single accent hue for the trend line — it's genuinely one series over time,
 // so sequential/single-hue is the correct color job there (not a simplification).
-const CHART_COLOR = "#0F6B4F";
+const CHART_COLOR = "#0145F2";
 
 // Categorical palette for the Company/Drive bar charts, where each bar IS a
 // distinct named entity — identity is the job, so per-bar color is correct
@@ -153,6 +180,16 @@ function CompanyLogo({ name, size = 28 }: { name: string; size?: number }) {
   );
 }
 
+// The backend's validation middleware always responds with a generic
+// "Validation failed" top-level message — the actual per-field reasons live
+// in a separate `details` array, which is what actually explains a rejected
+// submission (e.g. a missing required field).
+function apiErrorMessage(err: any, fallback: string): string {
+  const details = err?.response?.data?.details;
+  if (Array.isArray(details) && details.length) return details.join("; ");
+  return err?.response?.data?.message || fallback;
+}
+
 function monthKey(iso?: string) {
   if (!iso) return null;
   const d = new Date(iso);
@@ -198,32 +235,53 @@ export function CollegeAdminDashboard() {
   const [showPostDrive, setShowPostDrive] = useState(false);
   const [driveForm, setDriveForm] = useState({ title: "", company_name: "", location: "", job_type: "full_time", salary_min_lpa: "", salary_max_lpa: "", application_deadline: "", eligible_departments: [] as string[] });
   const [driveMsg, setDriveMsg] = useState("");
+  const [postingDrive, setPostingDrive] = useState(false);
 
-  // Assessment form
+  // Assessment form — questions are auto-drawn from the real question bank
+  // (source_category + question_count) at assign time, never manually
+  // uploaded, so there's no JSON file / AI-generate step anymore.
   const [showCreateAssessment, setShowCreateAssessment] = useState(false);
-  const [assessmentForm, setAssessmentForm] = useState({ title: "", description: "", assessment_type: "aptitude", difficulty: "medium", duration_minutes: 30, total_marks: 100, pass_percentage: 40, status: "active", target_departments: [] as string[] });
-  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [assessmentForm, setAssessmentForm] = useState({
+    title: "", description: "", source_category: "quantitative", question_count: 20,
+    difficulty: "medium", duration_minutes: 30, total_marks: 100, pass_percentage: 40,
+    status: "active", start_at: "", end_at: "", department_id: "", batch_year: String(new Date().getFullYear()),
+  });
 
-  const handleAIGenerate = async () => {
-    if (!assessmentForm.title) {
-      alert("Please enter a title first to generate questions.");
-      return;
-    }
-    setIsGeneratingAI(true);
+  // Assign-test form — separate from the create form: assigning a test to a
+  // department + batch year is a distinct action from authoring one.
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [assigningTest, setAssigningTest] = useState<Assessment | null>(null);
+  const [assignForm, setAssignForm] = useState({ department_id: "", batch_year: new Date().getFullYear() });
+  const [assignMsg, setAssignMsg] = useState("");
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  // Results view — per-test student attempts (institution_admin's "View
+  // student attempts" / "View results and analytics" permission).
+  const [viewingResultsFor, setViewingResultsFor] = useState<Assessment | null>(null);
+  const [results, setResults] = useState<AttemptResult[]>([]);
+  const [resultsLoading, setResultsLoading] = useState(false);
+
+  // Department creation — the departments collection starts empty for every
+  // institution; there was previously no UI anywhere that could populate it,
+  // which is what left the Assign dropdown above with nothing to select.
+  const [newDeptForm, setNewDeptForm] = useState({ name: "", code: "" });
+  const [deptMsg, setDeptMsg] = useState("");
+  const [isCreatingDept, setIsCreatingDept] = useState(false);
+
+  const handleViewResults = async (test: Assessment) => {
+    setViewingResultsFor(test);
+    setResultsLoading(true);
     try {
-      const res = await api.post("/assessments/generate-questions", {
-        title: assessmentForm.title,
-        type: assessmentForm.assessment_type,
-        difficulty: assessmentForm.difficulty
-      });
-      setAssessmentForm(prev => ({ ...prev, description: JSON.stringify(res.data) }));
+      const res = await api.get<AttemptResult[]>(`/tests/${test.id}/results`);
+      setResults(res.data);
     } catch (err) {
-      alert("Failed to generate AI questions.");
       console.error(err);
+      setResults([]);
     } finally {
-      setIsGeneratingAI(false);
+      setResultsLoading(false);
     }
   };
+
 
   const fetchUsers = async () => {
     try {
@@ -239,9 +297,16 @@ export function CollegeAdminDashboard() {
 
   const fetchAssessments = async () => {
     try {
-      const res = await api.get("/assessments");
+      const res = await api.get("/tests");
       setAssessments(res.data);
       setStats(prev => ({ ...prev, totalAssessments: res.data.length }));
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get("/departments");
+      setDepartments(res.data);
     } catch (err) { console.error(err); }
   };
 
@@ -254,7 +319,7 @@ export function CollegeAdminDashboard() {
 
   const fetchDrives = async () => {
     try {
-      const res = await api.get("/jobs/drives");
+      const res = await api.get("/placements/drives");
       setDrives(res.data);
     } catch (err) { console.error(err); }
   };
@@ -264,6 +329,7 @@ export function CollegeAdminDashboard() {
     fetchAssessments();
     fetchPlacements();
     fetchDrives();
+    fetchDepartments();
   }, []);
 
   const studentsById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
@@ -329,8 +395,15 @@ export function CollegeAdminDashboard() {
   const handleCreateDrive = async (e: React.FormEvent) => {
     e.preventDefault();
     setDriveMsg("");
+
+    if (driveForm.salary_min_lpa && driveForm.salary_max_lpa && parseFloat(driveForm.salary_min_lpa) > parseFloat(driveForm.salary_max_lpa)) {
+      setDriveMsg("Min salary can't be greater than max salary.");
+      return;
+    }
+
+    setPostingDrive(true);
     try {
-      await api.post("/jobs", {
+      await api.post("/placements", {
         title: driveForm.title,
         company_name: driveForm.company_name,
         location: driveForm.location || undefined,
@@ -339,12 +412,15 @@ export function CollegeAdminDashboard() {
         salary_max_lpa: driveForm.salary_max_lpa ? parseFloat(driveForm.salary_max_lpa) : undefined,
         application_deadline: driveForm.application_deadline || undefined,
         eligible_departments: driveForm.eligible_departments.length ? driveForm.eligible_departments : undefined,
+        status: "open",
       });
       setShowPostDrive(false);
       setDriveForm({ title: "", company_name: "", location: "", job_type: "full_time", salary_min_lpa: "", salary_max_lpa: "", application_deadline: "", eligible_departments: [] });
       fetchDrives();
     } catch (err: any) {
-      setDriveMsg(err.response?.data?.detail || "Failed to post drive");
+      setDriveMsg(err.response?.data?.message || err.response?.data?.detail || "Failed to post drive");
+    } finally {
+      setPostingDrive(false);
     }
   };
 
@@ -376,24 +452,107 @@ export function CollegeAdminDashboard() {
   const handleCreateAssessment = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post("/assessments", {
-        ...assessmentForm,
-        target_departments: assessmentForm.target_departments.length ? assessmentForm.target_departments.join(",") : undefined,
+      const res = await api.post("/tests", {
+        // institution_id is required by the Joi schema but is always
+        // overwritten server-side by scopeInstitution to the caller's own
+        // institution (see handleCreateDepartment) — this placeholder is
+        // never actually trusted. Omitting the key entirely, as this used
+        // to, left it missing and failed validation before the request
+        // ever reached the service that would have derived it.
+        institution_id: currentUser?.institution_id || "",
+        title: assessmentForm.title,
+        description: assessmentForm.description,
+        test_type: "mcq",
+        // Auto-sourced from the real question bank at assign time (see
+        // testAssignment.service.js#create) — no manual upload anymore.
+        source_category: assessmentForm.source_category,
+        question_count: assessmentForm.question_count,
+        difficulty: assessmentForm.difficulty,
+        duration_minutes: assessmentForm.duration_minutes,
+        total_marks: assessmentForm.total_marks,
+        pass_percentage: assessmentForm.pass_percentage,
+        status: assessmentForm.status,
+        start_at: assessmentForm.start_at || null,
+        end_at: assessmentForm.end_at || null,
       });
+
+      let assignNote = "";
+      if (assessmentForm.department_id) {
+        try {
+          const assignRes = await api.post("/test-assignments", {
+            test_id: res.data.id,
+            department_id: assessmentForm.department_id,
+            batch_year: parseInt(assessmentForm.batch_year, 10) || new Date().getFullYear(),
+          });
+          const { assigned_count, matched_students } = assignRes.data as { assigned_count: number; matched_students: number };
+          assignNote = ` Assigned to ${assigned_count} of ${matched_students} matching student(s).`;
+        } catch (assignErr: any) {
+          assignNote = ` (Created, but assigning it failed: ${apiErrorMessage(assignErr, "unknown error")})`;
+        }
+      }
+
       setShowCreateAssessment(false);
-      setAssessmentForm({ title: "", description: "", assessment_type: "aptitude", difficulty: "medium", duration_minutes: 30, total_marks: 100, pass_percentage: 40, status: "active", target_departments: [] });
+      setAssessmentForm({
+        title: "", description: "", source_category: "quantitative", question_count: 20,
+        difficulty: "medium", duration_minutes: 30, total_marks: 100, pass_percentage: 40,
+        status: "active", start_at: "", end_at: "", department_id: "", batch_year: String(new Date().getFullYear()),
+      });
       fetchAssessments();
+      if (assignNote) alert(`Assessment created.${assignNote}`);
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Failed to create assessment");
+      alert(apiErrorMessage(err, "Failed to create assessment"));
     }
   };
 
-  const handleDeleteAssessment = async (id: number) => {
+  const handleDeleteAssessment = async (id: string) => {
     if (!confirm("Delete this assessment?")) return;
     try {
-      await api.delete(`/assessments/${id}`);
+      await api.delete(`/tests/${id}`);
       fetchAssessments();
     } catch { alert("Failed to delete"); }
+  };
+
+  const handleAssignTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assigningTest) return;
+    setAssignMsg("");
+    setIsAssigning(true);
+    try {
+      const res = await api.post("/test-assignments", {
+        test_id: assigningTest.id,
+        department_id: assignForm.department_id,
+        batch_year: assignForm.batch_year,
+      });
+      const { assigned_count, matched_students } = res.data as { assigned_count: number; matched_students: number };
+      setAssignMsg(`Assigned to ${assigned_count} of ${matched_students} matching student(s).`);
+    } catch (err: any) {
+      setAssignMsg(apiErrorMessage(err, "Failed to assign test"));
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const handleCreateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDeptForm.name.trim() || !newDeptForm.code.trim()) return;
+    setDeptMsg("");
+    setIsCreatingDept(true);
+    try {
+      // institution_id is required by the Joi schema but is always
+      // overwritten server-side by scopeInstitution to the caller's own
+      // institution — this placeholder is never actually trusted.
+      await api.post("/departments", {
+        institution_id: currentUser?.institution_id || "",
+        name: newDeptForm.name.trim(),
+        code: newDeptForm.code.trim(),
+      });
+      setNewDeptForm({ name: "", code: "" });
+      fetchDepartments();
+    } catch (err: any) {
+      setDeptMsg(apiErrorMessage(err, "Failed to add department"));
+    } finally {
+      setIsCreatingDept(false);
+    }
   };
 
   return (
@@ -613,9 +772,8 @@ export function CollegeAdminDashboard() {
         <div className="card" style={{ padding: "24px", marginBottom: "24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
             <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>Placement Drives</h3>
-            <button className="btn btn-p" onClick={() => setShowPostDrive(true)}>+ Post Drive</button>
+            <button className="btn btn-p" onClick={() => { setDriveMsg(""); setShowPostDrive(true); }}>+ Post Drive</button>
           </div>
-          {driveMsg && <div style={{ padding: "10px", marginBottom: "12px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>{driveMsg}</div>}
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -693,6 +851,35 @@ export function CollegeAdminDashboard() {
         </div>
       )}
 
+      {/* Departments — feeds both the Assign dropdown below and the
+          department picker students/faculty use elsewhere. */}
+      {activeScreen === "assessments" && (
+        <div className="card" style={{ padding: "24px", marginBottom: "24px" }}>
+          <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)", marginBottom: "6px" }}>Departments</h3>
+          <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px" }}>Required before you can assign a test by department — add each department once.</p>
+          <form onSubmit={handleCreateDepartment} style={{ display: "flex", gap: "10px", alignItems: "flex-end", flexWrap: "wrap", marginBottom: "16px" }}>
+            <div style={{ flex: "2 1 200px" }}>
+              <label className="lbl">Name</label>
+              <input type="text" className="fi" placeholder="e.g. Computer Science" value={newDeptForm.name} onChange={e => setNewDeptForm({ ...newDeptForm, name: e.target.value })} required />
+            </div>
+            <div style={{ flex: "1 1 100px" }}>
+              <label className="lbl">Code</label>
+              <input type="text" className="fi" placeholder="e.g. CSE" value={newDeptForm.code} onChange={e => setNewDeptForm({ ...newDeptForm, code: e.target.value })} required />
+            </div>
+            <button type="submit" className="btn btn-p" disabled={isCreatingDept}>{isCreatingDept ? "Adding..." : "+ Add Department"}</button>
+          </form>
+          {deptMsg && <div style={{ padding: "10px", marginBottom: "12px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>{deptMsg}</div>}
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {departments.map(d => (
+              <span key={d.id} style={{ padding: "6px 12px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "999px", fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>
+                {d.name}{d.code ? ` (${d.code})` : ""}
+              </span>
+            ))}
+            {departments.length === 0 && <span style={{ fontSize: "13px", color: "var(--muted)" }}>No departments added yet.</span>}
+          </div>
+        </div>
+      )}
+
       {/* Assessments Section */}
       {(activeScreen === "dash" || activeScreen === "assessments") && (
         <div className="card" style={{ padding: "24px" }}>
@@ -705,9 +892,10 @@ export function CollegeAdminDashboard() {
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
                 <th style={{ padding: "12px 8px" }}>Title</th>
-                <th style={{ padding: "12px 8px" }}>Type</th>
+                <th style={{ padding: "12px 8px" }}>Source</th>
                 <th style={{ padding: "12px 8px" }}>Difficulty</th>
                 <th style={{ padding: "12px 8px" }}>Duration</th>
+                <th style={{ padding: "12px 8px" }}>Questions</th>
                 <th style={{ padding: "12px 8px" }}>Marks</th>
                 <th style={{ padding: "12px 8px", textAlign: "right" }}>Actions</th>
               </tr>
@@ -715,20 +903,42 @@ export function CollegeAdminDashboard() {
             <tbody>
               {assessments.map(a => (
                 <tr key={a.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>{a.title}</td>
-                  <td style={{ padding: "12px 8px", textTransform: "capitalize" }}>{a.assessment_type}</td>
+                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>
+                    {a.title}
+                    {a.category && (
+                      <span style={{ marginLeft: "8px", padding: "2px 8px", background: "#DCFCE7", color: "#15803D", borderRadius: "999px", fontSize: "11px", fontWeight: 700 }}>
+                        Practice
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ padding: "12px 8px", textTransform: "capitalize" }}>{(a.source_category || a.category || "—").replace("_", " ")}</td>
                   <td style={{ padding: "12px 8px" }}>
                     <span style={{ padding: "4px 10px", background: a.difficulty === "hard" ? "#fee2e2" : a.difficulty === "medium" ? "#fef3c7" : "#e6f4ea", color: a.difficulty === "hard" ? "#dc2626" : a.difficulty === "medium" ? "#b45309" : "#1e8e3e", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{a.difficulty}</span>
                   </td>
                   <td style={{ padding: "12px 8px" }}>{a.duration_minutes} min</td>
+                  <td style={{ padding: "12px 8px" }}>{a.question_count ?? "—"}</td>
                   <td style={{ padding: "12px 8px" }}>{a.total_marks}</td>
                   <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                    {!a.category && (
+                      <button
+                        onClick={() => { setAssigningTest(a); setAssignMsg(""); setAssignForm({ department_id: "", batch_year: new Date().getFullYear() }); }}
+                        style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}
+                      >
+                        Assign
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleViewResults(a)}
+                      style={{ background: "none", border: "none", color: "var(--text)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}
+                    >
+                      Results
+                    </button>
                     <button onClick={() => handleDeleteAssessment(a.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>Delete</button>
                   </td>
                 </tr>
               ))}
               {assessments.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No assessments created yet.</td></tr>
+                <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No assessments created yet.</td></tr>
               )}
             </tbody>
           </table>
@@ -788,15 +998,18 @@ export function CollegeAdminDashboard() {
                 <label className="lbl">Title</label>
                 <input type="text" className="fi" value={assessmentForm.title} onChange={e => setAssessmentForm({ ...assessmentForm, title: e.target.value })} required placeholder="e.g. Aptitude Test Set 1" />
               </div>
+              <div style={{ marginBottom: "14px" }}>
+                <label className="lbl">Description</label>
+                <textarea className="fi" rows={2} value={assessmentForm.description} onChange={e => setAssessmentForm({ ...assessmentForm, description: e.target.value })} placeholder="What this assessment covers" />
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
                 <div>
-                  <label className="lbl">Type</label>
-                  <select className="fi" value={assessmentForm.assessment_type} onChange={e => setAssessmentForm({ ...assessmentForm, assessment_type: e.target.value })}>
-                    <option value="aptitude">Aptitude</option>
-                    <option value="technical">Technical</option>
-                    <option value="verbal">Verbal</option>
-                    <option value="coding">Coding</option>
-                    <option value="mixed">Mixed</option>
+                  <label className="lbl">Question Source</label>
+                  <select className="fi" value={assessmentForm.source_category} onChange={e => setAssessmentForm({ ...assessmentForm, source_category: e.target.value })}>
+                    <option value="quantitative">Quantitative</option>
+                    <option value="logical">Logical Reasoning</option>
+                    <option value="verbal">Verbal Ability</option>
+                    <option value="data_interpretation">Data Interpretation</option>
                   </select>
                 </div>
                 <div>
@@ -808,59 +1021,52 @@ export function CollegeAdminDashboard() {
                   </select>
                 </div>
               </div>
-              <div style={{ marginBottom: "14px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
-                  <label className="lbl" style={{ marginBottom: 0 }}>Questions Data (JSON file)</label>
-                  <button
-                    type="button"
-                    onClick={handleAIGenerate}
-                    disabled={isGeneratingAI}
-                    style={{ background: "none", border: "none", color: "var(--purple)", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}
-                  >
-                    {isGeneratingAI ? "Generating..." : "✨ Auto-Generate with AI"}
-                  </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+                <div>
+                  <label className="lbl">Number of Questions</label>
+                  <input type="number" min={1} max={200} className="fi" value={assessmentForm.question_count} onChange={e => setAssessmentForm({ ...assessmentForm, question_count: parseInt(e.target.value) || 20 })} />
                 </div>
-                <input type="file" accept=".json" className="fi" onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      try {
-                        const jsonStr = ev.target?.result as string;
-                        JSON.parse(jsonStr); // Validate JSON
-                        setAssessmentForm(prev => ({ ...prev, description: jsonStr }));
-                      } catch (err) {
-                        alert("Invalid JSON format. Please upload a valid JSON file.");
-                        e.target.value = "";
-                      }
-                    };
-                    reader.readAsText(file);
-                  }
-                }} />
-                {assessmentForm.description && <div style={{ fontSize: "12px", color: "var(--teal)", marginTop: "4px" }}>✓ JSON loaded successfully</div>}
-              </div>
-              <div style={{ marginBottom: "20px" }}>
-                <label className="lbl">Target Departments (Optional — leave empty for all)</label>
-                <select
-                  className="fi"
-                  multiple
-                  style={{ height: "120px" }}
-                  value={assessmentForm.target_departments}
-                  onChange={e => setAssessmentForm({ ...assessmentForm, target_departments: Array.from(e.target.selectedOptions, o => o.value) })}
-                >
-                  {departmentOptions.map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
                 <div>
                   <label className="lbl">Duration (min)</label>
                   <input type="number" className="fi" value={assessmentForm.duration_minutes} onChange={e => setAssessmentForm({ ...assessmentForm, duration_minutes: parseInt(e.target.value) || 30 })} />
                 </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
                 <div>
                   <label className="lbl">Total Marks</label>
                   <input type="number" className="fi" value={assessmentForm.total_marks} onChange={e => setAssessmentForm({ ...assessmentForm, total_marks: parseInt(e.target.value) || 100 })} />
+                </div>
+                <div>
+                  <label className="lbl">Status</label>
+                  <select className="fi" value={assessmentForm.status} onChange={e => setAssessmentForm({ ...assessmentForm, status: e.target.value })}>
+                    <option value="active">Publish now</option>
+                    <option value="draft">Save as draft</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+                <div>
+                  <label className="lbl">Start Date &amp; Time</label>
+                  <input type="datetime-local" className="fi" value={assessmentForm.start_at} onChange={e => setAssessmentForm({ ...assessmentForm, start_at: e.target.value })} />
+                </div>
+                <div>
+                  <label className="lbl">End Date &amp; Time</label>
+                  <input type="datetime-local" className="fi" value={assessmentForm.end_at} onChange={e => setAssessmentForm({ ...assessmentForm, end_at: e.target.value })} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+                <div>
+                  <label className="lbl">Department (Optional)</label>
+                  <select className="fi" value={assessmentForm.department_id} onChange={e => setAssessmentForm({ ...assessmentForm, department_id: e.target.value })}>
+                    <option value="">Assign later / all</option>
+                    {departments.map(dept => (
+                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="lbl">Batch Year {assessmentForm.department_id && <span style={{ color: "var(--red)" }}>*</span>}</label>
+                  <input type="number" className="fi" value={assessmentForm.batch_year} onChange={e => setAssessmentForm({ ...assessmentForm, batch_year: e.target.value })} disabled={!assessmentForm.department_id} />
                 </div>
               </div>
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
@@ -868,6 +1074,99 @@ export function CollegeAdminDashboard() {
                 <button type="submit" className="btn btn-p">Create</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Test Modal */}
+      {assigningTest && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
+            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Assign Test</h3>
+            <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>{assigningTest.title}</p>
+            <form onSubmit={handleAssignTest}>
+              <div style={{ marginBottom: "14px" }}>
+                <label className="lbl">Department</label>
+                <select
+                  className="fi"
+                  value={assignForm.department_id}
+                  onChange={e => setAssignForm({ ...assignForm, department_id: e.target.value })}
+                  required
+                >
+                  <option value="" disabled>Select a department</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+                {departments.length === 0 && (
+                  <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>No departments found for this institution yet.</div>
+                )}
+              </div>
+              <div style={{ marginBottom: "20px" }}>
+                <label className="lbl">Graduation / Batch Year</label>
+                <input
+                  type="number"
+                  className="fi"
+                  value={assignForm.batch_year}
+                  onChange={e => setAssignForm({ ...assignForm, batch_year: parseInt(e.target.value) || new Date().getFullYear() })}
+                  required
+                />
+              </div>
+              {assignMsg && <div style={{ padding: "10px", marginBottom: "14px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>{assignMsg}</div>}
+              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                <button type="button" className="btn" onClick={() => setAssigningTest(null)}>Close</button>
+                <button type="submit" className="btn btn-p" disabled={isAssigning}>{isAssigning ? "Assigning..." : "Assign"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Results Modal */}
+      {viewingResultsFor && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "560px", maxHeight: "80vh", overflowY: "auto" }}>
+            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Results</h3>
+            <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>{viewingResultsFor.title}</p>
+
+            {resultsLoading ? (
+              <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>Loading...</div>
+            ) : results.length === 0 ? (
+              <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>No attempts yet.</div>
+            ) : (
+              <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
+                    <th style={{ padding: "8px" }}>Student</th>
+                    <th style={{ padding: "8px" }}>Score</th>
+                    <th style={{ padding: "8px" }}>%</th>
+                    <th style={{ padding: "8px" }}>Result</th>
+                    <th style={{ padding: "8px" }}>Completed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map(r => {
+                    return (
+                      <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                        <td style={{ padding: "8px" }}>{r.student_name}</td>
+                        <td style={{ padding: "8px" }}>{r.score} / {r.max_score}</td>
+                        <td style={{ padding: "8px" }}>{r.percentage}%</td>
+                        <td style={{ padding: "8px" }}>
+                          <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: r.passed ? "#DCFCE7" : "#FEE2E2", color: r.passed ? "#15803D" : "#DC2626" }}>
+                            {r.passed ? "Passed" : "Failed"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "8px", fontSize: "13px", color: "var(--muted)" }}>{r.completed_at ? new Date(r.completed_at).toLocaleString() : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
+              <button type="button" className="btn" onClick={() => setViewingResultsFor(null)}>Close</button>
+            </div>
           </div>
         </div>
       )}
@@ -927,6 +1226,7 @@ export function CollegeAdminDashboard() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
           <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
             <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "20px", color: "var(--text)" }}>Post Placement Drive</h3>
+            {driveMsg && <div style={{ padding: "10px", marginBottom: "14px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", color: "#DC2626", fontSize: "13px" }}>{driveMsg}</div>}
             <form onSubmit={handleCreateDrive}>
               <div style={{ marginBottom: "14px" }}>
                 <label className="lbl">Title</label>
@@ -979,8 +1279,8 @@ export function CollegeAdminDashboard() {
                 </select>
               </div>
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                <button type="button" className="btn" onClick={() => setShowPostDrive(false)}>Cancel</button>
-                <button type="submit" className="btn btn-p">Post Drive</button>
+                <button type="button" className="btn" disabled={postingDrive} onClick={() => { setShowPostDrive(false); setDriveMsg(""); }}>Cancel</button>
+                <button type="submit" className="btn btn-p" disabled={postingDrive}>{postingDrive ? "Posting..." : "Post Drive"}</button>
               </div>
             </form>
           </div>

@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
-import * as XLSX from "xlsx";
 import { useAuthStore } from "@/stores/authStore";
-import { getDepartmentOptions } from "@/lib/departmentCatalog";
+
+type Department = { id: string; name: string; code?: string };
 
 // Sheets in the wild name these columns all sorts of ways ("Roll No.",
 // "Reg. Number", "Student Name", "E-mail" …). Match on a normalized key
@@ -35,14 +35,30 @@ function extractField(row: Record<string, unknown>, aliases: string[]): string |
   return undefined;
 }
 
+// A CSV's free-text department column ("CSE", "Computer Science") rarely
+// matches a real department's name exactly — fall back to a code match
+// before giving up, since codes are what people usually type in a hurry.
+function resolveDepartmentId(raw: string | undefined, departments: Department[]): string | undefined {
+  if (!raw) return undefined;
+  const needle = raw.trim().toLowerCase();
+  const match = departments.find(
+    (d) => d.name.toLowerCase() === needle || (d.code && d.code.toLowerCase() === needle)
+  );
+  return match?.id;
+}
+
 export function FacultyUpload() {
   const { user } = useAuthStore();
-  const departmentOptions = getDepartmentOptions(user?.college_name);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [file, setFile] = useState<File | null>(null);
-  const [department, setDepartment] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
   const [year, setYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get<Department[]>("/departments").then((res) => setDepartments(res.data)).catch(() => {});
+  }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -56,6 +72,7 @@ export function FacultyUpload() {
     setResult(null);
 
     try {
+      const XLSX = await import("xlsx");
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const firstSheetName = workbook.SheetNames[0];
@@ -73,12 +90,15 @@ export function FacultyUpload() {
           if (!roll && email) roll = email.split("@")[0].toUpperCase();
           const rowYear = extractField(row, FIELD_ALIASES.year);
 
+          const rowDepartment = extractField(row, FIELD_ALIASES.department);
+
           return {
             name,
             email,
             roll,
             password: extractField(row, FIELD_ALIASES.password),
-            department: extractField(row, FIELD_ALIASES.department),
+            department: rowDepartment,
+            department_id: resolveDepartmentId(rowDepartment, departments),
             year: rowYear ? parseInt(rowYear, 10) : undefined,
           };
         })
@@ -86,7 +106,7 @@ export function FacultyUpload() {
         .filter((s) => s.name || s.email || s.roll);
 
       const payload = {
-        department: department || undefined,
+        department_id: departmentId || undefined,
         year: year ? parseInt(year) : undefined,
         students,
       };
@@ -129,14 +149,15 @@ export function FacultyUpload() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Default Department</label>
             <select
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
+              value={departmentId}
+              onChange={(e) => setDepartmentId(e.target.value)}
             >
               <option value="">Select</option>
-              {departmentOptions.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
+              {departments.map(dept => (
+                <option key={dept.id} value={dept.id}>{dept.name}</option>
               ))}
             </select>
+            <p className="text-xs text-gray-500 mt-1">Used for any row whose own Department column doesn&apos;t match a department by name or code.</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Graduation Year</label>

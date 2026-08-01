@@ -1,16 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
-import { getDepartmentOptions } from "@/lib/departmentCatalog";
+
+type Department = { id: string; name: string; code?: string };
 
 export function AddStudentPanel() {
   const { user } = useAuthStore();
-  const [form, setForm] = useState({ name: "", email: "", password: "student123", department: "", year: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "student123", department_id: "", year: "", roll_number: "", batch_year: String(new Date().getFullYear()) });
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
-  const departmentOptions = getDepartmentOptions(user?.college_name);
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    api.get<Department[]>("/departments").then((res) => setDepartments(res.data)).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,13 +27,16 @@ export function AddStudentPanel() {
         email: form.email,
         password: form.password,
         role: "student",
-        department: form.department || undefined,
+        department_id: form.department_id || undefined,
+        year: form.year || undefined,
+        roll_number: form.roll_number || undefined,
+        batch_year: form.batch_year ? parseInt(form.batch_year, 10) : undefined,
         college_id: user?.college_id,
       });
       setMessage({ text: `✓ Student "${form.name}" created successfully!`, ok: true });
-      setForm({ name: "", email: "", password: "student123", department: "", year: "" });
+      setForm({ name: "", email: "", password: "student123", department_id: "", year: "", roll_number: "", batch_year: String(new Date().getFullYear()) });
     } catch (err: any) {
-      setMessage({ text: err.response?.data?.detail || "Failed to create student.", ok: false });
+      setMessage({ text: err.response?.data?.message || err.response?.data?.detail || "Failed to create student.", ok: false });
     } finally {
       setLoading(false);
     }
@@ -62,12 +70,15 @@ export function AddStudentPanel() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "18px" }}>
             <div>
               <label className="lbl">Department</label>
-              <select className="fi" value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}>
+              <select className="fi" value={form.department_id} onChange={e => setForm({ ...form, department_id: e.target.value })}>
                 <option value="">Select</option>
-                {departmentOptions.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
                 ))}
               </select>
+              {departments.length === 0 && (
+                <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>No departments yet — add one from Manage Assessments first.</p>
+              )}
             </div>
             <div>
               <label className="lbl">Year</label>
@@ -78,6 +89,17 @@ export function AddStudentPanel() {
                 <option value="3">3rd Year</option>
                 <option value="4">4th Year</option>
               </select>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "18px" }}>
+            <div>
+              <label className="lbl">Roll Number</label>
+              <input type="text" className="fi" placeholder="e.g. 21CSE045" value={form.roll_number} onChange={e => setForm({ ...form, roll_number: e.target.value })} />
+            </div>
+            <div>
+              <label className="lbl">Graduation / Batch Year</label>
+              <input type="number" className="fi" value={form.batch_year} onChange={e => setForm({ ...form, batch_year: e.target.value })} />
             </div>
           </div>
 

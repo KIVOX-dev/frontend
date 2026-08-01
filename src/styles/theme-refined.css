@@ -233,7 +233,7 @@ body {
 .nav-item.active {
   background: var(--accent-l);
   color: var(--accent);
-  border-color: rgba(15, 107, 79, 0.14);
+  border-color: rgba(1, 69, 242, 0.14);
   font-weight: 600;
 }
 
@@ -266,12 +266,12 @@ body {
 
 .plan-strip {
   background: var(--accent-l);
-  border: 1px solid rgba(15, 107, 79, 0.16);
+  border: 1px solid rgba(1, 69, 242, 0.16);
   transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
 }
 
 .plan-strip:hover {
-  border-color: rgba(15, 107, 79, 0.3);
+  border-color: rgba(1, 69, 242, 0.3);
 }
 
 .plan-name {
@@ -307,7 +307,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px rgba(15, 107, 79, 0.12) !important;
+  box-shadow: 0 0 0 3px rgba(1, 69, 242, 0.12) !important;
   transform: none !important;
 }
 
@@ -384,7 +384,7 @@ textarea:focus {
 
 /* ── 7. Login split panel — green stays, buttons go black ───── */
 .lp-left {
-  background: linear-gradient(160deg, #061e17 0%, #0b3d2e 52%, #0f6b4f 100%);
+  background: linear-gradient(160deg, #030B2E 0%, #071A4D 52%, #0145F2 100%);
 }
 
 .lp-right {

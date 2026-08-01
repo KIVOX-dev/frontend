@@ -1,39 +1,39 @@
 :root {
-  /* ── Surfaces: professional white, no cream cast ── */
-  --bg: #F6F8F7;
+  /* ── Surfaces: Canvas Cloud, no cream cast ── */
+  --bg: #EDF1F5;
   --surface: #FFFFFF;
-  --surface2: #FAFBFA;
-  --surface3: #F1F4F2;
+  --surface2: #FAFBFD;
+  --surface3: #F1F4F9;
 
   /* ── Hairlines ── */
-  --border: #E7EBE9;
-  --border2: #DDE3E0;
+  --border: #E5E7EB;
+  --border2: #DDE2E8;
 
   /* ── Ink: the only button colour ── */
   --ink: #0A0A0A;
   --ink-hover: #1C1C1C;
 
-  /* ── Accent: forest green, used for state & data ink only ── */
-  --accent: #0F6B4F;
-  --accent2: #0B3D2E;
-  --accent-l: rgba(15, 107, 79, .07);
+  /* ── Accent: Electric Blue, used for state & data ink only ── */
+  --accent: #0145F2;
+  --accent2: #071A4D;
+  --accent-l: rgba(1, 69, 242, .07);
 
-  --green: #0F6B4F;
-  --green-l: rgba(15, 107, 79, .07);
+  --green: #0145F2;
+  --green-l: rgba(1, 69, 242, .07);
   --purple: #4B5563;
   --purple-l: rgba(75, 85, 99, .07);
-  --amber: #B45309;
-  --amber-l: rgba(180, 83, 9, .07);
-  --red: #DC2626;
-  --red-l: rgba(220, 38, 38, .07);
-  --teal: #0F6B4F;
-  --teal-l: rgba(15, 107, 79, .07);
+  --amber: #F59E0B;
+  --amber-l: rgba(245, 158, 11, .07);
+  --red: #EF4444;
+  --red-l: rgba(239, 68, 68, .07);
+  --teal: #0145F2;
+  --teal-l: rgba(1, 69, 242, .07);
   --pink: #4B5563;
   --pink-l: rgba(75, 85, 99, .07);
 
   /* ── Type ── */
-  --text: #0F1512;
-  --muted: #5A6560;
+  --text: #111827;
+  --muted: #6B7280;
   --faint: #98A29D;
   --white: #FFFFFF;
 
@@ -186,7 +186,7 @@ textarea {
 .lp-left {
   width: 420px;
   flex-shrink: 0;
-  background: linear-gradient(150deg, #061E17 0%, #0B3D2E 45%, #0F6B4F 80%, #3DBF7E 100%);
+  background: linear-gradient(150deg, #030B2E 0%, #071A4D 45%, #0145F2 80%, #4D74F5 100%);
   display: flex;
   flex-direction: column;
   padding: 40px 38px;
@@ -454,7 +454,7 @@ textarea {
 
 .fi:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(15, 107, 79, .1)
+  box-shadow: 0 0 0 3px rgba(1, 69, 242, .1)
 }
 
 .fi::placeholder {
@@ -535,7 +535,7 @@ textarea {
 .l-submit-red {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: white;
-  box-shadow: 0 4px 18px rgba(15, 107, 79, 0.2);
+  box-shadow: 0 4px 18px rgba(1, 69, 242, 0.2);
   border: none;
   border-radius: 14px;
   font-weight: 600;
@@ -553,7 +553,7 @@ textarea {
 .l-submit-teal:hover,
 .l-submit-red:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(15, 107, 79, 0.35);
+  box-shadow: 0 8px 25px rgba(1, 69, 242, 0.35);
   filter: brightness(1.05);
 }
 
@@ -585,7 +585,7 @@ textarea {
 .fi-select:hover {
   border-color: var(--accent);
   background: white;
-  box-shadow: 0 8px 24px rgba(15, 107, 79, 0.08);
+  box-shadow: 0 8px 24px rgba(1, 69, 242, 0.08);
   transform: translateY(-1px);
 }
 
@@ -615,7 +615,7 @@ textarea {
 .sk-dropdown-trigger:hover {
   border-color: var(--accent);
   background: white;
-  box-shadow: 0 8px 24px rgba(15, 107, 79, 0.08);
+  box-shadow: 0 8px 24px rgba(1, 69, 242, 0.08);
   transform: translateY(-1px);
 }
 
@@ -623,7 +623,7 @@ textarea {
   border-color: var(--accent);
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 4px 12px rgba(15, 107, 79, 0.1);
+  box-shadow: 0 4px 12px rgba(1, 69, 242, 0.1);
 }
 
 .sk-dropdown-trigger svg {
@@ -868,7 +868,7 @@ textarea {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 3px 10px rgba(15, 107, 79, .22)
+  box-shadow: 0 3px 10px rgba(1, 69, 242, .22)
 }
 
 .logo-mark svg {
@@ -926,7 +926,7 @@ textarea {
 .nav-item.active {
   background: var(--accent-l);
   color: var(--accent);
-  border-color: rgba(15, 107, 79, .14)
+  border-color: rgba(1, 69, 242, .14)
 }
 
 .nav-item svg {
@@ -968,8 +968,8 @@ textarea {
 }
 
 .plan-strip {
-  background: linear-gradient(135deg, rgba(15, 107, 79, .08), rgba(11, 61, 46, .07));
-  border: 1px solid rgba(15, 107, 79, .15);
+  background: linear-gradient(135deg, rgba(1, 69, 242, .08), rgba(7, 26, 77, .07));
+  border: 1px solid rgba(1, 69, 242, .15);
   border-radius: var(--r2);
   padding: 10px 12px;
   margin-bottom: 8px;
@@ -1060,7 +1060,7 @@ textarea {
 
 .sw input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(15, 107, 79, .08)
+  box-shadow: 0 0 0 3px rgba(1, 69, 242, .08)
 }
 
 .sw input::placeholder {
@@ -1214,12 +1214,12 @@ textarea {
 .btn-p {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: white;
-  box-shadow: 0 3px 12px rgba(15, 107, 79, .24)
+  box-shadow: 0 3px 12px rgba(1, 69, 242, .24)
 }
 
 .btn-p:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 18px rgba(15, 107, 79, .34)
+  box-shadow: 0 5px 18px rgba(1, 69, 242, .34)
 }
 
 .btn-o {
@@ -1256,11 +1256,11 @@ textarea {
 .btn-purple {
   background: var(--purple-l);
   color: var(--purple);
-  border: 1px solid rgba(11, 61, 46, .2)
+  border: 1px solid rgba(7, 26, 77, .2)
 }
 
 .btn-purple:hover {
-  background: rgba(11, 61, 46, .14)
+  background: rgba(7, 26, 77, .14)
 }
 
 .btn-red {
@@ -1309,13 +1309,13 @@ textarea {
 
 /* Hero */
 .hero {
-  background: linear-gradient(135deg, #061E17 0%, var(--accent) 50%, var(--teal) 100%);
+  background: linear-gradient(135deg, #030B2E 0%, var(--accent) 50%, var(--teal) 100%);
   border-radius: var(--r);
   padding: 26px 28px;
   margin-bottom: 20px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 28px rgba(15, 107, 79, .22)
+  box-shadow: 0 8px 28px rgba(1, 69, 242, .22)
 }
 
 .hero::before {
@@ -1467,7 +1467,7 @@ textarea {
 }
 
 .sc:hover {
-  border-color: rgba(15, 107, 79, .2);
+  border-color: rgba(1, 69, 242, .2);
   box-shadow: var(--sh2);
   transform: translateY(-1px)
 }
@@ -1608,13 +1608,13 @@ tbody tr:hover td {
 .bb {
   background: var(--accent-l);
   color: var(--accent);
-  border: 1px solid rgba(15, 107, 79, .2)
+  border: 1px solid rgba(1, 69, 242, .2)
 }
 
 .bp {
   background: var(--purple-l);
   color: var(--purple);
-  border: 1px solid rgba(11, 61, 46, .2)
+  border: 1px solid rgba(7, 26, 77, .2)
 }
 
 .bt {
@@ -1632,7 +1632,7 @@ tbody tr:hover td {
 .bpk {
   background: var(--pink-l);
   color: var(--pink);
-  border: 1px solid rgba(15, 107, 79, .2)
+  border: 1px solid rgba(1, 69, 242, .2)
 }
 
 /* Progress */
@@ -1850,7 +1850,7 @@ tbody tr:hover td {
 .lb-item.active {
   background: linear-gradient(90deg, var(--accent-l), var(--surface));
   border-color: var(--accent);
-  box-shadow: 0 4px 16px rgba(15, 107, 79, 0.1);
+  box-shadow: 0 4px 16px rgba(1, 69, 242, 0.1);
 }
 
 .lb-rank {
@@ -1925,12 +1925,12 @@ tbody tr:hover td {
 .qopt:hover {
   background: var(--surface);
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(15, 107, 79, 0.08);
+  box-shadow: 0 4px 12px rgba(1, 69, 242, 0.08);
   transform: translateX(4px);
 }
 
 .qopt.active {
-  background: rgba(15, 107, 79, 0.08);
+  background: rgba(1, 69, 242, 0.08);
   border-color: var(--accent);
 }
 
@@ -1994,7 +1994,7 @@ tbody tr:hover td {
 }
 
 .qopt.active {
-  background: rgba(15, 107, 79, 0.08);
+  background: rgba(1, 69, 242, 0.08);
   border-color: var(--accent);
 }
 
@@ -2047,7 +2047,7 @@ tbody tr:hover td {
 }
 
 .boxplot-box {
-  fill: rgba(15, 107, 79, 0.1);
+  fill: rgba(1, 69, 242, 0.1);
   stroke: var(--accent);
   stroke-width: 2;
 }
@@ -2403,7 +2403,7 @@ tbody tr:hover td {
 
 .aip {
   background: var(--surface);
-  border: 1.5px solid rgba(15, 107, 79, .16);
+  border: 1.5px solid rgba(1, 69, 242, .16);
   border-radius: var(--r);
   padding: 16px;
   overflow-y: auto;
@@ -2427,7 +2427,7 @@ tbody tr:hover td {
 
 .exp-card {
   background: var(--accent-l);
-  border: 1px solid rgba(15, 107, 79, .14);
+  border: 1px solid rgba(1, 69, 242, .14);
   border-radius: var(--r2);
   padding: 12px 14px;
   display: none;
@@ -2462,7 +2462,7 @@ tbody tr:hover td {
 
 /* Profile */
 .prh {
-  background: linear-gradient(135deg, #061E17, var(--accent));
+  background: linear-gradient(135deg, #030B2E, var(--accent));
   border-radius: var(--r);
   padding: 22px 24px;
   margin-bottom: 16px;
@@ -2471,7 +2471,7 @@ tbody tr:hover td {
   gap: 16px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 6px 24px rgba(15, 107, 79, .2)
+  box-shadow: 0 6px 24px rgba(1, 69, 242, .2)
 }
 
 .prh::after {
@@ -2608,7 +2608,7 @@ tbody tr:hover td {
   height: 34px;
   border-radius: 9px;
   background: var(--purple-l);
-  border: 1px solid rgba(11, 61, 46, .18);
+  border: 1px solid rgba(7, 26, 77, .18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2648,7 +2648,7 @@ tbody tr:hover td {
 }
 
 .mncc:hover {
-  border-color: rgba(15, 107, 79, .25);
+  border-color: rgba(1, 69, 242, .25);
   transform: translateY(-2px);
   box-shadow: var(--sh2)
 }
@@ -2713,7 +2713,7 @@ tbody tr:hover td {
 }
 
 .vcard:hover {
-  border-color: rgba(15, 107, 79, .22);
+  border-color: rgba(1, 69, 242, .22);
   box-shadow: var(--sh2)
 }
 
@@ -2748,7 +2748,7 @@ tbody tr:hover td {
 }
 
 .rcard:hover {
-  border-color: rgba(15, 107, 79, .2);
+  border-color: rgba(1, 69, 242, .2);
   box-shadow: var(--sh2)
 }
 
@@ -2770,7 +2770,7 @@ tbody tr:hover td {
   border-radius: var(--r2);
   padding: 10px;
   margin: 0 -6px;
-  border-color: rgba(15, 107, 79, .14)
+  border-color: rgba(1, 69, 242, .14)
 }
 
 .lbrk {
@@ -2902,9 +2902,9 @@ tbody tr:hover td {
 }
 
 .pcard.pro {
-  background: linear-gradient(145deg, rgba(15, 107, 79, .05), rgba(11, 61, 46, .04));
-  border-color: rgba(15, 107, 79, .2);
-  box-shadow: 0 0 0 3px rgba(15, 107, 79, .06), var(--sh2)
+  background: linear-gradient(145deg, rgba(1, 69, 242, .05), rgba(7, 26, 77, .04));
+  border-color: rgba(1, 69, 242, .2);
+  box-shadow: 0 0 0 3px rgba(1, 69, 242, .06), var(--sh2)
 }
 
 .pcard.pro::before {
@@ -3027,7 +3027,7 @@ tbody tr:hover td {
 
 /* Admin */
 .adm-hdr {
-  background: linear-gradient(135deg, rgba(15, 107, 79, .07), rgba(239, 68, 68, .05));
+  background: linear-gradient(135deg, rgba(1, 69, 242, .07), rgba(239, 68, 68, .05));
   border: 1px solid rgba(239, 68, 68, .18);
   border-radius: var(--r);
   padding: 16px 18px;
@@ -3355,7 +3355,7 @@ tbody tr:hover td {
 }
 
 .iv-topbar {
-  background: linear-gradient(135deg, rgba(11, 61, 46, .12), rgba(15, 107, 79, .07));
+  background: linear-gradient(135deg, rgba(7, 26, 77, .12), rgba(1, 69, 242, .07));
   border-bottom: 1px solid var(--border);
   padding: 12px 16px;
   display: flex;
@@ -3421,7 +3421,7 @@ tbody tr:hover td {
 }
 
 .pmodal-hero {
-  background: linear-gradient(135deg, #061E17, var(--accent));
+  background: linear-gradient(135deg, #030B2E, var(--accent));
   padding: 20px 22px;
   display: flex;
   align-items: center;
@@ -3672,7 +3672,7 @@ tbody tr:hover td {
 }
 
 .fp-hero {
-  background: linear-gradient(135deg, #061E17, var(--teal));
+  background: linear-gradient(135deg, #030B2E, var(--teal));
   border-radius: var(--r);
   padding: 22px 26px;
   margin-bottom: 22px;
@@ -3870,7 +3870,7 @@ tbody tr:hover td {
   gap: 4px;
   background: var(--accent-l);
   color: var(--accent);
-  border: 1px solid rgba(15, 107, 79, .16);
+  border: 1px solid rgba(1, 69, 242, .16);
   border-radius: 12px;
   padding: 2px 8px;
   font-size: 10px;
@@ -3949,7 +3949,7 @@ tbody tr:hover td {
 
 /* ════════ COLLEGE ADMIN MODULE ════════ */
 .cadm-hero {
-  background: linear-gradient(135deg, #061E17 0%, #0F6B4F 55%, #0B3D2E 100%);
+  background: linear-gradient(135deg, #030B2E 0%, #0145F2 55%, #071A4D 100%);
   border-radius: var(--r);
   padding: 22px 26px;
   margin-bottom: 22px;
@@ -4024,7 +4024,7 @@ tbody tr:hover td {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: white;
   border-color: transparent;
-  box-shadow: 0 3px 10px rgba(15, 107, 79, .25)
+  box-shadow: 0 3px 10px rgba(1, 69, 242, .25)
 }
 
 .score-cell {
@@ -4055,7 +4055,7 @@ tbody tr:hover td {
 }
 
 .grade-O {
-  background: rgba(11, 61, 46, .15);
+  background: rgba(7, 26, 77, .15);
   color: var(--purple)
 }
 
@@ -4124,7 +4124,7 @@ tbody tr:hover td {
 }
 
 .cadm-sc:hover {
-  border-color: rgba(15, 107, 79, .2);
+  border-color: rgba(1, 69, 242, .2);
   transform: translateY(-1px);
   box-shadow: var(--sh2)
 }
@@ -4219,7 +4219,7 @@ tbody tr:hover td {
 .cpill-blue {
   background: var(--accent-l);
   color: var(--accent);
-  border: 1px solid rgba(15, 107, 79, .2)
+  border: 1px solid rgba(1, 69, 242, .2)
 }
 
 .cpill-amber {
@@ -4231,7 +4231,7 @@ tbody tr:hover td {
 .cpill-purple {
   background: var(--purple-l);
   color: var(--purple);
-  border: 1px solid rgba(11, 61, 46, .2)
+  border: 1px solid rgba(7, 26, 77, .2)
 }
 
 .cpill-teal {
@@ -4364,7 +4364,7 @@ tbody tr:hover td {
 }
 
 .job-card-c:hover {
-  border-color: rgba(15, 107, 79, .22);
+  border-color: rgba(1, 69, 242, .22);
   box-shadow: var(--sh2)
 }
 
@@ -4421,7 +4421,7 @@ tbody tr:hover td {
 }
 
 .ev-card:hover {
-  border-color: rgba(15, 107, 79, .22);
+  border-color: rgba(1, 69, 242, .22);
   box-shadow: var(--sh2)
 }
 
@@ -4483,7 +4483,7 @@ tbody tr:hover td {
 }
 
 .imp-res:hover {
-  border-color: rgba(15, 107, 79, .22)
+  border-color: rgba(1, 69, 242, .22)
 }
 
 .imp-tag {
@@ -4625,7 +4625,7 @@ tbody tr:hover td {
 }
 
 .appr-avatar.cadm {
-  background: linear-gradient(135deg, #0F6B4F, #0B3D2E)
+  background: linear-gradient(135deg, #0145F2, #071A4D)
 }
 
 .appr-name {
@@ -5183,7 +5183,7 @@ body.mobile-view #frole-cadmin {
   height: 42px;
   border-radius: 10px;
   background: var(--purple-l);
-  border: 1px solid rgba(11, 61, 46, .18);
+  border: 1px solid rgba(7, 26, 77, .18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5252,7 +5252,7 @@ body.mobile-view #frole-cadmin {
 }
 
 .mncc:hover {
-  border-color: rgba(15, 107, 79, .25);
+  border-color: rgba(1, 69, 242, .25);
   transform: translateY(-2px);
   box-shadow: var(--sh2);
 }
@@ -5501,7 +5501,7 @@ body.mobile-view #frole-cadmin {
 .sk-stu-card:hover {
   transform: translateY(-4px);
   border-color: var(--accent);
-  box-shadow: 0 8px 24px rgba(15, 107, 79, 0.12);
+  box-shadow: 0 8px 24px rgba(1, 69, 242, 0.12);
 }
 
 .sk-avatar-mini {
@@ -5608,7 +5608,7 @@ body.mobile-view #frole-cadmin {
 }
 
 .sk-glass-table tr:hover td {
-  background: rgba(15, 107, 79, 0.04);
+  background: rgba(1, 69, 242, 0.04);
 }
 
 .sk-table-avatar {
@@ -5706,7 +5706,7 @@ body.mobile-view #frole-cadmin {
 .id-toggle-btn.active {
   background: var(--accent);
   color: white;
-  box-shadow: 0 4px 12px rgba(15, 107, 79, 0.3);
+  box-shadow: 0 4px 12px rgba(1, 69, 242, 0.3);
 }
 
 /* AI Status Pulse */
@@ -5814,8 +5814,8 @@ body.mobile-view #frole-cadmin {
   transform: translateY(-4px) scale(1.05);
   color: white;
   border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 12px 40px rgba(15, 107, 79, 0.3),
-    0 0 20px rgba(11, 61, 46, 0.2);
+  box-shadow: 0 12px 40px rgba(1, 69, 242, 0.3),
+    0 0 20px rgba(7, 26, 77, 0.2);
 }
 
 .sk-admin-fab:hover::before {
@@ -5834,15 +5834,15 @@ body.mobile-view #frole-cadmin {
 
 @keyframes sk-pulse-admin {
   0% {
-    box-shadow: 0 0 0 0 rgba(15, 107, 79, 0.4);
+    box-shadow: 0 0 0 0 rgba(1, 69, 242, 0.4);
   }
 
   70% {
-    box-shadow: 0 0 0 15px rgba(15, 107, 79, 0);
+    box-shadow: 0 0 0 15px rgba(1, 69, 242, 0);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(15, 107, 79, 0);
+    box-shadow: 0 0 0 0 rgba(1, 69, 242, 0);
   }
 }
 
@@ -5965,7 +5965,7 @@ body.mobile-view #frole-cadmin {
   font-weight: 600;
   cursor: pointer;
   transition: all .18s;
-  border: 1.5px solid rgba(15, 107, 79, .15);
+  border: 1.5px solid rgba(1, 69, 242, .15);
 }
 
 .settings-avatar-actions label:hover {
@@ -6020,7 +6020,7 @@ body.mobile-view #frole-cadmin {
 .settings-field input:focus,
 .settings-field textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(15, 107, 79, .1);
+  box-shadow: 0 0 0 3px rgba(1, 69, 242, .1);
   outline: none;
   background: var(--surface);
 }
@@ -6080,9 +6080,9 @@ body.mobile-view #frole-cadmin {
 }
 
 .badge-chip-expert {
-  background: rgba(11, 61, 46, .1);
-  color: #0B3D2E;
-  border-color: rgba(11, 61, 46, .25);
+  background: rgba(7, 26, 77, .1);
+  color: #071A4D;
+  border-color: rgba(7, 26, 77, .25);
 }
 
 .badge-chip-advanced {
@@ -6092,9 +6092,9 @@ body.mobile-view #frole-cadmin {
 }
 
 .badge-chip-proficient {
-  background: rgba(15, 107, 79, .1);
+  background: rgba(1, 69, 242, .1);
   color: var(--accent);
-  border-color: rgba(15, 107, 79, .25);
+  border-color: rgba(1, 69, 242, .25);
 }
 
 .badge-chip-beginner {
@@ -6131,12 +6131,12 @@ body.mobile-view #frole-cadmin {
   font-weight: 700;
   cursor: pointer;
   transition: all .22s;
-  box-shadow: 0 4px 14px rgba(15, 107, 79, .22);
+  box-shadow: 0 4px 14px rgba(1, 69, 242, .22);
 }
 
 .settings-save-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(15, 107, 79, .32);
+  box-shadow: 0 8px 22px rgba(1, 69, 242, .32);
   filter: brightness(1.06);
 }
 
@@ -6402,12 +6402,12 @@ body.mobile-view #frole-cadmin {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 8px 24px rgba(15, 107, 79, 0.2);
+  box-shadow: 0 8px 24px rgba(1, 69, 242, 0.2);
 }
 
 .settings-save-creative:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(15, 107, 79, 0.3);
+  box-shadow: 0 12px 32px rgba(1, 69, 242, 0.3);
 }
 
 .settings-avatar-row-creative {
@@ -6571,7 +6571,7 @@ body.mobile-view #frole-cadmin {
   left: 0;
   width: 100%;
   height: 50%;
-  background: linear-gradient(to bottom, transparent, rgba(15, 107, 79, 0.1), transparent);
+  background: linear-gradient(to bottom, transparent, rgba(1, 69, 242, 0.1), transparent);
   animation: vaultScan 4s infinite linear;
 }
 
@@ -6938,7 +6938,7 @@ body.mobile-view #frole-cadmin {
 
 .lb-badge-expert {
   background: #F5F3FF;
-  color: #0F6B4F;
+  color: #0145F2;
 }
 
 .lb-badge-adv {

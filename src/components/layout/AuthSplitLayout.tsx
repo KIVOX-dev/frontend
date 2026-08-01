@@ -1,4 +1,5 @@
 import React from "react";
+import { Logo } from "@/components/shared/Logo";
 
 export function AuthSplitLayout({
   children,
@@ -11,9 +12,9 @@ export function AuthSplitLayout({
     <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", background: "var(--bg)" }}>
       <div className="lp-left">
         <div className="lp-logo" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <img src="/buddies-logo.jpg" alt="BUDDIES" style={{ height: "38px", borderRadius: "8px", objectFit: "contain" }} />
+          <Logo variant="mark" height={32} priority />
           <span className="text-xl font-black tracking-wider text-white">
-            BUDDIES
+            UpScaler
           </span>
         </div>
         <div className="lp-body">
@@ -69,21 +70,19 @@ export function AuthSplitLayout({
         className="lp-right"
         style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", flex: 1 }}
       >
-        <img
-          src="/buddies-logo.jpg"
-          alt=""
+        <div
           style={{
             position: "absolute",
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: "400px",
             opacity: 0.06,
             zIndex: 1,
             pointerEvents: "none",
-            borderRadius: "24px",
           }}
-        />
+        >
+          <Logo variant="icon" height={400} />
+        </div>
         {children}
       </div>
     </div>

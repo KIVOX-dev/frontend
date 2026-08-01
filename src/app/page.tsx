@@ -14,12 +14,12 @@ import ContactSection from "@/components/landing/ContactSection";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 export const metadata: Metadata = {
-  title: "UpScaler AI — AI-Powered Career Growth & Placement Platform",
+  title: "UpScaler — AI-Powered Career Growth & Placement Platform",
   description:
     "The most advanced platform for AI-powered aptitude training, career pathing, and campus-to-corporate success. Trusted by 500+ institutions and 10,000+ students.",
   keywords: "aptitude training, placement preparation, AI assessment, campus placement, career intelligence",
   openGraph: {
-    title: "UpScaler AI — AI Career Growth Platform",
+    title: "UpScaler — AI Career Growth Platform",
     description: "Upscale Your Skills. Outscore the Competition. Get Hired. The AI-powered platform for campus placements.",
     type: "website",
   },

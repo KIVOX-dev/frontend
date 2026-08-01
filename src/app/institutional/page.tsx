@@ -1,31 +1,38 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
-import { CollegeAdminLogin } from "@/components/auth/CollegeAdminLogin";
-import { FacultyLogin } from "@/components/auth/FacultyLogin";
-import { InstitutionalStudentLogin } from "@/components/auth/InstitutionalStudentLogin";
 import { LearnerShell } from "@/components/layout/LearnerShell";
 import { CollegeAdminShell } from "@/components/layout/CollegeAdminShell";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
-import { PlatformChat } from "@/components/shared/PlatformChat";
-import { SettingsPanel } from "@/components/shared/SettingsPanel";
-import { CollegeAdminDashboard } from "@/components/institutional/CollegeAdminDashboard";
-import { FacultyDashboard } from "@/components/institutional/FacultyDashboard";
-import { InstitutionalApproval } from "@/components/institutional/InstitutionalApproval";
-import { StudentTracking } from "@/components/institutional/StudentTracking";
-import { AddStudentPanel } from "@/components/institutional/AddStudentPanel";
-import { FacultyUpload } from "@/components/faculty/FacultyUpload";
-import { AptitudeTests } from "@/components/learner/AptitudeTests";
-import { PracticeModule } from "@/components/learner/PracticeModule";
-import { MNCTestModule } from "@/components/learner/MNCTestModule";
-import { LearnerMockInterview } from "@/components/learner/LearnerMockInterview";
-import { ProfileSummarizer } from "@/components/learner/ProfileSummarizer";
-import { ResumeBuilder } from "@/components/learner/ResumeBuilder";
-import { Leaderboard } from "@/components/learner/Leaderboard";
-import { LearnerDashboard } from "@/components/learner/LearnerDashboard";
-import { TestHistory } from "@/components/learner/TestHistory";
+import { Logo } from "@/components/shared/Logo";
 import { useEffect, useState } from "react";
+
+// Only one of these renders at a time (role selection / renderScreen switch
+// below) — dynamic-importing them keeps every other role's/screen's code
+// out of this route's bundle and out of the dev-server's first-compile graph.
+const CollegeAdminLogin = dynamic(() => import("@/components/auth/CollegeAdminLogin").then((m) => m.CollegeAdminLogin));
+const FacultyLogin = dynamic(() => import("@/components/auth/FacultyLogin").then((m) => m.FacultyLogin));
+const InstitutionalStudentLogin = dynamic(() => import("@/components/auth/InstitutionalStudentLogin").then((m) => m.InstitutionalStudentLogin));
+const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").then((m) => m.PlatformChat));
+const SettingsPanel = dynamic(() => import("@/components/shared/SettingsPanel").then((m) => m.SettingsPanel));
+const CollegeAdminDashboard = dynamic(() => import("@/components/institutional/CollegeAdminDashboard").then((m) => m.CollegeAdminDashboard));
+const FacultyDashboard = dynamic(() => import("@/components/institutional/FacultyDashboard").then((m) => m.FacultyDashboard));
+const InstitutionalApproval = dynamic(() => import("@/components/institutional/InstitutionalApproval").then((m) => m.InstitutionalApproval));
+const StudentTracking = dynamic(() => import("@/components/institutional/StudentTracking").then((m) => m.StudentTracking));
+const AddStudentPanel = dynamic(() => import("@/components/institutional/AddStudentPanel").then((m) => m.AddStudentPanel));
+const FacultyUpload = dynamic(() => import("@/components/faculty/FacultyUpload").then((m) => m.FacultyUpload));
+const AptitudeTests = dynamic(() => import("@/components/learner/AptitudeTests").then((m) => m.AptitudeTests));
+const PracticeModule = dynamic(() => import("@/components/learner/PracticeModule").then((m) => m.PracticeModule));
+const MNCTestModule = dynamic(() => import("@/components/learner/MNCTestModule").then((m) => m.MNCTestModule));
+const LearnerMockInterview = dynamic(() => import("@/components/learner/LearnerMockInterview").then((m) => m.LearnerMockInterview));
+const ProfileSummarizer = dynamic(() => import("@/components/learner/ProfileSummarizer").then((m) => m.ProfileSummarizer));
+const ResumeBuilder = dynamic(() => import("@/components/learner/ResumeBuilder").then((m) => m.ResumeBuilder));
+const Leaderboard = dynamic(() => import("@/components/learner/Leaderboard").then((m) => m.Leaderboard));
+const LearnerDashboard = dynamic(() => import("@/components/learner/LearnerDashboard").then((m) => m.LearnerDashboard));
+const TestHistory = dynamic(() => import("@/components/learner/TestHistory").then((m) => m.TestHistory));
+const PlacementOpportunities = dynamic(() => import("@/components/learner/PlacementOpportunities").then((m) => m.PlacementOpportunities));
 
 type InstitutionalRole = "none" | "admin" | "faculty" | "student";
 
@@ -57,8 +64,8 @@ export default function InstitutionalPage() {
       <AuthSplitLayout>
         <div className="lp-card">
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
-            <div className="text-3xl font-black tracking-wider text-transparent bg-clip-text bg-green-gradient mb-6">
-              BUDDIES
+            <div className="flex justify-center mb-6">
+              <Logo variant="full" height={48} priority />
             </div>
             <h2 style={{ fontSize: "28px", color: "var(--text)", fontWeight: 800, marginBottom: "12px" }}>
               Institutional Portal
@@ -137,6 +144,7 @@ export default function InstitutionalPage() {
       case "assessments":
         return <CollegeAdminDashboard />;
       case "placements":
+        if (user?.role === "student" && user?.college_id) return <PlacementOpportunities />;
         return <CollegeAdminDashboard />;
       case "drives":
         return <CollegeAdminDashboard />;
