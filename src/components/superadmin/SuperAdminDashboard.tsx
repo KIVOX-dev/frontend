@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type ApiRequestConfig } from "@/lib/api";
+import { toast } from "@/lib/toast";
+import { extractErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
 
 type User = {
@@ -126,7 +128,7 @@ const UserRow = React.memo(function UserRow({
             </button>
             <button
               onClick={() => onAction(user.id, "approve")}
-              className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all hover:shadow focus:ring-2 focus:ring-gray-900 focus:ring-offset-2"
+              className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-xs transition-all hover:shadow-sm focus:ring-2 focus:ring-gray-900 focus:ring-offset-2"
             >
               Approve
             </button>
@@ -280,7 +282,11 @@ export function SuperAdminDashboard() {
     }
     fetchStats();
     fetchColleges();
-  }, [activeTab]);
+    // fetchUsers/fetchStats are useCallback'd with the same [activeTab]
+    // dependency this effect already has — adding them here is a no-op in
+    // practice (they only get a new reference exactly when activeTab does)
+    // and makes that guarantee explicit instead of implicit.
+  }, [activeTab, fetchUsers, fetchStats]);
 
   const handleCreateInstitution = async () => {
     setInstitutionError("");
@@ -304,12 +310,7 @@ export function SuperAdminDashboard() {
       fetchInstitutions();
       fetchColleges();
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string; details?: string[] } } };
-      const details = error?.response?.data?.details;
-      setInstitutionError(
-        (Array.isArray(details) ? details.join(", ") : error?.response?.data?.message) ||
-          "Failed to create institution."
-      );
+      setInstitutionError(extractErrorMessage(err, "Failed to create institution."));
     }
   };
 
@@ -319,8 +320,9 @@ export function SuperAdminDashboard() {
       await api.delete(`/institutions/${id}`);
       setInstitutions((prev) => prev.filter((i) => i.id !== id));
       fetchColleges();
+      toast.success("Institution deleted.");
     } catch (err) {
-      alert("Failed to delete institution");
+      toast.error(err, "Failed to delete institution");
     }
   };
 
@@ -333,8 +335,9 @@ export function SuperAdminDashboard() {
         fetchUsers();
       }
       fetchStats();
+      toast.success(action === "approve" ? "User approved" : "User rejected");
     } catch (err) {
-      alert(`Failed to ${action} user`);
+      toast.error(err, `Failed to ${action} user`);
     }
   }, [activeTab, fetchUsers, fetchStats]);
 
@@ -344,8 +347,9 @@ export function SuperAdminDashboard() {
       await api.delete(`/users/${id}`);
       setUsers((prev) => prev.filter((u) => u.id !== id));
       fetchStats();
+      toast.success("User deleted.");
     } catch (err) {
-      alert("Failed to delete user");
+      toast.error(err, "Failed to delete user");
     }
   }, [fetchStats]);
 
@@ -376,11 +380,10 @@ export function SuperAdminDashboard() {
       await api.put(`/users/${editingUser.id}`, payload);
       setEditingUser(null);
       fetchUsers();
+      toast.success("User updated.");
     } catch (err: unknown) {
       console.error("Update failed", err);
-      const error = err as { response?: { data?: { message?: string; details?: string[] } } };
-      const details = error?.response?.data?.details;
-      alert((Array.isArray(details) ? details.join(", ") : error?.response?.data?.message) || "Failed to update user");
+      toast.error(extractErrorMessage(err, "Failed to update user"));
     }
   };
 
@@ -399,10 +402,9 @@ export function SuperAdminDashboard() {
       fetchUsers();
       fetchStats();
       setCreateFormData({ name: "", email: "", role: "student", password: "", college_id: "" });
+      toast.success("User created.");
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string; details?: string[] } } };
-      const details = error?.response?.data?.details;
-      alert((Array.isArray(details) ? details.join(", ") : error?.response?.data?.message) || "Failed to create user");
+      toast.error(extractErrorMessage(err, "Failed to create user"));
     }
   };
 
@@ -435,7 +437,7 @@ export function SuperAdminDashboard() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 tracking-tight">Super Admin Dashboard</h1>
           <p className="text-gray-500 mt-1">Manage all portal accounts and requests here. Update, delete, and approve institutions, faculty, and students.</p>
@@ -462,7 +464,7 @@ export function SuperAdminDashboard() {
       
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+        <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -473,7 +475,7 @@ export function SuperAdminDashboard() {
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+        <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-yellow-50 text-yellow-600 rounded-xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -484,7 +486,7 @@ export function SuperAdminDashboard() {
             <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+        <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-green-50 text-green-600 rounded-xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -555,7 +557,7 @@ export function SuperAdminDashboard() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="text-sm border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
+                className="text-sm border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
               >
                 <option value="date">Sort by Date</option>
                 <option value="name">Sort by Name</option>
@@ -575,7 +577,7 @@ export function SuperAdminDashboard() {
             <select
               value={filterCollege}
               onChange={(e) => setFilterCollege(e.target.value)}
-              className="text-sm border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
+              className="text-sm border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
             >
               <option value="">All Colleges</option>
               {colleges.map((c) => (
@@ -589,7 +591,7 @@ export function SuperAdminDashboard() {
                 setFilterRole(e.target.value);
                 if (e.target.value !== "student") setFilterDepartment("");
               }}
-              className="text-sm border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
+              className="text-sm border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
             >
               <option value="">All Roles</option>
               {Object.entries(ROLE_DISPLAY_LABEL).map(([value, label]) => (
@@ -601,7 +603,7 @@ export function SuperAdminDashboard() {
               <select
                 value={filterDepartment}
                 onChange={(e) => setFilterDepartment(e.target.value)}
-                className="text-sm border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
+                className="text-sm border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-1.5 border"
               >
                 <option value="">All Departments</option>
                 {departmentOptions.map((dept) => (
@@ -796,7 +798,7 @@ export function SuperAdminDashboard() {
                   type="text" 
                   value={editFormData.name} 
                   onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                 />
               </div>
               <div>
@@ -805,7 +807,7 @@ export function SuperAdminDashboard() {
                   type="email" 
                   value={editFormData.email} 
                   onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                 />
               </div>
               <div>
@@ -813,7 +815,7 @@ export function SuperAdminDashboard() {
                 <select 
                   value={editFormData.role} 
                   onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                 >
                   <option value="student">Student</option>
                   <option value="faculty">Faculty</option>
@@ -827,7 +829,7 @@ export function SuperAdminDashboard() {
                 <select 
                   value={editFormData.status} 
                   onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                 >
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
@@ -840,7 +842,7 @@ export function SuperAdminDashboard() {
                 <select
                   value={editFormData.college_id}
                   onChange={(e) => setEditFormData({...editFormData, college_id: e.target.value})}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                 >
                   <option value="">None (Independent)</option>
                   {colleges.map(c => (
@@ -860,7 +862,7 @@ export function SuperAdminDashboard() {
               </button>
               <button 
                 onClick={handleUpdateUser}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm transition-colors"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-xs transition-colors"
               >
                 Save Changes
               </button>
@@ -881,7 +883,7 @@ export function SuperAdminDashboard() {
                   type="text" 
                   value={createFormData.name} 
                   onChange={(e) => setCreateFormData({...createFormData, name: e.target.value})}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                   placeholder="John Doe"
                 />
               </div>
@@ -891,7 +893,7 @@ export function SuperAdminDashboard() {
                   type="email" 
                   value={createFormData.email} 
                   onChange={(e) => setCreateFormData({...createFormData, email: e.target.value})}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                   placeholder="user@example.com"
                 />
               </div>
@@ -901,7 +903,7 @@ export function SuperAdminDashboard() {
                   type="password" 
                   value={createFormData.password} 
                   onChange={(e) => setCreateFormData({...createFormData, password: e.target.value})}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                   placeholder="Initial password"
                 />
               </div>
@@ -910,7 +912,7 @@ export function SuperAdminDashboard() {
                 <select 
                   value={createFormData.role} 
                   onChange={(e) => setCreateFormData({...createFormData, role: e.target.value})}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                 >
                   <option value="student">Student</option>
                   <option value="faculty">Faculty</option>
@@ -923,7 +925,7 @@ export function SuperAdminDashboard() {
                 <select 
                   value={createFormData.college_id} 
                   onChange={(e) => setCreateFormData({...createFormData, college_id: e.target.value})}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                 >
                   <option value="">— No Institution —</option>
                   {colleges.map(c => (
@@ -941,7 +943,7 @@ export function SuperAdminDashboard() {
               </button>
               <button
                 onClick={handleCreateSave}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-sm transition-colors"
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-xs transition-colors"
               >
                 Create User
               </button>
@@ -962,7 +964,7 @@ export function SuperAdminDashboard() {
                   type="text"
                   value={institutionForm.name}
                   onChange={(e) => setInstitutionForm({ ...institutionForm, name: e.target.value })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                   placeholder="Example Institute of Technology"
                 />
               </div>
@@ -972,7 +974,7 @@ export function SuperAdminDashboard() {
                   type="text"
                   value={institutionForm.code}
                   onChange={(e) => setInstitutionForm({ ...institutionForm, code: e.target.value })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                   placeholder="EIT"
                 />
               </div>
@@ -982,7 +984,7 @@ export function SuperAdminDashboard() {
                   type="text"
                   value={institutionForm.location}
                   onChange={(e) => setInstitutionForm({ ...institutionForm, location: e.target.value })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                   placeholder="City, State"
                 />
               </div>
@@ -992,7 +994,7 @@ export function SuperAdminDashboard() {
                   type="email"
                   value={institutionForm.contact_email}
                   onChange={(e) => setInstitutionForm({ ...institutionForm, contact_email: e.target.value })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                   placeholder="admin@college.edu"
                 />
               </div>
@@ -1002,7 +1004,7 @@ export function SuperAdminDashboard() {
                   type="tel"
                   value={institutionForm.contact_phone}
                   onChange={(e) => setInstitutionForm({ ...institutionForm, contact_phone: e.target.value })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                   placeholder="+91 98765 43210"
                 />
               </div>
@@ -1012,7 +1014,7 @@ export function SuperAdminDashboard() {
                   type="text"
                   value={institutionForm.website}
                   onChange={(e) => setInstitutionForm({ ...institutionForm, website: e.target.value })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
+                  className="w-full border-gray-300 rounded-lg shadow-xs focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border"
                   placeholder="https://college.edu"
                 />
               </div>
@@ -1029,7 +1031,7 @@ export function SuperAdminDashboard() {
               </button>
               <button
                 onClick={handleCreateInstitution}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-sm transition-colors"
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-xs transition-colors"
               >
                 Create Institution
               </button>

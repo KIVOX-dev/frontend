@@ -5,6 +5,7 @@ import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
+import { extractErrorMessage } from "@/lib/errors";
 
 interface LearnerLoginProps {
   initialMode?: "login" | "signup";
@@ -50,14 +51,9 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
         access_token
       );
     } catch (err: unknown) {
-      const error = err as any;
-      const detail = error?.response?.data?.detail || error?.response?.data?.message;
-      if (Array.isArray(detail)) {
-        setLoginError(detail.map((e: any) => e.msg).join(", "));
-      } else {
-        const defaultMsg = typeof detail === "string" ? detail : "Invalid password or email";
-        setLoginError(defaultMsg === "Incorrect email or password" ? "Invalid password or email" : defaultMsg);
-      }
+      let message = extractErrorMessage(err, "Invalid password or email");
+      if (message === "Incorrect email or password") message = "Invalid password or email";
+      setLoginError(message);
     } finally {
       setLoading(false);
     }
@@ -98,13 +94,7 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
         setSignupError("Registration successful. Please log in.");
       }
     } catch (err: unknown) {
-      const error = err as any;
-      const detail = error?.response?.data?.detail || error?.response?.data?.message;
-      if (Array.isArray(detail)) {
-        setSignupError(detail.map((e: any) => e.msg).join(", "));
-      } else {
-        setSignupError(typeof detail === "string" ? detail : "Registration failed. Please try again.");
-      }
+      setSignupError(extractErrorMessage(err, "Registration failed. Please try again."));
     } finally {
       setLoading(false);
     }

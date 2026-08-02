@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
-import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
+import { GoogleLoginButton, isGoogleLoginConfigured } from "@/components/auth/GoogleLoginButton";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
+import { extractErrorMessage } from "@/lib/errors";
 
 export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -32,7 +34,7 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
         const payload: Record<string, unknown> = { name, email, password, role: "college_admin" };
         if (phone.trim()) payload.phone = phone.trim();
         await api.post("/auth/register", payload);
-        alert("Registration request submitted! Please wait for super admin approval.");
+        toast.success("Registration request submitted!", "Please wait for super admin approval.");
         setIsSignUp(false);
       } else {
         const payload = { email, password };
@@ -52,17 +54,9 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
         );
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: any, message?: string } } };
-      let errMsg = "An error occurred.";
-      if (error?.response?.data?.detail) {
-        if (Array.isArray(error.response.data.detail)) {
-          errMsg = error.response.data.detail.map((e: any) => e.msg).join(", ");
-        } else if (typeof error.response.data.detail === "string") {
-          errMsg = error.response.data.detail === "Incorrect email or password" ? "Invalid password or email" : error.response.data.detail;
-        }
-      } else if (error?.response?.data?.message) {
-        errMsg = error.response.data.message;
-      }
+      let errMsg = extractErrorMessage(err, "An error occurred.");
+      // Backend's generic auth-failure wording, reworded for this specific form.
+      if (errMsg === "Incorrect email or password") errMsg = "Invalid password or email";
       setError(errMsg);
     } finally {
       setLoading(false);
@@ -190,10 +184,14 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
             <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={handleLogin} disabled={loading}>
               {loading ? "Signing in..." : "Sign In to Portal"}
             </button>
-            <div className="or-div" style={{ marginTop: "16px" }}>
-              OR
-            </div>
-            <GoogleLoginButton onError={setError} />
+            {isGoogleLoginConfigured && (
+              <>
+                <div className="or-div" style={{ marginTop: "16px" }}>
+                  OR
+                </div>
+                <GoogleLoginButton onError={setError} />
+              </>
+            )}
           </div>
         )}
       </div>

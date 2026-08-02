@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/Toaster";
+import { TooltipProvider } from "@/components/ui/Tooltip";
 
+// Plus Jakarta Sans / Space Grotesk are kept loaded so the pre-existing
+// font-jakarta/font-grotesk utility classes sprinkled across the app keep
+// resolving to a valid font (they're aliased to Inter in globals.css's
+// @theme block, per the "use only Inter" design spec — see the
+// `--font-jakarta`/`--font-grotesk` definitions there). Inter is the actual
+// default applied on <body> below.
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
   variable: "--font-jakarta",
 });
 
-// Landing-page-only fonts (Space Grotesk for headings, Inter for body) per
-// the dark redesign brief. Loaded here at the root (required by next/font)
-// but only ever applied via the `font-grotesk`/`font-inter` utility classes
-// inside the landing page itself — the rest of the app (dashboards) keeps
-// Plus Jakarta Sans as its default, applied on <body> below.
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
@@ -42,10 +45,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${inter.variable} ${plusJakartaSans.className}`}
+        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${inter.variable} ${inter.className}`}
         suppressHydrationWarning
       >
-        {children}
+        <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+        <Toaster />
       </body>
     </html>
   );

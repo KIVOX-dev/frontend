@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
+import { toast } from "@/lib/toast";
 
 export function ProfileSummarizer() {
   const { user } = useAuthStore();
@@ -25,7 +26,7 @@ export function ProfileSummarizer() {
       await html2pdf().set(opt).from(element).save();
     } catch (err) {
       console.error(err);
-      alert("Failed to export PDF.");
+      toast.error("Failed to export PDF.");
     } finally {
       setIsGenerating(false);
     }

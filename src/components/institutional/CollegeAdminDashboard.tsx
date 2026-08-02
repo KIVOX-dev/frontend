@@ -1,9 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
+import { LayoutList, LayoutGrid, FileSpreadsheet, FileDown } from "lucide-react";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
+import { extractErrorMessage as apiErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { getDepartmentOptions } from "@/lib/departmentCatalog";
@@ -169,7 +173,7 @@ function CompanyLogo({ name, size = 28 }: { name: string; size?: number }) {
   }
 
   return (
-    <img
+    <Image
       src={`https://unavatar.io/${domain}`}
       alt={`${name} logo`}
       width={size}
@@ -178,16 +182,6 @@ function CompanyLogo({ name, size = 28 }: { name: string; size?: number }) {
       onError={() => setFailed(true)}
     />
   );
-}
-
-// The backend's validation middleware always responds with a generic
-// "Validation failed" top-level message — the actual per-field reasons live
-// in a separate `details` array, which is what actually explains a rejected
-// submission (e.g. a missing required field).
-function apiErrorMessage(err: any, fallback: string): string {
-  const details = err?.response?.data?.details;
-  if (Array.isArray(details) && details.length) return details.join("; ");
-  return err?.response?.data?.message || fallback;
 }
 
 function monthKey(iso?: string) {
@@ -260,16 +254,20 @@ export function CollegeAdminDashboard() {
   const [viewingResultsFor, setViewingResultsFor] = useState<Assessment | null>(null);
   const [results, setResults] = useState<AttemptResult[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
+  const [resultsView, setResultsView] = useState<"table" | "cards">("table");
+  const [isExporting, setIsExporting] = useState<"excel" | "pdf" | null>(null);
+  const resultsContentRef = useRef<HTMLDivElement>(null);
 
   // Department creation — the departments collection starts empty for every
   // institution; there was previously no UI anywhere that could populate it,
   // which is what left the Assign dropdown above with nothing to select.
-  const [newDeptForm, setNewDeptForm] = useState({ name: "", code: "" });
+  const [newDeptForm, setNewDeptForm] = useState({ name: "", code: "", duration_years: "3" });
   const [deptMsg, setDeptMsg] = useState("");
   const [isCreatingDept, setIsCreatingDept] = useState(false);
 
   const handleViewResults = async (test: Assessment) => {
     setViewingResultsFor(test);
+    setResultsView("table");
     setResultsLoading(true);
     try {
       const res = await api.get<AttemptResult[]>(`/tests/${test.id}/results`);
@@ -279,6 +277,60 @@ export function CollegeAdminDashboard() {
       setResults([]);
     } finally {
       setResultsLoading(false);
+    }
+  };
+
+  const resultsFileBaseName = (viewingResultsFor?.title || "results")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "") || "results";
+
+  const handleExportExcel = async () => {
+    if (results.length === 0) return;
+    setIsExporting("excel");
+    try {
+      const XLSX = await import("xlsx");
+      const rows = results.map((r) => ({
+        Student: r.student_name,
+        Score: r.score,
+        "Max Score": r.max_score,
+        Percentage: `${r.percentage}%`,
+        Result: r.passed ? "Passed" : "Failed",
+        Completed: r.completed_at ? new Date(r.completed_at).toLocaleString() : "—",
+      }));
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, sheet, "Results");
+      XLSX.writeFile(workbook, `${resultsFileBaseName}-results.xlsx`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export Excel file");
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (results.length === 0 || !resultsContentRef.current) return;
+    setIsExporting("pdf");
+    try {
+      const html2pdf = (await import("html2pdf.js")).default;
+      await html2pdf()
+        .set({
+          margin: 12,
+          filename: `${resultsFileBaseName}-results.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
+        })
+        .from(resultsContentRef.current)
+        .save();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export PDF");
+    } finally {
+      setIsExporting(null);
     }
   };
 
@@ -387,8 +439,8 @@ export function CollegeAdminDashboard() {
       setShowAddPlacement(false);
       setPlacementForm({ student_id: "", company_name: "", role: "", salary_lpa: "", work_type: "onsite", mode: "campus", location: "" });
       fetchPlacements();
-    } catch (err: any) {
-      setPlacementMsg(err.response?.data?.detail || "Failed to add placement");
+    } catch (err: unknown) {
+      setPlacementMsg(apiErrorMessage(err, "Failed to add placement"));
     }
   };
 
@@ -417,8 +469,8 @@ export function CollegeAdminDashboard() {
       setShowPostDrive(false);
       setDriveForm({ title: "", company_name: "", location: "", job_type: "full_time", salary_min_lpa: "", salary_max_lpa: "", application_deadline: "", eligible_departments: [] });
       fetchDrives();
-    } catch (err: any) {
-      setDriveMsg(err.response?.data?.message || err.response?.data?.detail || "Failed to post drive");
+    } catch (err: unknown) {
+      setDriveMsg(apiErrorMessage(err, "Failed to post drive"));
     } finally {
       setPostingDrive(false);
     }
@@ -434,8 +486,8 @@ export function CollegeAdminDashboard() {
       setCreateForm({ name: "", email: "", password: "", role: "student", department: "" });
       setShowCreateUser(false);
       fetchUsers();
-    } catch (err: any) {
-      setCreateMsg(err.response?.data?.detail || "Failed to create user");
+    } catch (err: unknown) {
+      setCreateMsg(apiErrorMessage(err, "Failed to create user"));
     } finally {
       setLoading(false);
     }
@@ -446,7 +498,7 @@ export function CollegeAdminDashboard() {
     try {
       await api.delete(`/users/${id}`);
       fetchUsers();
-    } catch { alert("Failed to delete"); }
+    } catch { toast.error("Failed to delete"); }
   };
 
   const handleCreateAssessment = async (e: React.FormEvent) => {
@@ -477,6 +529,7 @@ export function CollegeAdminDashboard() {
       });
 
       let assignNote = "";
+      let assignFailed = false;
       if (assessmentForm.department_id) {
         try {
           const assignRes = await api.post("/test-assignments", {
@@ -485,9 +538,10 @@ export function CollegeAdminDashboard() {
             batch_year: parseInt(assessmentForm.batch_year, 10) || new Date().getFullYear(),
           });
           const { assigned_count, matched_students } = assignRes.data as { assigned_count: number; matched_students: number };
-          assignNote = ` Assigned to ${assigned_count} of ${matched_students} matching student(s).`;
+          assignNote = `Assigned to ${assigned_count} of ${matched_students} matching student(s).`;
         } catch (assignErr: any) {
-          assignNote = ` (Created, but assigning it failed: ${apiErrorMessage(assignErr, "unknown error")})`;
+          assignFailed = true;
+          assignNote = `Created, but assigning it failed: ${apiErrorMessage(assignErr, "unknown error")}`;
         }
       }
 
@@ -498,9 +552,14 @@ export function CollegeAdminDashboard() {
         status: "active", start_at: "", end_at: "", department_id: "", batch_year: String(new Date().getFullYear()),
       });
       fetchAssessments();
-      if (assignNote) alert(`Assessment created.${assignNote}`);
+      if (assignNote) {
+        if (assignFailed) toast.warning("Assessment created", assignNote);
+        else toast.success("Assessment created", assignNote);
+      } else {
+        toast.success("Assessment created");
+      }
     } catch (err: any) {
-      alert(apiErrorMessage(err, "Failed to create assessment"));
+      toast.error(err, "Failed to create assessment");
     }
   };
 
@@ -509,7 +568,8 @@ export function CollegeAdminDashboard() {
     try {
       await api.delete(`/tests/${id}`);
       fetchAssessments();
-    } catch { alert("Failed to delete"); }
+      toast.success("Assessment deleted.");
+    } catch { toast.error("Failed to delete"); }
   };
 
   const handleAssignTest = async (e: React.FormEvent) => {
@@ -545,8 +605,9 @@ export function CollegeAdminDashboard() {
         institution_id: currentUser?.institution_id || "",
         name: newDeptForm.name.trim(),
         code: newDeptForm.code.trim(),
+        duration_years: newDeptForm.duration_years ? Number(newDeptForm.duration_years) : undefined,
       });
-      setNewDeptForm({ name: "", code: "" });
+      setNewDeptForm({ name: "", code: "", duration_years: "3" });
       fetchDepartments();
     } catch (err: any) {
       setDeptMsg(apiErrorMessage(err, "Failed to add department"));
@@ -866,17 +927,23 @@ export function CollegeAdminDashboard() {
               <label className="lbl">Code</label>
               <input type="text" className="fi" placeholder="e.g. CSE" value={newDeptForm.code} onChange={e => setNewDeptForm({ ...newDeptForm, code: e.target.value })} required />
             </div>
+            <div style={{ flex: "1 1 130px" }}>
+              <label className="lbl">Duration (years)</label>
+              <input type="number" min="1" max="10" className="fi" placeholder="3" value={newDeptForm.duration_years} onChange={e => setNewDeptForm({ ...newDeptForm, duration_years: e.target.value })} />
+            </div>
             <button type="submit" className="btn btn-p" disabled={isCreatingDept}>{isCreatingDept ? "Adding..." : "+ Add Department"}</button>
           </form>
           {deptMsg && <div style={{ padding: "10px", marginBottom: "12px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>{deptMsg}</div>}
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {departments.map(d => (
-              <span key={d.id} style={{ padding: "6px 12px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "999px", fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>
-                {d.name}{d.code ? ` (${d.code})` : ""}
-              </span>
-            ))}
-            {departments.length === 0 && <span style={{ fontSize: "13px", color: "var(--muted)" }}>No departments added yet.</span>}
-          </div>
+          {departments.length === 0 ? (
+            <span style={{ fontSize: "13px", color: "var(--muted)" }}>No departments added yet.</span>
+          ) : (
+            <select className="fi" defaultValue="" style={{ maxWidth: "320px" }}>
+              <option value="" disabled>{departments.length} department{departments.length === 1 ? "" : "s"} added</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}{d.code ? ` (${d.code})` : ""}</option>
+              ))}
+            </select>
+          )}
         </div>
       )}
 
@@ -1125,43 +1192,110 @@ export function CollegeAdminDashboard() {
       {/* Results Modal */}
       {viewingResultsFor && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "560px", maxHeight: "80vh", overflowY: "auto" }}>
-            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Results</h3>
-            <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>{viewingResultsFor.title}</p>
+          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "720px", maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "20px" }}>
+              <div>
+                <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Results</h3>
+                <p style={{ fontSize: "13px", color: "var(--muted)" }}>{viewingResultsFor.title}</p>
+              </div>
+
+              {results.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
+                  {/* Table / Cards toggle */}
+                  <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: "8px", padding: "2px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setResultsView("table")}
+                      aria-pressed={resultsView === "table"}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "6px",
+                        fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer",
+                        background: resultsView === "table" ? "var(--ink)" : "transparent",
+                        color: resultsView === "table" ? "#fff" : "var(--muted)",
+                      }}
+                    >
+                      <LayoutList size={14} /> Table
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResultsView("cards")}
+                      aria-pressed={resultsView === "cards"}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "6px",
+                        fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer",
+                        background: resultsView === "cards" ? "var(--ink)" : "transparent",
+                        color: resultsView === "cards" ? "#fff" : "var(--muted)",
+                      }}
+                    >
+                      <LayoutGrid size={14} /> Cards
+                    </button>
+                  </div>
+
+                  {/* Export buttons */}
+                  <button type="button" className="btn" onClick={handleExportExcel} disabled={isExporting !== null}>
+                    <FileSpreadsheet size={14} /> {isExporting === "excel" ? "Exporting…" : "Excel"}
+                  </button>
+                  <button type="button" className="btn btn-p" onClick={handleExportPdf} disabled={isExporting !== null}>
+                    <FileDown size={14} /> {isExporting === "pdf" ? "Exporting…" : "PDF"}
+                  </button>
+                </div>
+              )}
+            </div>
 
             {resultsLoading ? (
               <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>Loading...</div>
             ) : results.length === 0 ? (
               <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>No attempts yet.</div>
             ) : (
-              <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
-                    <th style={{ padding: "8px" }}>Student</th>
-                    <th style={{ padding: "8px" }}>Score</th>
-                    <th style={{ padding: "8px" }}>%</th>
-                    <th style={{ padding: "8px" }}>Result</th>
-                    <th style={{ padding: "8px" }}>Completed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.map(r => {
-                    return (
-                      <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                        <td style={{ padding: "8px" }}>{r.student_name}</td>
-                        <td style={{ padding: "8px" }}>{r.score} / {r.max_score}</td>
-                        <td style={{ padding: "8px" }}>{r.percentage}%</td>
-                        <td style={{ padding: "8px" }}>
-                          <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: r.passed ? "#DCFCE7" : "#FEE2E2", color: r.passed ? "#15803D" : "#DC2626" }}>
-                            {r.passed ? "Passed" : "Failed"}
-                          </span>
-                        </td>
-                        <td style={{ padding: "8px", fontSize: "13px", color: "var(--muted)" }}>{r.completed_at ? new Date(r.completed_at).toLocaleString() : "—"}</td>
+              <div ref={resultsContentRef}>
+                {resultsView === "table" ? (
+                  <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
+                        <th style={{ padding: "8px" }}>Student</th>
+                        <th style={{ padding: "8px" }}>Score</th>
+                        <th style={{ padding: "8px" }}>%</th>
+                        <th style={{ padding: "8px" }}>Result</th>
+                        <th style={{ padding: "8px" }}>Completed</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {results.map(r => {
+                        return (
+                          <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                            <td style={{ padding: "8px" }}>{r.student_name}</td>
+                            <td style={{ padding: "8px" }}>{r.score} / {r.max_score}</td>
+                            <td style={{ padding: "8px" }}>{r.percentage}%</td>
+                            <td style={{ padding: "8px" }}>
+                              <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: r.passed ? "#DCFCE7" : "#FEE2E2", color: r.passed ? "#15803D" : "#DC2626" }}>
+                                {r.passed ? "Passed" : "Failed"}
+                              </span>
+                            </td>
+                            <td style={{ padding: "8px", fontSize: "13px", color: "var(--muted)" }}>{r.completed_at ? new Date(r.completed_at).toLocaleString() : "—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
+                    {results.map((r) => (
+                      <div key={r.id} className="card-sm" style={{ padding: "16px", borderRadius: "12px" }}>
+                        <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: "6px" }}>{r.student_name}</p>
+                        <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "10px" }}>
+                          {r.score} / {r.max_score} · {r.percentage}%
+                        </p>
+                        <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: r.passed ? "#DCFCE7" : "#FEE2E2", color: r.passed ? "#15803D" : "#DC2626" }}>
+                          {r.passed ? "Passed" : "Failed"}
+                        </span>
+                        <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "10px" }}>
+                          {r.completed_at ? new Date(r.completed_at).toLocaleString() : "—"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>

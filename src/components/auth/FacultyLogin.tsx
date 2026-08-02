@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
-import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
+import { GoogleLoginButton, isGoogleLoginConfigured } from "@/components/auth/GoogleLoginButton";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
+import { extractErrorMessage } from "@/lib/errors";
 
 export function FacultyLogin({ onBack }: { onBack?: () => void }) {
   const [email, setEmail] = useState("");
@@ -40,15 +41,8 @@ export function FacultyLogin({ onBack }: { onBack?: () => void }) {
         access_token
       );
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: any } } };
-      let errMsg = "Invalid password or email";
-      if (error?.response?.data?.detail) {
-        if (Array.isArray(error.response.data.detail)) {
-          errMsg = error.response.data.detail.map((e: any) => e.msg).join(", ");
-        } else if (typeof error.response.data.detail === "string") {
-          errMsg = error.response.data.detail === "Incorrect email or password" ? "Invalid password or email" : error.response.data.detail;
-        }
-      }
+      let errMsg = extractErrorMessage(err, "Invalid password or email");
+      if (errMsg === "Incorrect email or password") errMsg = "Invalid password or email";
       setError(errMsg);
     } finally {
       setLoading(false);
@@ -117,10 +111,14 @@ export function FacultyLogin({ onBack }: { onBack?: () => void }) {
           <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={handleLogin} disabled={loading}>
             {loading ? "Signing in..." : "Sign In to Portal"}
           </button>
-          <div className="or-div" style={{ marginTop: "16px" }}>
-            OR
-          </div>
-          <GoogleLoginButton onError={setError} />
+          {isGoogleLoginConfigured && (
+            <>
+              <div className="or-div" style={{ marginTop: "16px" }}>
+                OR
+              </div>
+              <GoogleLoginButton onError={setError} />
+            </>
+          )}
         </div>
       </div>
     </AuthSplitLayout>

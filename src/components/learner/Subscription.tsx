@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 export function Subscription() {
   const { user, updateUser } = useAuthStore();
@@ -15,9 +16,9 @@ export function Subscription() {
       const currentPrefs = (user.preferences ?? {}) as Record<string, unknown>;
       const res = await api.put(`/users/${user.id}`, { preferences: { ...currentPrefs, plan: "pro" } });
       updateUser(res.data);
-      alert("Upgraded to Pro successfully!");
+      toast.success("Upgraded to Pro successfully!");
     } catch (err) {
-      alert("Failed to upgrade");
+      toast.error(err, "Failed to upgrade");
     } finally {
       setLoading(false);
     }

@@ -22,6 +22,12 @@ export default function FacultyPage() {
   const { activeScreen, setActiveScreen } = useUiStore();
   const [mounted, setMounted] = useState(false);
 
+  // `activeScreen`/`setActiveScreen` intentionally not in deps — this is a
+  // mount-once hydration guard (setMounted) plus a one-time default (land on
+  // "dash" if nothing else was already selected, e.g. from persisted UI
+  // state). Adding them would turn it into a "run on every screen change"
+  // effect instead, fighting the sidebar nav's own setActiveScreen calls
+  // every time the user navigates.
   useEffect(() => {
     setMounted(true);
     if (activeScreen === "dash" || !activeScreen) {

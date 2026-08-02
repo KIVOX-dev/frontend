@@ -6,6 +6,7 @@ import { HrLogin } from "@/components/hr/HrLogin";
 import { HrShell } from "@/components/layout/HrShell";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 export default function HrPage() {
   const { isAuthenticated, user } = useAuthStore();
@@ -87,6 +88,15 @@ export default function HrPage() {
     }
   };
 
+  // fetchJobs/fetchAllJobs/fetchApplicants/fetchLeaderboard intentionally
+  // not in deps. Unlike a mount-once effect, this one already re-runs on
+  // every activeScreen/isAuthenticated/user change (all listed) — the four
+  // fetch functions close over nothing reactive beyond `api` and stable
+  // setters (fetchLeaderboard's one extra call, normalizeLeaderboardScore,
+  // is pure), so whichever version exists at the render this effect fires
+  // behaves identically to whichever version existed a render earlier.
+  // Nothing here can go stale the way a closure over changing props/state
+  // could.
   useEffect(() => {
     setMounted(true);
     if (activeScreen === "dash") {
@@ -109,7 +119,10 @@ export default function HrPage() {
   const currentScreen = activeScreen === "dash" ? "hr-dash" : activeScreen;
 
   const handlePostVacancy = async () => {
-    if (!title) return alert("Job Title is required!");
+    if (!title) {
+      toast.warning("Job Title is required!");
+      return;
+    }
     setLoading(true);
     try {
       await api.post("/jobs", {
@@ -123,7 +136,7 @@ export default function HrPage() {
         required_skills: skills.join(", "),
         company_name: (user as any)?.company_name || (user as any)?.company || "Company",
       });
-      alert("Job Posted Successfully!");
+      toast.success("Job Posted Successfully!");
       setTitle("");
       setDescription("");
       setSkills([]);
@@ -131,7 +144,7 @@ export default function HrPage() {
       setActiveScreen("hr-dash");
     } catch (err) {
       console.error(err);
-      alert("Failed to post job");
+      toast.error(err, "Failed to post job");
     } finally {
       setLoading(false);
     }

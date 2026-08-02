@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import { api, type ApiRequestConfig } from "@/lib/api";
+import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 
 type Student = {
   id: number;
@@ -30,34 +31,38 @@ type DashboardData = {
   history: Attempt[];
 };
 
-export function StudentTracking() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+// Fetches the current page of students for a given search string. Takes an
+// AbortSignal so useDebouncedSearch can cancel a still-in-flight request
+// when the user keeps typing — otherwise a slow response to an earlier
+// keystroke could arrive after (and overwrite) a faster response to a later
+// one, showing results for a query that's no longer in the search box.
+async function fetchStudentsPage(search: string, signal: AbortSignal): Promise<Student[]> {
+  const config: ApiRequestConfig = { signal, params: search ? { search } : undefined };
+  const res = await api.get<Student[]>(`/students`, config);
+  return res.data;
+}
 
+export function StudentTracking() {
+  const [search, setSearch] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [studentData, setStudentData] = useState<DashboardData | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
 
-  const fetchStudents = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/students?search=${search}`);
-      setStudents(res.data);
-    } catch (err) {
-      console.error("Failed to fetch students", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Live search-as-you-type: fires 400ms after typing pauses rather than
+  // waiting for an explicit submit, and cancels stale requests — see
+  // useDebouncedSearch and fetchStudentsPage above. The Search button/Enter
+  // key still works, bypassing the debounce via runNow() for anyone who
+  // wants results the instant they finish typing.
+  const { data: studentsData, loading, error, runNow } = useDebouncedSearch(search, fetchStudentsPage, { delay: 400 });
+  const students = studentsData ?? [];
 
   useEffect(() => {
-    fetchStudents();
-  }, []);
+    if (error) console.error("Failed to fetch students", error);
+  }, [error]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchStudents();
+    runNow();
   };
 
   const viewInsights = async (student: Student) => {
@@ -95,7 +100,7 @@ export function StudentTracking() {
           <button type="submit" className="btn btn-p" style={{ padding: "0 24px" }}>Search</button>
         </form>
 
-        {loading ? (
+        {loading || studentsData === null ? (
           <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>Loading students...</div>
         ) : (
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>

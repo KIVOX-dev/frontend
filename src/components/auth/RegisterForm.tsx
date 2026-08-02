@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
-import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
+import { GoogleLoginButton, isGoogleLoginConfigured } from "@/components/auth/GoogleLoginButton";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
+import { extractErrorMessage } from "@/lib/errors";
 
 type Role = "student" | "hr" | "college_admin";
 
@@ -105,17 +106,7 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
         setSubmitted(true);
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: unknown; message?: string } } };
-      const detail = error?.response?.data?.detail;
-      let message = "Registration failed. Please try again.";
-      if (Array.isArray(detail)) {
-        message = detail.map((e: { msg: string }) => e.msg).join(", ");
-      } else if (typeof detail === "string") {
-        message = detail;
-      } else if (error?.response?.data?.message) {
-        message = error.response.data.message;
-      }
-      setError(message);
+      setError(extractErrorMessage(err, "Registration failed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -222,7 +213,7 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
               {loading ? "Submitting..." : copy.submitLabel}
             </button>
 
-            {role !== "college_admin" && (
+            {role !== "college_admin" && isGoogleLoginConfigured && (
               <>
                 <div className="or-div" style={{ marginTop: "16px" }}>
                   OR

@@ -6,28 +6,28 @@ import { RevealHeading } from "./RevealHeading";
 
 const faqs = [
   {
-    q: "What exactly is UpScaler, and who is it for?",
-    a: "UpScaler is an AI-powered aptitude training and campus placement platform. It's built for three audiences at once — students preparing for placements, faculty and institution admins running placement cells, and recruiters sourcing pre-verified campus talent.",
+    q: "How does implementation work?",
+    a: "A dedicated onboarding specialist configures your departments, batches, and roles during a guided setup, then bulk-imports existing student and staff records. Most institutions are fully live within a few weeks, not a full semester.",
   },
   {
-    q: "How does the free trial work?",
-    a: "Every new account gets 14 days of full platform access — no credit card required. That includes adaptive AI tests, the resume analyzer, mock interviews, and (for institutions) batch analytics dashboards. You can cancel anytime during the trial with no charge.",
+    q: "Can multiple departments use it?",
+    a: "Yes — the platform is built for institution-wide use from day one. Each department gets its own scoped view of students, faculty, and reports, while administrators retain a unified, cross-department view.",
   },
   {
-    q: "Do you support both individual students and entire institutions?",
-    a: "Yes. Students can sign up directly for personal aptitude training. Institutions get a dedicated admin console to onboard departments and batches in bulk, assign tests, and track cohort-wide performance in real time.",
+    q: "Does it support mobile?",
+    a: "Every role — HR, students, faculty, and administrators — gets a fully responsive experience that works on phones and tablets, so attendance, approvals, and grading can happen from anywhere on campus.",
   },
   {
-    q: "How is our data secured?",
-    a: "Access is role-based (student, faculty, admin, recruiter), sessions are managed securely, and data is encrypted in transit. Institutional data is isolated per account — no cross-institution visibility.",
+    q: "How is data secured?",
+    a: "Access is role-based (HR, student, faculty, admin), sessions are managed securely, and data is encrypted in transit. Each institution's data is isolated — there is no cross-institution visibility.",
   },
   {
-    q: "Can our existing faculty and student records be migrated?",
-    a: "Yes — the admin console supports bulk import via spreadsheet upload for student rosters and faculty accounts, so institutions are typically fully onboarded in under a day.",
+    q: "Can our existing HR and student records be migrated?",
+    a: "Yes — the admin console supports bulk import via spreadsheet upload for employee records and student rosters, so institutions are typically fully onboarded in under a day.",
   },
   {
-    q: "What if we need help getting set up?",
-    a: "Our team supports every institutional onboarding directly, and platform support is available to all accounts. Use the contact section below to reach us and we'll get back to you promptly.",
+    q: "What if we need help after go-live?",
+    a: "Our team supports every institutional rollout directly, and platform support is available to all accounts afterward. Use the contact section below to reach us and we'll get back to you promptly.",
   },
 ];
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/stores/authStore";
 
 type Question = {
@@ -102,7 +103,7 @@ export function AptitudeTests() {
       try {
         const res = await api.get<Question[]>(`/test-assignments/${test.assignment_id}/questions`);
         if (!res.data || res.data.length === 0) {
-          alert("This assessment has no questions attached yet.");
+          toast.warning("This assessment has no questions attached yet.");
           return;
         }
         setQuestions(res.data);
@@ -112,7 +113,7 @@ export function AptitudeTests() {
         setTestCompleted(false);
         setScore(0);
       } catch (err: any) {
-        alert(err.response?.data?.message || "Unable to start this assessment right now.");
+        toast.error(err, "Unable to start this assessment right now.");
       }
       return;
     }
@@ -131,7 +132,7 @@ export function AptitudeTests() {
       }
 
       if (qData.length === 0) {
-        alert("This assessment has no questions attached yet.");
+        toast.warning("This assessment has no questions attached yet.");
         return;
       }
 
@@ -142,7 +143,7 @@ export function AptitudeTests() {
       setTestCompleted(false);
       setScore(0);
     } catch (e) {
-      alert("Failed to load questions. The data might be corrupted.");
+      toast.error("Failed to load questions.", "The data might be corrupted.");
     }
   };
 
@@ -174,7 +175,7 @@ export function AptitudeTests() {
         setScore(res.data.score ?? 0);
         setTestCompleted(true);
       } catch (err: any) {
-        alert(err.response?.data?.message || "Failed to submit. Please try again.");
+        toast.error(err, "Failed to submit. Please try again.");
       } finally {
         setSubmitting(false);
       }

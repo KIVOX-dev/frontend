@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { api } from "@/lib/api";
+import { extractErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 
@@ -21,8 +22,8 @@ export function FacultyDashboard() {
       });
       setPwdMessage({ text: "Password changed successfully!", ok: true });
       setPwdForm({ currentPassword: "", newPassword: "" });
-    } catch (err: any) {
-      setPwdMessage({ text: err.response?.data?.detail || "Failed to change password.", ok: false });
+    } catch (err: unknown) {
+      setPwdMessage({ text: extractErrorMessage(err, "Failed to change password."), ok: false });
     }
   };
 

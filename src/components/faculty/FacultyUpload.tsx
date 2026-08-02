@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
+import { extractErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
 
 type Department = { id: string; name: string; code?: string };
@@ -18,7 +20,13 @@ const FIELD_ALIASES: Record<string, string[]> = {
   ],
   password: ["password", "pwd", "pass"],
   department: ["department", "dept", "branch", "course", "stream"],
-  year: ["year", "graduationyear", "gradyear", "batch", "batchyear", "passingyear"],
+  // Deliberately one bucket for both meanings — the backend disambiguates
+  // by magnitude (4-digit-or-larger = explicit graduation year, smaller =
+  // year of study; see studentOnboarding.js#resolveBatchYear).
+  year: [
+    "year", "graduationyear", "gradyear", "batch", "batchyear", "passingyear",
+    "yearofstudy", "currentyear", "studyyear", "academicyear",
+  ],
 };
 
 function normalizeKey(key: string): string {
@@ -67,7 +75,10 @@ export function FacultyUpload() {
   };
 
   const processUpload = async () => {
-    if (!file) return alert("Please select a file");
+    if (!file) {
+      toast.warning("Please select a file");
+      return;
+    }
     setLoading(true);
     setResult(null);
 
@@ -115,15 +126,7 @@ export function FacultyUpload() {
       setResult(res.data.message);
       setFile(null);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string; details?: string[]; detail?: unknown } } };
-      const details = error?.response?.data?.details;
-      const detail = error?.response?.data?.detail;
-      const message =
-        (Array.isArray(details) ? details.join(", ") : undefined) ||
-        (Array.isArray(detail) ? detail.map((d: { msg?: string }) => d.msg).join(", ") : typeof detail === "string" ? detail : undefined) ||
-        error?.response?.data?.message ||
-        "Upload failed. Please check file format.";
-      setResult(message);
+      setResult(extractErrorMessage(err, "Upload failed. Please check file format."));
     } finally {
       setLoading(false);
     }
@@ -160,14 +163,17 @@ export function FacultyUpload() {
             <p className="text-xs text-gray-500 mt-1">Used for any row whose own Department column doesn&apos;t match a department by name or code.</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Graduation Year</label>
-            <input 
-              type="number" 
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-              placeholder="e.g. 2026" 
+            <label className="block text-sm font-medium text-gray-700 mb-2">Year of Study / Graduation Year</label>
+            <input
+              type="number"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. 3, or 2026"
               value={year}
               onChange={(e) => setYear(e.target.value)}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              A small number (1–6) is treated as current year of study — graduation year is computed from the department&apos;s program length. A 4-digit year (e.g. 2026) is used as-is instead. If left blank here and no department is set yet, it&apos;s computed when the account is approved.
+            </p>
           </div>
         </div>
 
@@ -203,7 +209,7 @@ export function FacultyUpload() {
           <button 
             onClick={processUpload} 
             disabled={!file || loading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-3 rounded-lg font-medium shadow-sm transition-all focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-3 rounded-lg font-medium shadow-xs transition-all focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 flex items-center gap-2"
           >
             {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             Upload to Master Console

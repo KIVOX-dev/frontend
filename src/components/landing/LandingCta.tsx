@@ -38,32 +38,32 @@ export default function LandingCta() {
               <span className="absolute inline-flex w-full h-full rounded-full bg-scale-400 opacity-60 animate-ping" />
               <span className="relative inline-flex w-2 h-2 rounded-full bg-scale-500" />
             </span>
-            Join 1000+ learners already on UpScaler
+            Trusted by 500+ institutions
           </div>
 
           <RevealHeading
             as="h2"
             className="font-extrabold text-scale-ink tracking-tight leading-[1.05] text-4xl sm:text-5xl lg:text-6xl mb-6"
           >
-            Ready to get <span className="scale-mark">hired</span>?
+            Ready to <span className="scale-mark">transform</span> your institution?
           </RevealHeading>
           <p className="text-scale-ink-muted text-lg leading-relaxed mb-11 max-w-xl mx-auto">
-            Start your free trial today. No credit card required.
-            Full platform access for 14 days — no strings attached.
+            See how HR, students, faculty, and administrators can all work from one connected
+            platform — book a personalized demo with our team.
           </p>
 
           {/* CTA buttons — pill-shaped, dark-forest primary */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-12">
             <MagneticButton className="w-full sm:w-auto">
-              <Link href="/learner?mode=signup" className="scale-btn-primary !py-4 !text-base w-full sm:w-auto justify-center">
-                Start Free Trial
+              <Link href="#contact" className="scale-btn-primary py-4! text-base! w-full sm:w-auto justify-center">
+                Request Demo
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </Link>
             </MagneticButton>
             <MagneticButton strength={0.25} className="w-full sm:w-auto">
-              <Link href="/institutional" className="scale-btn-secondary !py-4 !text-base w-full sm:w-auto justify-center">
+              <Link href="/institutional" className="scale-btn-secondary py-4! text-base! w-full sm:w-auto justify-center">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -76,8 +76,8 @@ export default function LandingCta() {
           {/* Trust note */}
           <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-scale-ink-faint text-[13px] pt-8 border-t border-scale-line">
             {[
-              { icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z", label: "SOC-2 Compliant" },
-              { icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", label: "No Credit Card" },
+              { icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z", label: "Enterprise-Grade Security" },
+              { icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", label: "No Setup Fees" },
               { icon: "M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z", label: "24/7 Support" },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2">

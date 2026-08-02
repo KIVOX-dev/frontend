@@ -4,22 +4,28 @@ import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
 
 const footerLinks = {
-  Platform: [
+  Product: [
+    { label: "Platform Overview", href: "#platform" },
     { label: "Features", href: "#features" },
-    { label: "Product", href: "#product" },
-    { label: "How It Works", href: "#process" },
-    { label: "FAQ", href: "#faq" },
+    { label: "How It Works", href: "#how-it-works" },
+    { label: "Pricing", href: "#contact" },
   ],
-  Portals: [
-    { label: "Student Login", href: "/learner" },
-    { label: "Register Free", href: "/learner?mode=signup" },
-    { label: "HR / Recruiter", href: "/hr" },
-    { label: "Institution", href: "/institutional" },
+  Solutions: [
+    { label: "HR Team", href: "/hr" },
+    { label: "Students", href: "/learner" },
+    { label: "Faculty", href: "/faculty" },
+    { label: "College Admin", href: "/institutional" },
+  ],
+  Resources: [
+    { label: "FAQ", href: "#faq" },
+    { label: "Blog", href: "#" },
+    { label: "Help Center", href: "#" },
+    { label: "API Docs", href: "#" },
   ],
   Company: [
     { label: "Contact Us", href: "#contact" },
     { label: "Careers", href: "#" },
-    { label: "Blog", href: "#" },
+    { label: "About Us", href: "#" },
   ],
   Legal: [
     { label: "Privacy Policy", href: "#" },
@@ -51,7 +57,7 @@ export default function LandingFooter() {
   return (
     <footer className="bg-scale-50 border-t border-scale-line">
       <div className="ui-container pt-16 pb-10">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10 mb-14">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-10 mb-14">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <div className="flex items-center gap-2.5 mb-5">
@@ -59,7 +65,8 @@ export default function LandingFooter() {
               <span className="text-scale-ink font-extrabold text-lg tracking-tight">UpScaler</span>
             </div>
             <p className="text-scale-ink-muted text-sm leading-relaxed mb-6 max-w-[240px]">
-              Advanced AI ecosystem for aptitude training and campus-to-corporate placement readiness.
+              One intelligent platform connecting HR, students, faculty, and administrators across
+              your institution.
             </p>
             {/* Socials */}
             <div className="flex gap-2">

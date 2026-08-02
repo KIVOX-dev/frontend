@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 type PendingStudent = {
   id: number;
@@ -32,8 +33,9 @@ export function InstitutionalApproval() {
     try {
       await api.put(`/users/${id}/${action}`);
       setStudents((prev) => prev.filter((s) => s.id !== id));
+      toast.success(action === "approve" ? "User approved" : "User rejected");
     } catch (err) {
-      alert(`Failed to ${action} user`);
+      toast.error(err, `Failed to ${action} user`);
     }
   };
 
@@ -52,7 +54,7 @@ export function InstitutionalApproval() {
       </div>
 
       <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/80 flex justify-between items-center backdrop-blur-sm">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/80 flex justify-between items-center backdrop-blur-xs">
           <h2 className="font-semibold text-gray-700">Pending Student Approvals ({students.length})</h2>
           <button onClick={fetchStudents} className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors hover:underline">
             Refresh Queue
@@ -66,7 +68,7 @@ export function InstitutionalApproval() {
           </div>
         ) : students.length === 0 ? (
           <div className="p-20 text-center flex flex-col items-center">
-            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-5 border border-green-100 shadow-sm">
+            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-5 border border-green-100 shadow-xs">
               <svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
@@ -110,7 +112,7 @@ export function InstitutionalApproval() {
                       </button>
                       <button
                         onClick={() => handleAction(student.id, "approve")}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm transition-all hover:shadow focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-xs transition-all hover:shadow-sm focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
                       >
                         Approve Access
                       </button>

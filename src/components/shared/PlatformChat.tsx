@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { api, getApiUrl } from "@/lib/api";
+import { useReconnectingSocket } from "@/hooks/useReconnectingSocket";
 
 type Contact = {
   id: string | number;
@@ -33,6 +34,13 @@ type Message = {
   isMe?: boolean;
 };
 
+const SOCKET_STATUS_DISPLAY: Record<import("@/hooks/useReconnectingSocket").SocketStatus, { label: string; color: string }> = {
+  open: { label: "Live", color: "#22c55e" },
+  connecting: { label: "Connecting…", color: "#f59e0b" },
+  reconnecting: { label: "Reconnecting…", color: "#f59e0b" },
+  closed: { label: "Offline", color: "#9ca3af" },
+};
+
 export function PlatformChat() {
   const { user, token } = useAuthStore();
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -41,12 +49,45 @@ export function PlatformChat() {
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
 
-  const ws = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const selectedContactRef = useRef<Contact | null>(null);
+  const userIdRef = useRef<string | number | undefined>(user?.id);
 
-  // Keep ref in sync
+  // Keep refs in sync — read from inside the socket's onMessage callback,
+  // which is set up once and shouldn't itself change on every render.
   useEffect(() => { selectedContactRef.current = selectedContact; }, [selectedContact]);
+  useEffect(() => { userIdRef.current = user?.id; }, [user?.id]);
+
+  const handleIncomingMessage = useCallback((raw: unknown) => {
+    const msg = raw as Message;
+    const sc = selectedContactRef.current;
+    const currentUserId = userIdRef.current;
+    // Only show messages from/to the currently selected contact
+    const isRelevant = sc && (
+      (String(msg.sender_id) === String(sc.id) && String(msg.receiver_id) === String(currentUserId)) ||
+      (String(msg.sender_id) === String(currentUserId) && String(msg.receiver_id) === String(sc.id))
+    );
+    if (!isRelevant) return;
+    setMessages((prev) => {
+      const exists = prev.find(p => p.timestamp === msg.timestamp && p.content === msg.content && String(p.sender_id) === String(msg.sender_id));
+      if (exists) return prev;
+      return [...prev, { ...msg, isMe: String(msg.sender_id) === String(currentUserId) }];
+    });
+  }, []);
+
+  // Token as a WS subprotocol rather than a `?token=` query string — see
+  // chatServer.js#authenticate for why (keeps it out of URLs that end up in
+  // server access logs / browser history). `useMemo` so the protocols array
+  // is referentially stable across renders — useReconnectingSocket
+  // reconnects whenever this array's *contents* change, not on every render.
+  const wsProtocols = useMemo(() => (token ? [token] : undefined), [token]);
+  const wsUrl = useMemo(() => {
+    if (!user || !token) return null;
+    const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
+    return getApiUrl().replace(/^http(s)?:/, protocol) + `/chat/ws`;
+  }, [user, token]);
+
+  const { status: socketStatus, send: sendSocketMessage } = useReconnectingSocket(wsUrl, wsProtocols, handleIncomingMessage);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -89,42 +130,6 @@ export function PlatformChat() {
     if (user) fetchContacts();
   }, [user]);
 
-  // Connect WebSocket
-  useEffect(() => {
-    if (!user || !token) return;
-
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const baseUrl = getApiUrl();
-    const wsUrl = baseUrl.replace(/^http(s)?:/, wsProtocol) + `/chat/ws?token=${token}`;
-    ws.current = new WebSocket(wsUrl);
-
-    ws.current.onopen = () => console.log("WebSocket connected");
-
-    ws.current.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        const sc = selectedContactRef.current;
-        // Only show messages from/to the currently selected contact
-        const isRelevant = sc && (
-          (String(msg.sender_id) === String(sc.id) && String(msg.receiver_id) === String(user.id)) ||
-          (String(msg.sender_id) === String(user.id) && String(msg.receiver_id) === String(sc.id))
-        );
-        if (!isRelevant) return;
-        setMessages((prev) => {
-          const exists = prev.find(p => p.timestamp === msg.timestamp && p.content === msg.content && String(p.sender_id) === String(msg.sender_id));
-          if (exists) return prev;
-          return [...prev, { ...msg, isMe: String(msg.sender_id) === String(user.id) }];
-        });
-      } catch (e) {
-        console.error("Failed to parse ws message", e);
-      }
-    };
-
-    ws.current.onerror = () => console.log("WebSocket error");
-
-    return () => { ws.current?.close(); };
-  }, [user, token]);
-
   // Fetch history when selecting a contact
   useEffect(() => {
     if (!selectedContact) { setMessages([]); return; }
@@ -144,7 +149,7 @@ export function PlatformChat() {
   }, [selectedContact, user]);
 
   const handleSend = () => {
-    if (!input.trim() || !ws.current || ws.current.readyState !== WebSocket.OPEN || !selectedContact) return;
+    if (!input.trim() || socketStatus !== "open" || !selectedContact) return;
 
     if (typeof selectedContact.id === "number" && selectedContact.id < 0) {
       // Broadcast mode
@@ -157,9 +162,9 @@ export function PlatformChat() {
       });
 
       targets.forEach(t => {
-        ws.current?.send(JSON.stringify({ receiver_id: t.id, content: input }));
+        sendSocketMessage({ receiver_id: t.id, content: input });
       });
-      
+
       // Also add it locally so the admin sees what they broadcasted
       setMessages(prev => [...prev, {
         sender_id: user?.id,
@@ -171,9 +176,9 @@ export function PlatformChat() {
       }]);
     } else {
       // Normal 1-on-1 mode
-      ws.current.send(JSON.stringify({ receiver_id: selectedContact.id, content: input }));
+      sendSocketMessage({ receiver_id: selectedContact.id, content: input });
     }
-    
+
     setInput("");
   };
 
@@ -198,6 +203,12 @@ export function PlatformChat() {
 
   return (
     <div className="screen active" style={{ padding: "24px 40px", height: "100%", display: "flex", flexDirection: "column" }}>
+      <style jsx global>{`
+        @keyframes pc-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.35; }
+        }
+      `}</style>
       <div style={{ marginBottom: "16px" }}>
         <h2 style={{ fontSize: "28px", fontWeight: 800, color: "var(--text)", marginBottom: "4px" }}>Messages</h2>
         <p style={{ color: "var(--muted)", fontSize: "14px" }}>Select a user to start a conversation.</p>
@@ -276,9 +287,13 @@ export function PlatformChat() {
                     <div style={{ fontSize: "11px", color: "var(--muted)", textTransform: "capitalize" }}>{selectedContact.role.replace("_", " ")}</div>
                   </div>
                 </div>
-                <div style={{ fontSize: "11px", color: "var(--muted)", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span style={{ display: "inline-block", width: "7px", height: "7px", borderRadius: "50%", background: "#22c55e" }}></span>
-                  Live
+                <div style={{ fontSize: "11px", color: "var(--muted)", display: "flex", alignItems: "center", gap: "6px" }} title={`Connection: ${socketStatus}`}>
+                  <span style={{
+                    display: "inline-block", width: "7px", height: "7px", borderRadius: "50%",
+                    background: SOCKET_STATUS_DISPLAY[socketStatus].color,
+                    animation: socketStatus === "reconnecting" || socketStatus === "connecting" ? "pc-pulse 1.2s ease-in-out infinite" : undefined,
+                  }}></span>
+                  {SOCKET_STATUS_DISPLAY[socketStatus].label}
                 </div>
               </div>
 
@@ -315,13 +330,19 @@ export function PlatformChat() {
                 <input
                   type="text"
                   className="fi"
-                  placeholder={`Message ${selectedContact.name}...`}
+                  placeholder={socketStatus === "open" ? `Message ${selectedContact.name}...` : SOCKET_STATUS_DISPLAY[socketStatus].label}
                   style={{ marginBottom: 0, fontSize: "14px" }}
                   value={input}
+                  disabled={socketStatus !== "open"}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 />
-                <button className="btn btn-p" onClick={handleSend} style={{ padding: "0 20px", flexShrink: 0 }}>
+                <button
+                  className="btn btn-p"
+                  onClick={handleSend}
+                  disabled={socketStatus !== "open" || !input.trim()}
+                  style={{ padding: "0 20px", flexShrink: 0, opacity: socketStatus !== "open" ? 0.6 : 1 }}
+                >
                   Send
                 </button>
               </div>

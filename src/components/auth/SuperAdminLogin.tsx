@@ -5,6 +5,7 @@ import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
+import { extractErrorMessage } from "@/lib/errors";
 
 export function SuperAdminLogin() {
   const [email, setEmail] = useState("");
@@ -43,9 +44,7 @@ export function SuperAdminLogin() {
         access_token
       );
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: unknown } } };
-      const detail = error?.response?.data?.detail;
-      setError(typeof detail === "string" ? detail : "Invalid credentials. Please try again.");
+      setError(extractErrorMessage(err, "Invalid credentials. Please try again."));
     } finally {
       setLoading(false);
     }

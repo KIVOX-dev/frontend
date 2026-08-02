@@ -3,14 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { MagneticButton } from "./MagneticButton";
+import { Menu, X, ArrowRight } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
+import { Button } from "@/components/ui/Button";
 
 const navLinks = [
-  { label: "Features", href: "#features" },
+  { label: "Platform", href: "#platform" },
   { label: "Solutions", href: "#solutions" },
-  { label: "About", href: "#about" },
-  { label: "Blog", href: "#blog" },
+  { label: "Features", href: "#features" },
+  { label: "Resources", href: "#resources" },
   { label: "Contact", href: "#contact" },
 ];
 
@@ -48,24 +49,19 @@ export default function LandingNav() {
   }, []);
 
   return (
-    <motion.nav
-      initial={{ y: -16, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-expo ${
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
         scrolled
-          ? "bg-scale-50/85 backdrop-blur-xl border-b border-scale-line shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+          ? "bg-white/90 backdrop-blur-md border-b border-line shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
           : "bg-transparent border-b border-transparent"
       }`}
     >
       <div className="ui-container">
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
-          {/* Logo */}
-          <Link href="/" className="flex items-center group shrink-0">
-            <Logo variant="sidebar" height={56} priority />
+          <Link href="/" className="flex items-center shrink-0">
+            <Logo variant="sidebar" height={48} priority />
           </Link>
 
-          {/* Desktop Links */}
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
               const isActive = activeHref === link.href;
@@ -74,93 +70,78 @@ export default function LandingNav() {
                   key={link.label}
                   href={link.href}
                   aria-current={isActive ? "true" : undefined}
-                  className={`relative px-3.5 py-2 rounded-lg text-sm font-medium font-inter transition-colors duration-200 group ${
-                    isActive ? "text-scale-ink" : "text-scale-ink-muted hover:text-scale-ink"
+                  className={`relative px-3.5 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+                    isActive ? "text-ink" : "text-ink-muted hover:text-ink"
                   }`}
                 >
                   {link.label}
-                  <span
-                    className={`absolute bottom-1 left-3.5 right-3.5 h-[2px] origin-left rounded-full bg-nova-btn-gradient transition-transform duration-300 ease-expo ${
-                      isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-                    }`}
-                  />
+                  {isActive && (
+                    <span className="absolute bottom-1 left-3.5 right-3.5 h-[2px] rounded-full bg-primary" />
+                  )}
                 </a>
               );
             })}
           </div>
 
-          {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-2">
-            <Link href="/learner" className="px-4 py-2.5 rounded-full text-[13px] font-semibold font-inter text-scale-ink-muted hover:text-scale-ink hover:bg-scale-100 transition-all duration-200">
-              Login
+            <Link href="/learner">
+              <Button variant="ghost" size="sm">
+                Login
+              </Button>
             </Link>
-            <MagneticButton strength={0.3}>
-              <Link href="/learner?mode=signup" className="nova-btn-primary !px-4 !py-2.5 !text-[13px]">
-                Sign Up
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </Link>
-            </MagneticButton>
+            <Link href="#contact">
+              <Button size="sm">
+                Request Demo
+                <ArrowRight className="size-3.5" />
+              </Button>
+            </Link>
           </div>
 
-          {/* Mobile menu button */}
           <button
-            className="md:hidden p-2 rounded-lg text-scale-ink hover:bg-scale-100 transition-colors"
+            className="md:hidden p-2 rounded-md text-ink hover:bg-paper-tint transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
           >
-            <div className="w-5 h-4 flex flex-col justify-between">
-              <span className={`block h-[2px] rounded-full bg-current transition-all duration-300 ease-expo ${menuOpen ? "rotate-45 translate-y-[7px]" : ""}`} />
-              <span className={`block h-[2px] rounded-full bg-current transition-all duration-300 ease-expo ${menuOpen ? "opacity-0 scale-x-0" : ""}`} />
-              <span className={`block h-[2px] rounded-full bg-current transition-all duration-300 ease-expo ${menuOpen ? "-rotate-45 -translate-y-[7px]" : ""}`} />
-            </div>
+            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       <AnimatePresence initial={false}>
         {menuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="md:hidden bg-scale-50/95 backdrop-blur-xl border-t border-scale-line overflow-hidden"
+            transition={{ duration: 0.2 }}
+            className="md:hidden bg-white border-t border-line overflow-hidden"
           >
             <div className="px-6 py-5 flex flex-col gap-1">
               {navLinks.map((link) => (
                 <a
                   key={link.label}
                   href={link.href}
-                  className="text-scale-ink-muted hover:text-scale-ink font-medium font-inter py-2.5 transition-colors"
+                  className="text-ink-muted hover:text-ink font-medium py-2.5 transition-colors"
                   onClick={() => setMenuOpen(false)}
                 >
                   {link.label}
                 </a>
               ))}
-              <div className="pt-4 mt-2 border-t border-scale-line flex flex-col gap-2">
-                <Link
-                  href="/learner"
-                  className="nova-btn-secondary !bg-white !text-scale-900 !border-scale-300/60 w-full justify-center"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Login
+              <div className="pt-4 mt-2 border-t border-line flex flex-col gap-2">
+                <Link href="/learner" onClick={() => setMenuOpen(false)}>
+                  <Button variant="secondary" className="w-full justify-center">
+                    Login
+                  </Button>
                 </Link>
-                <Link
-                  href="/learner?mode=signup"
-                  className="nova-btn-primary w-full justify-center"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Sign Up
+                <Link href="#contact" onClick={() => setMenuOpen(false)}>
+                  <Button className="w-full justify-center">Request Demo</Button>
                 </Link>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </header>
   );
 }

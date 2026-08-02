@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 type Question = {
   id: number;
@@ -144,7 +145,7 @@ export function PracticeModule() {
       const res = await api.get<BackendTest[]>("/tests");
       const match = res.data.find((t) => t.category === cat.category);
       if (!match) {
-        alert("This practice category isn't available yet. Please check back later.");
+        toast.info("This practice category isn't available yet.", "Please check back later.");
         setActiveCategory(null);
         return;
       }
@@ -155,7 +156,7 @@ export function PracticeModule() {
       startSession(qs, questionCount);
     } catch (err) {
       console.error("Failed to load questions:", err);
-      alert("Failed to load question data.");
+      toast.error("Failed to load question data.");
       setActiveCategory(null);
     } finally {
       setLoading(false);

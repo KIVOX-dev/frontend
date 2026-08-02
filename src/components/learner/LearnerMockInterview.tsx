@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -39,7 +40,13 @@ export function LearnerMockInterview() {
   const [history, setHistory] = useState<InterviewRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const fetchHistory = async () => {
+  // useCallback with an explicit [user?.id] dependency (rather than the
+  // plain function this used to be) so the effect below can safely depend
+  // on `fetchHistory` itself and always call it with the current user — a
+  // plain re-declared-every-render function would either need omitting from
+  // deps (masking a real, if rare, staleness risk if `user` ever changes
+  // while mounted) or would re-run the effect every render if added as-is.
+  const fetchHistory = useCallback(async () => {
     if (!user?.id) return;
     setHistoryLoading(true);
     try {
@@ -50,16 +57,29 @@ export function LearnerMockInterview() {
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     if (tab === "history") fetchHistory();
-  }, [tab]);
+  }, [tab, fetchHistory]);
 
 
   const [interviewComplete, setInterviewComplete] = useState(false);
-  
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Mirrors `answers` for finishInterview() to read (see that function,
+  // below) without needing `answers` in the timer effect's dependency array.
+  // Adding it there would reset the 60s per-question countdown on every
+  // keystroke — the fix for the real bug (finishInterview submitting a
+  // stale `answers` snapshot from whenever the timer/question last reset,
+  // missing anything typed since — see the exhaustive-deps warning on the
+  // effect below) can't be "add the missing dep" here; it has to be reading
+  // through something that isn't part of the effect's own timing.
+  const answersRef = useRef(answers);
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
 
   const startInterview = async () => {
     setLoading(true);
@@ -70,12 +90,25 @@ export function LearnerMockInterview() {
       setTimeLeft(60);
     } catch (err) {
       console.error("Failed to fetch questions", err);
-      alert("Failed to start interview. Please try again.");
+      toast.error("Failed to start interview. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // `handleNextQuestion` is intentionally not in this effect's deps.
+  // Verified safe rather than just asserted: its own reactive dependencies
+  // are `currentQuestionIndex` and `questions` — both already listed here —
+  // so this effect already tears down and recreates the interval (capturing
+  // a fresh `handleNextQuestion` closure) at exactly the moments
+  // `handleNextQuestion`'s behavior would actually change. Adding it
+  // explicitly would be redundant, not incorrect. `role`/`company`/`user`
+  // (closed over transitively via finishInterview) are frozen for the
+  // interview's duration by construction — editable only during setup,
+  // which has already ended once this effect's interval can fire. The one
+  // value that genuinely changes mid-interview without retriggering this
+  // effect, `answers`, is read through answersRef.current (above) instead
+  // of the closed-over `answers` variable specifically to avoid that gap.
   useEffect(() => {
     if (!setup && !interviewComplete && questions.length > 0) {
       timerRef.current = setInterval(() => {
@@ -108,7 +141,7 @@ export function LearnerMockInterview() {
     
     // Submit to backend
     try {
-      const formattedResponses = Object.entries(answers).map(([qId, ans]) => ({
+      const formattedResponses = Object.entries(answersRef.current).map(([qId, ans]) => ({
         question_id: parseInt(qId),
         answer_text: ans,
         score: Math.floor(Math.random() * 5) + 5,

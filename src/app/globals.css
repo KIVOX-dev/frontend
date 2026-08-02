@@ -1,55 +1,752 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Pre-declares layer priority (lowest to highest) before Tailwind's own
+   `@layer theme, base, components, utilities;` runs. Cascade layers give
+   ANY unlayered CSS priority over ALL layered CSS regardless of
+   specificity — without this, legacy-shell.css's plain (unlayered)
+   reset/theme rules silently beat every Tailwind utility class
+   (p-*, gap-*, rounded-*, ...) across the dashboard routes that import it.
+
+   `legacy` sits ABOVE `base` and BELOW `components`/`utilities` on purpose:
+   Tailwind's own preflight (in `base`) carries the identical
+   `*, ::before, ::after { margin: 0; padding: 0 }` reset plus
+   `button, input, ... { border-radius: 0 }`. Layer priority ignores
+   selector specificity across layers, so if `legacy` ranked below `base`,
+   preflight's generic resets would beat legacy's actual component styles
+   (.fi's padding, .l-submit-blue's border-radius) even though those are
+   far more specific — that regression is exactly what put this ordering
+   here. Ranking `legacy` above `base` lets it win there, while still
+   losing to real Tailwind utility classes (components/utilities), which
+   is what fixed the original bug. */
+@layer theme, base, legacy, components, utilities;
+
+@import 'tailwindcss';
+/* Replaces the `tailwindcss-animate` plugin, which was loaded via
+   tailwind.config.ts's `plugins: []` — a file Tailwind 4 no longer uses.
+   Without this import the `animate-in` / `fade-in` utilities in
+   InstitutionalApproval.tsx and FacultyUpload.tsx would silently resolve to
+   nothing (no error, no styling) instead of animating. */
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+@theme {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-ink: #111827;
+  --color-ink-hover: #1f2937;
+  --color-ink-soft: #374151;
+  --color-ink-muted: #6b7280;
+  --color-ink-faint: #9ca3af;
+
+  --color-paper: #ffffff;
+  --color-paper-soft: #fafaf9;
+  --color-paper-tint: #f7f7f5;
+  --color-paper-sunken: #f3f4f6;
+
+  --color-line: #e5e7eb;
+  --color-line-soft: #edeef0;
+  --color-line-strong: #d1d5db;
+
+  --color-forest-50: #eaf7e8;
+  --color-forest-100: #d3efcf;
+  --color-forest-200: #a8df9f;
+  --color-forest-300: #7ccb70;
+  --color-forest-400: #4fb840;
+  --color-forest-500: #2daa1f;
+  --color-forest-600: #239117;
+  --color-forest-700: #1b7212;
+  --color-forest-800: #14550d;
+  --color-forest-900: #0e3d09;
+  --color-forest: #2daa1f;
+
+  --color-emerald-brand: #2daa1f;
+  --color-emerald-light: #d3efcf;
+  --color-emerald-glow: rgba(45, 170, 31, 0.18);
+
+  --color-jet-50: #1a1a1a;
+  --color-jet-100: #111111;
+  --color-jet: #111827;
+  --color-jet-dark: #030712;
+
+  --color-off-white: #fafaf9;
+  --color-gray-muted: #6b7280;
+
+  --color-scale-50: #eaf7e8;
+  --color-scale-100: #d3efcf;
+  --color-scale-300: #7ccb70;
+  --color-scale-400: #4fb840;
+  --color-scale-500: #2daa1f;
+  --color-scale-600: #239117;
+  --color-scale-900: #14300f;
+  --color-scale-950: #0e3d09;
+  --color-scale: #2daa1f;
+
+  --color-scale-ink: #111827;
+  --color-scale-ink-muted: #6b7280;
+  --color-scale-ink-faint: #9ca3af;
+
+  --color-scale-surface: #ffffff;
+  --color-scale-surface-soft: #fafaf9;
+
+  --color-scale-line: #e5e7eb;
+
+  --color-nova-text: #f7f7f5;
+  --color-nova-text-muted: #d3efcf;
+  --color-nova-text-faint: #a8df9f;
+
+  --color-nova-line: rgba(255, 255, 255, 0.1);
+  --color-nova-line-strong: rgba(255, 255, 255, 0.18);
+
+  /* ── Spec design system — clean semantic aliases the new ui/ primitives
+     and the rebuilt landing page reach for directly, instead of the
+     legacy forest/scale/nova ramp names above. ── */
+  --color-primary-hover: #239117;
+  --color-bg-secondary: #fafaf9;
+  --color-sidebar: #f7f7f5;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+  --color-danger: hsl(var(--destructive));
+  --color-danger-foreground: hsl(var(--destructive-foreground));
+
+  /* Spec: "Use only Inter." Both legacy aliases now resolve to the
+     already-loaded Inter variable (see layout.tsx) so every existing
+     font-jakarta/font-grotesk utility class renders as Inter without
+     touching each call site. */
+  --font-jakarta: var(--font-inter), sans-serif;
+  --font-grotesk: var(--font-inter), sans-serif;
+  --font-inter: var(--font-inter), sans-serif;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-2xs--letter-spacing: 0.02em;
+
+  --tracking-tightest: -0.035em;
+  --tracking-looser: 0.08em;
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-4xl: 2rem;
+
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-entrance: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-accordion-down: accordion-down 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-accordion-up: accordion-up 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-float: float 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-pulse-ring: pulse-ring 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-shimmer: shimmer 3s linear infinite;
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-fade-up: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-scale-in: scale-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-spin-slow: spin-slow 26s linear infinite;
+  --animate-draw-line: draw-line 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-aurora: aurora 18s ease-in-out infinite;
+  --animate-aurora-slow: aurora 26s ease-in-out infinite reverse;
+  --animate-twinkle: twinkle 4s ease-in-out infinite;
+
+  --background-image-green-gradient: linear-gradient(
+    135deg,
+    #1b7212 0%,
+    #2daa1f 100%
+  );
+  --background-image-ink-gradient: linear-gradient(
+    135deg,
+    #111827 0%,
+    #374151 100%
+  );
+  --background-image-hero-mesh: radial-gradient(
+    ellipse 70% 55% at 50% -10%,
+    rgba(45, 170, 31, 0.08) 0%,
+    transparent 65%
+  );
+  --background-image-cta-glow: radial-gradient(
+    ellipse 65% 60% at 50% 50%,
+    rgba(45, 170, 31, 0.1) 0%,
+    transparent 72%
+  );
+  --background-image-card-shine: linear-gradient(
+    135deg,
+    rgba(45, 170, 31, 0.03) 0%,
+    rgba(255, 255, 255, 0) 58%
+  );
+  --background-image-grid-faint:
+    linear-gradient(rgba(45, 170, 31, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45, 170, 31, 0.035) 1px, transparent 1px);
+  --background-image-scale-gradient: linear-gradient(
+    135deg,
+    #1b7212 0%,
+    #2daa1f 100%
+  );
+  --background-image-scale-glow: radial-gradient(
+    ellipse 65% 60% at 50% 50%,
+    rgba(45, 170, 31, 0.14) 0%,
+    transparent 72%
+  );
+  --background-image-nova-hero-gradient: linear-gradient(
+    135deg,
+    #2daa1f 0%,
+    #4fb840 55%,
+    #7ccb70 100%
+  );
+  --background-image-nova-card-gradient: linear-gradient(
+    180deg,
+    #14300f 0%,
+    #0e3d09 100%
+  );
+  --background-image-nova-btn-gradient: linear-gradient(
+    90deg,
+    #2daa1f 0%,
+    #4fb840 100%
+  );
+  --background-image-nova-aurora-1: radial-gradient(
+    circle,
+    rgba(45, 170, 31, 0.3) 0%,
+    transparent 70%
+  );
+  --background-image-nova-aurora-2: radial-gradient(
+    circle,
+    rgba(45, 170, 31, 0.2) 0%,
+    transparent 70%
+  );
+  --background-image-nova-aurora-3: radial-gradient(
+    circle,
+    rgba(79, 184, 64, 0.18) 0%,
+    transparent 70%
+  );
+  --background-image-nova-grid:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+
+  --shadow-hair: 0 0 0 1px rgba(45, 170, 31, 0.06);
+  --shadow-card-lift: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 4px 10px rgba(0, 0, 0, 0.08);
+  --shadow-card-float: 0 6px 16px rgba(0, 0, 0, 0.1);
+  --shadow-ink:
+    0 1px 2px rgba(17, 24, 39, 0.14), 0 6px 18px rgba(17, 24, 39, 0.16);
+  --shadow-ink-hover:
+    0 2px 4px rgba(17, 24, 39, 0.18), 0 12px 28px rgba(17, 24, 39, 0.22);
+  --shadow-green-ring: 0 0 0 3px rgba(45, 170, 31, 0.16);
+  --shadow-green-glow: 0 6px 22px rgba(45, 170, 31, 0.18);
+  --shadow-green-glow-sm: 0 3px 12px rgba(45, 170, 31, 0.16);
+  --shadow-dark-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-scale-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-scale-illustration: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-scale-btn: 0 6px 20px rgba(45, 170, 31, 0.28);
+  --shadow-nova-glass: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-nova-glass-hover: 0 10px 30px rgba(0, 0, 0, 0.14);
+  --shadow-nova-btn-glow: 0 6px 20px rgba(45, 170, 31, 0.28);
+  --shadow-nova-btn-glow-lg: 0 8px 24px rgba(45, 170, 31, 0.34);
+
+  /* ── Spec shadow system — named exactly per spec, for the new ui/
+     primitives (Card / Modal / Dropdown). ── */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-dropdown: 0 6px 20px rgba(0, 0, 0, 0.08);
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 rgba(45, 170, 31, 0.28);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(45, 170, 31, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(45, 170, 31, 0);
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes fade-up {
+    0% {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes scale-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes draw-line {
+    0% {
+      transform: scaleX(0);
+    }
+    100% {
+      transform: scaleX(1);
+    }
+  }
+  @keyframes aurora {
+    0%,
+    100% {
+      transform: translate(0%, 0%) scale(1);
+    }
+    33% {
+      transform: translate(4%, -6%) scale(1.08);
+    }
+    66% {
+      transform: translate(-3%, 4%) scale(0.96);
+    }
+  }
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.15;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   Component layer — the shared vocabulary.
+   Buttons are BLACK only; green appears as accent ink.
+   ═══════════════════════════════════════════════════ */
+
+@utility ui-btn {
+  /* ── Buttons ───────────────────────────────────── */
+  @apply relative inline-flex items-center justify-center gap-2 rounded-xl
+           text-sm font-semibold whitespace-nowrap select-none
+           transition-all duration-300 ease-expo
+           disabled:pointer-events-none disabled:opacity-45;
+
+  /* Arrow inside a button nudges on hover */
+  & .ui-btn-arrow {
+    @apply transition-transform duration-300 ease-expo;
+  }
+  &:hover .ui-btn-arrow {
+    @apply translate-x-1;
+  }
+}
+
+@utility ui-btn-primary {
+  /* Primary — solid black */
+  @apply ui-btn px-6 py-3 bg-ink text-white shadow-ink
+           hover:bg-ink-hover hover:shadow-ink-hover hover:-translate-y-px
+           active:translate-y-0 active:shadow-ink;
+}
+
+@utility ui-btn-secondary {
+  /* Secondary — outlined black on white */
+  @apply ui-btn px-6 py-3 bg-white text-ink border border-line-strong
+           shadow-card-lift
+           hover:border-ink hover:shadow-card-hover hover:-translate-y-px
+           active:translate-y-0;
+}
+
+@utility ui-btn-ghost {
+  /* Ghost — text only */
+  @apply ui-btn px-4 py-2.5 bg-transparent text-ink-muted
+           hover:text-ink hover:bg-paper-tint;
+}
+
+@utility ui-btn-sm {
+  @apply px-4 py-2 text-[13px] rounded-lg;
+}
+
+@utility ui-btn-lg {
+  @apply px-8 py-4 text-base rounded-xl;
+}
+
+@utility ui-btn-arrow {
+  /* Arrow inside a button nudges on hover */
+  .ui-btn & {
+    @apply transition-transform duration-300 ease-expo;
+  }
+  .ui-btn:hover & {
+    @apply translate-x-1;
+  }
+}
+
+@utility ui-card {
+  /* ── Surfaces ──────────────────────────────────── */
+  @apply relative bg-white rounded-2xl border border-line shadow-card-lift
+           transition-all duration-300 ease-expo;
+}
+
+@utility ui-card-interactive {
+  @apply ui-card hover:shadow-card-hover hover:-translate-y-1 hover:border-line-strong;
+}
+
+@utility ui-eyebrow {
+  /* ── Eyebrow badge — where green lives ─────────── */
+  @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
+           bg-forest-50 border border-forest-100
+           text-forest-500 text-xs font-semibold tracking-wide;
+}
+
+@utility ui-chip {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
+           bg-paper-tint border border-line text-ink-muted
+           text-[11px] font-semibold;
+}
+
+@utility ui-chip-green {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
+           bg-forest-50 border border-forest-100 text-forest-500
+           text-[11px] font-semibold;
+}
+
+@utility ui-display {
+  /* ── Type scale helpers ────────────────────────── */
+  @apply font-extrabold text-ink tracking-tightest leading-[1.05];
+}
+
+/* ── Spec type scale — exact sizes/weights for the new ui/ primitives
+   and rebuilt landing page. Inter throughout. ── */
+@utility text-heading-xl {
+  @apply font-inter text-[40px] font-bold leading-[1.15] tracking-tight text-ink;
+}
+
+@utility text-heading-l {
+  @apply font-inter text-[32px] font-bold leading-[1.2] tracking-tight text-ink;
+}
+
+@utility text-heading-m {
+  @apply font-inter text-2xl font-semibold leading-[1.25] text-ink;
+}
+
+@utility text-section-title {
+  @apply font-inter text-xl font-semibold leading-[1.3] text-ink;
+}
+
+@utility text-body {
+  @apply font-inter text-base font-normal leading-relaxed text-ink;
+}
+
+@utility text-small {
+  @apply font-inter text-sm font-normal leading-relaxed text-ink-muted;
+}
+
+@utility text-caption {
+  @apply font-inter text-xs font-normal leading-normal text-ink-faint;
+}
+
+@utility ui-section-title {
+  @apply text-3xl lg:text-[2.75rem] font-extrabold text-ink tracking-tightest leading-[1.1];
+}
+
+@utility ui-lede {
+  @apply text-ink-muted text-base lg:text-lg leading-relaxed;
+}
+
+@utility ui-mark {
+  /* Green underline accent for a highlighted word */
+  @apply relative inline-block text-forest-500;
+  &::after {
+    content: '';
+    @apply absolute left-0 -bottom-0.5 h-[3px] w-full rounded-full bg-forest-200;
+  }
+}
+
+@utility ui-section {
+  /* ── Section rhythm ────────────────────────────── */
+  @apply py-20 lg:py-28;
+}
+
+@utility ui-container {
+  /* Widened from max-w-7xl (1280px) so the site reads as a wide, premium
+     canvas rather than a narrow centered column — every landing section
+     shares this one class, so widening it here widens everything at once.
+     Padding scale: mobile 20-24px, tablet 40-56px, desktop 64-96px. */
+  @apply max-w-[1600px] mx-auto px-5 sm:px-6 md:px-10 lg:px-14 xl:px-16 2xl:px-24;
+}
+
+@utility ui-rule {
+  /* Hairline divider between stacked white sections */
+  @apply border-t border-line;
+}
+
+@utility scale-btn {
+  /* ── UpScaler rebrand — pill buttons ──────────
+     Separate from .ui-btn-* (which stays black-only per
+     the old system) so sections not yet migrated are
+     unaffected. Rolling out section by section. */
+  @apply relative inline-flex items-center justify-center gap-2 rounded-full
+           px-7 py-3.5 text-[15px] font-semibold whitespace-nowrap select-none
+           transition-all duration-300 ease-expo
+           disabled:pointer-events-none disabled:opacity-45;
+}
+
+@utility scale-btn-primary {
+  @apply scale-btn bg-scale-900 text-white shadow-scale-btn
+           hover:bg-scale-600 hover:-translate-y-px
+           active:translate-y-0;
+}
+
+@utility scale-btn-secondary {
+  @apply scale-btn bg-white text-scale-ink border-2 border-scale-900
+           hover:bg-scale-50 hover:-translate-y-px
+           active:translate-y-0;
+}
+
+@utility scale-card {
+  /* ── UpScaler rebrand — surfaces & typography accents ── */
+  @apply relative bg-white rounded-2xl border border-scale-line shadow-scale-card
+           transition-all duration-300 ease-expo;
+}
+
+@utility scale-card-interactive {
+  @apply scale-card hover:shadow-scale-illustration hover:-translate-y-1 hover:border-scale-300;
+}
+
+@utility scale-eyebrow {
+  @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
+           bg-white border border-scale-300/60 shadow-scale-card
+           text-scale-900 text-xs font-semibold tracking-wide;
+}
+
+@utility scale-chip {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
+           bg-scale-50 border border-scale-line text-scale-ink-muted
+           text-[11px] font-semibold;
+}
+
+@utility scale-chip-lime {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
+           bg-scale-100 border border-scale-300/50 text-scale-900
+           text-[11px] font-semibold;
+}
+
+@utility scale-mark {
+  @apply relative inline-block text-scale-900;
+  &::after {
+    content: '';
+    @apply absolute left-0 -bottom-0.5 h-[3px] w-full rounded-full bg-scale-400;
+  }
+}
+
+@utility nova-glass {
+  /* ══════════════════════════════════════════════════
+     Nova — the dark glassmorphism redesign system.
+     Lives alongside `scale-*` (light-mode) rather than
+     replacing it, since sections not yet rebuilt still
+     use the light system until they're migrated too.
+     ══════════════════════════════════════════════════ */
+  @apply relative bg-nova-card-gradient rounded-[24px] border border-nova-line
+           backdrop-blur-xl shadow-nova-glass;
+}
+
+@utility nova-glass-interactive {
+  @apply nova-glass transition-all duration-300 ease-expo
+           hover:border-nova-line-strong hover:-translate-y-1 hover:shadow-nova-glass-hover;
+}
+
+@utility nova-btn {
+  @apply relative inline-flex items-center justify-center gap-2 rounded-full
+           px-7 py-3.5 text-[15px] font-semibold whitespace-nowrap select-none font-inter
+           transition-all duration-300 ease-expo
+           disabled:pointer-events-none disabled:opacity-45;
+}
+
+@utility nova-btn-primary {
+  @apply nova-btn bg-nova-btn-gradient text-white shadow-nova-btn-glow
+           hover:shadow-nova-btn-glow-lg hover:-translate-y-px
+           active:translate-y-0;
+}
+
+@utility nova-btn-secondary {
+  @apply nova-btn bg-white/5 text-nova-text border border-nova-line-strong backdrop-blur-xl
+           hover:bg-white/10 hover:-translate-y-px
+           active:translate-y-0;
+}
+
+@utility nova-eyebrow {
+  @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
+           bg-white/5 border border-nova-line backdrop-blur-xl
+           text-nova-text text-xs font-semibold tracking-wide font-inter;
+}
+
+@utility nova-chip {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
+           bg-white/5 border border-nova-line text-nova-text-muted
+           text-[11px] font-semibold font-inter;
+}
+
+@utility nova-mark {
+  @apply bg-nova-hero-gradient bg-clip-text text-transparent;
+}
+
+@utility nova-heading {
+  @apply font-grotesk font-semibold text-nova-text tracking-tight;
+}
+
+@utility nova-section {
+  @apply py-24 lg:py-32;
+}
 
 @layer base {
   :root {
-    /* ── Core shadcn tokens, retuned for the white theme ── */
+    /* ── Core shadcn tokens, retuned for the spec palette (green primary) ── */
     --background: 0 0% 100%;
-    --foreground: 160 14% 8%;
+    --foreground: 221 39% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 160 14% 8%;
+    --card-foreground: 221 39% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 160 14% 8%;
+    --popover-foreground: 221 39% 11%;
 
-    /* primary = ink (black). Every button derives from this. */
-    --primary: 0 0% 4%;
+    /* primary = spec green #2DAA1F. Every primary button/accent derives from this. */
+    --primary: 114 69% 39%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 156 18% 96%;
-    --secondary-foreground: 160 14% 10%;
-    --muted: 150 12% 96%;
-    --muted-foreground: 158 6% 38%;
+    --secondary: 60 9% 97%;
+    --secondary-foreground: 221 39% 11%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    /* accent = Electric Blue, for highlights only */
-    --accent: 221 91% 95%;
-    --accent-foreground: 223 99% 20%;
+    /* accent = light green wash, for highlights/active states only */
+    --accent: 114 55% 95%;
+    --accent-foreground: 114 69% 24%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 156 10% 91%;
-    --input: 156 10% 89%;
-    --ring: 223 99% 48%;
+    --success: 114 69% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 88%;
+    --ring: 114 69% 39%;
     --radius: 0.75rem;
 
     /* ── Semantic design tokens ── */
-    --ink: #0a0a0a;
-    --ink-hover: #1c1c1c;
-    --ink-muted: #5a6560;
-    --ink-faint: #8b928e;
+    --ink: #111827;
+    --ink-hover: #1f2937;
+    --ink-muted: #6b7280;
+    --ink-faint: #9ca3af;
 
     --paper: #ffffff;
-    --paper-soft: #fafbfa;
-    --paper-tint: #f5f8f6;
-    --paper-sunken: #eff3f1;
+    --paper-soft: #fafaf9;
+    --paper-tint: #f7f7f5;
+    --paper-sunken: #f3f4f6;
 
-    --hairline: #e7ebe9;
-    --hairline-soft: #f0f3f1;
+    --hairline: #e5e7eb;
+    --hairline-soft: #edeef0;
 
-    --green: #0145f2;
-    --green-deep: #071a4d;
-    --green-soft: #dce4f5;
-    --green-wash: #edf1f5;
+    --green: #2daa1f;
+    --green-deep: #1b7212;
+    --green-soft: #d3efcf;
+    --green-wash: #eaf7e8;
 
     --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
@@ -57,12 +754,12 @@
     /* Legacy compatibility for existing components */
     --lp-bg: #ffffff;
     --lp-text: #111827;
-    --lp-accent: #0145f2;
-    --lp-accent-dark: #071a4d;
-    --lp-accent-light: rgba(1, 69, 242, 0.1);
-    --lp-accent-faint: rgba(1, 69, 242, 0.04);
+    --lp-accent: #2daa1f;
+    --lp-accent-dark: #1b7212;
+    --lp-accent-light: rgba(45, 170, 31, 0.1);
+    --lp-accent-faint: rgba(45, 170, 31, 0.04);
     --lp-muted: #6b7280;
-    --lp-surface: #edf1f5;
+    --lp-surface: #eaf7e8;
     --lp-border: #e5e7eb;
   }
 }
@@ -91,8 +788,8 @@
   }
 
   ::selection {
-    background: rgba(1, 69, 242, 0.16);
-    color: #071a4d;
+    background: rgba(45, 170, 31, 0.16);
+    color: #1b7212;
   }
 
   /* Light, unobtrusive scrollbars */
@@ -130,245 +827,6 @@
     width: 100%;
     height: 100vh;
     border: 0;
-  }
-}
-
-/* ═══════════════════════════════════════════════════
-   Component layer — the shared vocabulary.
-   Buttons are BLACK only; green appears as accent ink.
-   ═══════════════════════════════════════════════════ */
-@layer components {
-  /* ── Buttons ───────────────────────────────────── */
-  .ui-btn {
-    @apply relative inline-flex items-center justify-center gap-2 rounded-xl
-           text-sm font-semibold whitespace-nowrap select-none
-           transition-all duration-300 ease-expo
-           disabled:pointer-events-none disabled:opacity-45;
-  }
-
-  /* Primary — solid black */
-  .ui-btn-primary {
-    @apply ui-btn px-6 py-3 bg-ink text-white shadow-ink
-           hover:bg-ink-hover hover:shadow-ink-hover hover:-translate-y-[1px]
-           active:translate-y-0 active:shadow-ink;
-  }
-
-  /* Secondary — outlined black on white */
-  .ui-btn-secondary {
-    @apply ui-btn px-6 py-3 bg-white text-ink border border-line-strong
-           shadow-card-lift
-           hover:border-ink hover:shadow-card-hover hover:-translate-y-[1px]
-           active:translate-y-0;
-  }
-
-  /* Ghost — text only */
-  .ui-btn-ghost {
-    @apply ui-btn px-4 py-2.5 bg-transparent text-ink-muted
-           hover:text-ink hover:bg-paper-tint;
-  }
-
-  .ui-btn-sm {
-    @apply px-4 py-2 text-[13px] rounded-lg;
-  }
-
-  .ui-btn-lg {
-    @apply px-8 py-4 text-base rounded-xl;
-  }
-
-  /* Arrow inside a button nudges on hover */
-  .ui-btn .ui-btn-arrow {
-    @apply transition-transform duration-300 ease-expo;
-  }
-  .ui-btn:hover .ui-btn-arrow {
-    @apply translate-x-1;
-  }
-
-  /* ── Surfaces ──────────────────────────────────── */
-  .ui-card {
-    @apply relative bg-white rounded-2xl border border-line shadow-card-lift
-           transition-all duration-300 ease-expo;
-  }
-
-  .ui-card-interactive {
-    @apply ui-card hover:shadow-card-hover hover:-translate-y-1 hover:border-line-strong;
-  }
-
-  /* ── Eyebrow badge — where green lives ─────────── */
-  .ui-eyebrow {
-    @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
-           bg-forest-50 border border-forest-100
-           text-forest-500 text-xs font-semibold tracking-wide;
-  }
-
-  .ui-chip {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
-           bg-paper-tint border border-line text-ink-muted
-           text-[11px] font-semibold;
-  }
-
-  .ui-chip-green {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
-           bg-forest-50 border border-forest-100 text-forest-500
-           text-[11px] font-semibold;
-  }
-
-  /* ── Type scale helpers ────────────────────────── */
-  .ui-display {
-    @apply font-extrabold text-ink tracking-tightest leading-[1.05];
-  }
-
-  .ui-section-title {
-    @apply text-3xl lg:text-[2.75rem] font-extrabold text-ink tracking-tightest leading-[1.1];
-  }
-
-  .ui-lede {
-    @apply text-ink-muted text-base lg:text-lg leading-relaxed;
-  }
-
-  /* Green underline accent for a highlighted word */
-  .ui-mark {
-    @apply relative inline-block text-forest-500;
-  }
-  .ui-mark::after {
-    content: "";
-    @apply absolute left-0 -bottom-0.5 h-[3px] w-full rounded-full bg-forest-200;
-  }
-
-  /* ── Section rhythm ────────────────────────────── */
-  .ui-section {
-    @apply py-20 lg:py-28;
-  }
-
-  /* Widened from max-w-7xl (1280px) so the site reads as a wide, premium
-     canvas rather than a narrow centered column — every landing section
-     shares this one class, so widening it here widens everything at once.
-     Padding scale: mobile 20-24px, tablet 40-56px, desktop 64-96px. */
-  .ui-container {
-    @apply max-w-[1600px] mx-auto px-5 sm:px-6 md:px-10 lg:px-14 xl:px-16 2xl:px-24;
-  }
-
-  /* Hairline divider between stacked white sections */
-  .ui-rule {
-    @apply border-t border-line;
-  }
-
-  /* ── UpScaler rebrand — pill buttons ──────────
-     Separate from .ui-btn-* (which stays black-only per
-     the old system) so sections not yet migrated are
-     unaffected. Rolling out section by section. */
-  .scale-btn {
-    @apply relative inline-flex items-center justify-center gap-2 rounded-full
-           px-7 py-3.5 text-[15px] font-semibold whitespace-nowrap select-none
-           transition-all duration-300 ease-expo
-           disabled:pointer-events-none disabled:opacity-45;
-  }
-
-  .scale-btn-primary {
-    @apply scale-btn bg-scale-900 text-white shadow-scale-btn
-           hover:bg-scale-600 hover:-translate-y-[1px]
-           active:translate-y-0;
-  }
-
-  .scale-btn-secondary {
-    @apply scale-btn bg-white text-scale-ink border-2 border-scale-900
-           hover:bg-scale-50 hover:-translate-y-[1px]
-           active:translate-y-0;
-  }
-
-  /* ── UpScaler rebrand — surfaces & typography accents ── */
-  .scale-card {
-    @apply relative bg-white rounded-2xl border border-scale-line shadow-scale-card
-           transition-all duration-300 ease-expo;
-  }
-
-  .scale-card-interactive {
-    @apply scale-card hover:shadow-scale-illustration hover:-translate-y-1 hover:border-scale-300;
-  }
-
-  .scale-eyebrow {
-    @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
-           bg-white border border-scale-300/60 shadow-scale-card
-           text-scale-900 text-xs font-semibold tracking-wide;
-  }
-
-  .scale-chip {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
-           bg-scale-50 border border-scale-line text-scale-ink-muted
-           text-[11px] font-semibold;
-  }
-
-  .scale-chip-lime {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
-           bg-scale-100 border border-scale-300/50 text-scale-900
-           text-[11px] font-semibold;
-  }
-
-  .scale-mark {
-    @apply relative inline-block text-scale-900;
-  }
-  .scale-mark::after {
-    content: "";
-    @apply absolute left-0 -bottom-0.5 h-[3px] w-full rounded-full bg-scale-400;
-  }
-
-  /* ══════════════════════════════════════════════════
-     Nova — the dark glassmorphism redesign system.
-     Lives alongside `scale-*` (light-mode) rather than
-     replacing it, since sections not yet rebuilt still
-     use the light system until they're migrated too.
-     ══════════════════════════════════════════════════ */
-
-  .nova-glass {
-    @apply relative bg-nova-card-gradient rounded-[24px] border border-nova-line
-           backdrop-blur-xl shadow-nova-glass;
-  }
-
-  .nova-glass-interactive {
-    @apply nova-glass transition-all duration-300 ease-expo
-           hover:border-nova-line-strong hover:-translate-y-1 hover:shadow-nova-glass-hover;
-  }
-
-  .nova-btn {
-    @apply relative inline-flex items-center justify-center gap-2 rounded-full
-           px-7 py-3.5 text-[15px] font-semibold whitespace-nowrap select-none font-inter
-           transition-all duration-300 ease-expo
-           disabled:pointer-events-none disabled:opacity-45;
-  }
-
-  .nova-btn-primary {
-    @apply nova-btn bg-nova-btn-gradient text-white shadow-nova-btn-glow
-           hover:shadow-nova-btn-glow-lg hover:-translate-y-[1px]
-           active:translate-y-0;
-  }
-
-  .nova-btn-secondary {
-    @apply nova-btn bg-white/5 text-nova-text border border-nova-line-strong backdrop-blur-xl
-           hover:bg-white/10 hover:-translate-y-[1px]
-           active:translate-y-0;
-  }
-
-  .nova-eyebrow {
-    @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
-           bg-white/5 border border-nova-line backdrop-blur-xl
-           text-nova-text text-xs font-semibold tracking-wide font-inter;
-  }
-
-  .nova-chip {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md
-           bg-white/5 border border-nova-line text-nova-text-muted
-           text-[11px] font-semibold font-inter;
-  }
-
-  .nova-mark {
-    @apply bg-nova-hero-gradient bg-clip-text text-transparent;
-  }
-
-  .nova-heading {
-    @apply font-grotesk font-semibold text-nova-text tracking-tight;
-  }
-
-  .nova-section {
-    @apply py-24 lg:py-32;
   }
 }
 

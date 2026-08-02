@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
 import { 
   FileText, Sparkles, Plus, Trash2, ArrowUp, ArrowDown, Check, X, 
   Download, RefreshCw, ZoomIn, ZoomOut, Briefcase, GraduationCap, 
@@ -150,7 +151,13 @@ export function ResumeBuilder() {
     fetchResumeData();
   }, []);
 
-  // Handle auto-save trigger on formData change
+  // `triggerSave` intentionally not in deps — verified safe, not just
+  // omitted. It closes over `formData`, which IS this effect's dependency;
+  // every formData change cancels the previous pending timer (cleanup,
+  // below) and schedules a new one, so the timer that actually survives to
+  // fire 3s later was always scheduled against the current formData at that
+  // time. A stale `formData` closure can't reach triggerSave() here — the
+  // debounce's own cancel-and-reschedule is what would have to fail first.
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -257,9 +264,9 @@ export function ResumeBuilder() {
       setNewVersionName("");
       setShowVersionModal(false);
       fetchResumeData();
-      alert("Resume version saved successfully.");
+      toast.success("Resume version saved successfully.");
     } catch (err) {
-      alert("Failed to save version.");
+      toast.error(err, "Failed to save version.");
     }
   };
 
@@ -270,8 +277,9 @@ export function ResumeBuilder() {
       await api.post(`/resume/version/${versionId}/restore`);
       fetchResumeData();
       setView("builder");
+      toast.success("Version restored.");
     } catch (err) {
-      alert("Failed to restore version.");
+      toast.error(err, "Failed to restore version.");
     } finally {
       setLoading(false);
     }
@@ -282,8 +290,9 @@ export function ResumeBuilder() {
     try {
       await api.delete(`/resume/version/${versionId}`);
       fetchResumeData();
+      toast.success("Version deleted.");
     } catch (err) {
-      alert("Failed to delete version.");
+      toast.error(err, "Failed to delete version.");
     }
   };
 
@@ -294,7 +303,7 @@ export function ResumeBuilder() {
       const res = await api.post("/resume/analyze");
       setAtsReport(res.data);
     } catch (err) {
-      alert("Failed to analyze resume.");
+      toast.error(err, "Failed to analyze resume.");
     } finally {
       setAnalyzing(false);
     }
@@ -302,13 +311,16 @@ export function ResumeBuilder() {
 
   // Job Description Matcher trigger
   const runJDMatch = async () => {
-    if (!jdText.trim()) return alert("Please enter or paste a Job Description first.");
+    if (!jdText.trim()) {
+      toast.warning("Please enter or paste a Job Description first.");
+      return;
+    }
     setMatchingJd(true);
     try {
       const res = await api.post("/resume/match-jd", { jd_text: jdText });
       setJdReport(res.data);
     } catch (err) {
-      alert("Failed to evaluate JD match.");
+      toast.error(err, "Failed to evaluate JD match.");
     } finally {
       setMatchingJd(false);
     }
@@ -316,7 +328,10 @@ export function ResumeBuilder() {
 
   // Import Resume Parser trigger
   const handleParseResume = async () => {
-    if (!importText.trim()) return alert("Please paste the resume text content.");
+    if (!importText.trim()) {
+      toast.warning("Please paste the resume text content.");
+      return;
+    }
     setParsingResume(true);
     try {
       const res = await api.post("/resume/parse", { text: importText });
@@ -328,9 +343,9 @@ export function ResumeBuilder() {
       setShowImportModal(false);
       setImportText("");
       setView("builder");
-      alert("Resume parsed and imported successfully!");
+      toast.success("Resume parsed and imported successfully!");
     } catch (err) {
-      alert("Failed to parse resume text. Please try again.");
+      toast.error(err, "Failed to parse resume text. Please try again.");
     } finally {
       setParsingResume(false);
     }
@@ -347,7 +362,7 @@ export function ResumeBuilder() {
         suggested: res.data.result
       });
     } catch (err) {
-      alert("AI request failed. Please check your network connection.");
+      toast.error(err, "AI request failed. Please check your network connection.");
     } finally {
       setAiLoading(false);
     }
@@ -381,13 +396,16 @@ export function ResumeBuilder() {
 
   // Generate Cover Letter or Interview Questions
   const generateCoverLetter = async () => {
-    if (!jdText.trim()) return alert("Paste a Job Description first to customize the Cover Letter.");
+    if (!jdText.trim()) {
+      toast.warning("Paste a Job Description first to customize the Cover Letter.");
+      return;
+    }
     setAiLoading(true);
     try {
       const res = await api.post("/resume/ai-suggest", { action: "cover_letter", jd_text: jdText });
       setCoverLetter(res.data.result);
     } catch (err) {
-      alert("Failed to generate cover letter.");
+      toast.error(err, "Failed to generate cover letter.");
     } finally {
       setAiLoading(false);
     }
@@ -399,7 +417,7 @@ export function ResumeBuilder() {
       const res = await api.post("/resume/ai-suggest", { action: "interview_prep" });
       setInterviewQuestions(res.data.result);
     } catch (err) {
-      alert("Failed to generate interview prep questions.");
+      toast.error(err, "Failed to generate interview prep questions.");
     } finally {
       setAiLoading(false);
     }
@@ -417,15 +435,15 @@ export function ResumeBuilder() {
     try {
       const html2pdf = (await import("html2pdf.js")).default;
       const opt = {
-        margin: [0.1, 0.1, 0.1, 0.1],
+        margin: [0.1, 0.1, 0.1, 0.1] as [number, number, number, number],
         filename: `${formData.personal.name.replace(/\s+/g, "_")}_Resume.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
+        image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "in", format: "a4", orientation: "portrait" }
+        jsPDF: { unit: "in", format: "a4", orientation: "portrait" as const }
       };
       await html2pdf().set(opt).from(element).save();
     } catch (err) {
-      alert("Failed to export PDF.");
+      toast.error("Failed to export PDF.");
     } finally {
       setSaving(false);
     }
@@ -670,7 +688,7 @@ export function ResumeBuilder() {
           <div className="lg:col-span-2 space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               {/* Score card */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs flex flex-col justify-between">
                 <div>
                   <h3 className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-4">ATS Compatibility Score</h3>
                   <div className="flex items-baseline gap-2">
@@ -697,7 +715,7 @@ export function ResumeBuilder() {
               </div>
 
               {/* Completion card */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs flex flex-col justify-between">
                 <div>
                   <h3 className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-4">Completion Status</h3>
                   <div className="flex items-baseline gap-2">
@@ -717,7 +735,7 @@ export function ResumeBuilder() {
             </div>
 
             {/* Quick Actions & versions */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="font-bold text-slate-900 text-lg">Resume Draft Versions</h3>
                 <button 
@@ -763,7 +781,7 @@ export function ResumeBuilder() {
           </div>
 
           {/* Quick analysis & advice */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-6">
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-6">
             <h3 className="font-bold text-slate-900 text-lg">ATS Scanner Feedback</h3>
             
             {atsReport ? (
@@ -833,7 +851,7 @@ export function ResumeBuilder() {
                     key={t.id}
                     onClick={() => setActiveTab(t.id as any)}
                     className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                      activeTab === t.id ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                      activeTab === t.id ? "bg-white text-slate-800 shadow-xs" : "text-slate-500 hover:text-slate-800"
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -847,7 +865,7 @@ export function ResumeBuilder() {
             {activeTab === "edit" && (
               <div className="space-y-6">
                 {/* Personal Information */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-4">
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
                   <h3 className="font-bold text-slate-900 text-base border-b pb-2 flex items-center gap-2">
                     <User className="w-4 h-4 text-emerald-brand" /> Personal Information
                   </h3>
@@ -902,7 +920,7 @@ export function ResumeBuilder() {
                 </div>
 
                 {/* Professional Objective */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-4">
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-emerald-brand" /> Professional Summary
@@ -924,7 +942,7 @@ export function ResumeBuilder() {
                 </div>
 
                 {/* Education */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-4">
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
                   <div className="flex justify-between items-center border-b pb-2">
                     <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
                       <GraduationCap className="w-4 h-4 text-emerald-brand" /> Education History
@@ -988,7 +1006,7 @@ export function ResumeBuilder() {
                 </div>
 
                 {/* Experience */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-4">
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
                   <div className="flex justify-between items-center border-b pb-2">
                     <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
                       <Briefcase className="w-4 h-4 text-emerald-brand" /> Work Experience
@@ -1060,7 +1078,7 @@ export function ResumeBuilder() {
                 </div>
 
                 {/* Projects */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-4">
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
                   <div className="flex justify-between items-center border-b pb-2">
                     <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
                       <Flame className="w-4 h-4 text-emerald-brand" /> Key Projects
@@ -1132,7 +1150,7 @@ export function ResumeBuilder() {
                 </div>
 
                 {/* Skills */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-4">
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
                   <div className="flex justify-between items-center border-b pb-2">
                     <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
                       <Award className="w-4 h-4 text-emerald-brand" /> Skills List
@@ -1174,7 +1192,7 @@ export function ResumeBuilder() {
                 </div>
 
                 {/* Certifications */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-4">
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
                   <div className="flex justify-between items-center border-b pb-2">
                     <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
                       <Star className="w-4 h-4 text-emerald-brand" /> Certifications
@@ -1219,7 +1237,7 @@ export function ResumeBuilder() {
                 </div>
 
                 {/* Languages */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-4">
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
                   <div className="flex justify-between items-center border-b pb-2">
                     <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
                       <Globe className="w-4 h-4 text-emerald-brand" /> Languages
@@ -1265,7 +1283,7 @@ export function ResumeBuilder() {
 
             {/* TAB: ATS SCANNER */}
             {activeTab === "ats" && (
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-6">
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-6">
                 <div className="flex justify-between items-center border-b pb-3">
                   <h3 className="font-bold text-slate-900 text-lg">ATS Optimization</h3>
                   <button 
@@ -1326,7 +1344,7 @@ export function ResumeBuilder() {
                 ) : (
                   <div className="text-center py-12 text-slate-400 text-xs">
                     <Sparkles className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-                    <p>Click "Trigger Scan" to check keywords alignment, formatting problems, and obtain detailed feedback.</p>
+                    <p>Click &quot;Trigger Scan&quot; to check keywords alignment, formatting problems, and obtain detailed feedback.</p>
                   </div>
                 )}
               </div>
@@ -1334,7 +1352,7 @@ export function ResumeBuilder() {
 
             {/* TAB: JD MATCHER */}
             {activeTab === "jd" && (
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-6">
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-6">
                 <h3 className="font-bold text-slate-900 text-lg border-b pb-2">Target Job Description Matching</h3>
                 
                 <div className="space-y-2">
@@ -1402,7 +1420,7 @@ export function ResumeBuilder() {
                     <h4 className="font-bold text-slate-900">Custom Tailored Cover Letter</h4>
                     <pre className="p-3 bg-slate-50 border rounded-xl text-[11px] leading-relaxed whitespace-pre-wrap font-sans text-slate-600">{coverLetter}</pre>
                     <button 
-                      onClick={() => { navigator.clipboard.writeText(coverLetter); alert("Copied to clipboard!"); }}
+                      onClick={() => { navigator.clipboard.writeText(coverLetter); toast.success("Copied to clipboard!"); }}
                       className="px-3 py-1 rounded border border-slate-200 hover:bg-slate-50 font-bold"
                     >
                       Copy Cover Letter
@@ -1414,7 +1432,7 @@ export function ResumeBuilder() {
 
             {/* TAB: AI TOOLS */}
             {activeTab === "assistant" && (
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-6">
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-6">
                 <h3 className="font-bold text-slate-900 text-lg border-b pb-2">Groq AI Helper Hub</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 border rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer text-center" onClick={generatePrepQuestions}>
@@ -1441,7 +1459,7 @@ export function ResumeBuilder() {
 
           {/* Right panel: Live Resume preview */}
           <div className="lg:col-span-6 space-y-6 sticky top-24">
-            <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-wrap justify-between items-center gap-3">
+            <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs flex flex-wrap justify-between items-center gap-3">
               <div className="flex items-center gap-2">
                 <select 
                   value={formData.template} 
@@ -1512,7 +1530,7 @@ export function ResumeBuilder() {
 
       {/* Modal: Save Version */}
       {showVersionModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-slate-100 shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b pb-2">
               <h3 className="font-extrabold text-slate-900 text-lg">Save Resume Draft Version</h3>
@@ -1547,7 +1565,7 @@ export function ResumeBuilder() {
 
       {/* Modal: Import Resume */}
       {showImportModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 border border-slate-100 shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b pb-2">
               <h3 className="font-extrabold text-slate-900 text-lg">AI Resume Importer</h3>
@@ -1584,7 +1602,7 @@ export function ResumeBuilder() {
 
       {/* Modal: AI Suggestion Review & Apply */}
       {aiSuggestion && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 border border-slate-100 shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b pb-2">
               <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-1.5 text-emerald-700">

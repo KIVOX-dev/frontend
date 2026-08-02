@@ -1,10 +1,15 @@
 import axios from "axios";
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
 
+// Falls back to node-api's own default dev port (see node-api/src/config/env.js
+// — PORT defaults to 5000) so a fresh clone works with `npm run dev` and no
+// manual .env.local edit. NEXT_PUBLIC_API_URL always wins when set — this
+// fallback only ever applies in its absence, so any deployment that already
+// sets the env var sees no behavior change at all.
 export const getApiUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
-  if (typeof window !== "undefined") return `http://${window.location.hostname}:8000/api/v1`;
-  return "http://localhost:8000/api/v1";
+  if (typeof window !== "undefined") return `http://${window.location.hostname}:5000/api/v1`;
+  return "http://localhost:5000/api/v1";
 };
 
 export const api = axios.create({
@@ -231,33 +236,88 @@ api.get = function cachedGet<T = unknown>(
   return request;
 } as typeof api.get;
 
-/* Writes invalidate the whole cache. We can't know which reads a given write
-   affects, and a stale list after a create/delete is far worse than a refetch. */
-function invalidateAfter<T>(promise: Promise<T>): Promise<T> {
+/* Writes used to clear the *entire* GET cache — correct, but a write to
+   /placements also evicted completely unrelated cached reads (e.g.
+   /departments, /institutions/public) that nothing about the write could
+   have changed, forcing avoidable refetches across the whole app on every
+   single mutation.
+
+   Scoped instead: invalidate only the resource the written URL's first path
+   segment names, plus anything in its RESOURCE_GROUPS relation (aliases —
+   /jobs and /placements are the same backend resource under two URLs, see
+   node-api's routes/index.js — and resources whose derived/joined data a
+   write can plausibly change, e.g. posting a placement application can
+   change applicant counts shown under /placements and /jobs). Groups are
+   deliberately generous (over-invalidating a related resource is a wasted
+   refetch; under-invalidating is a stale screen — the former is the safe
+   side to err on). Anything not listed still falls back to invalidating
+   just its own segment, never nothing. */
+const RESOURCE_GROUPS: Record<string, string[]> = {
+  jobs: ["jobs", "placements", "placement-applications", "leaderboard"],
+  placements: ["jobs", "placements", "placement-applications", "leaderboard"],
+  "placement-applications": ["jobs", "placements", "placement-applications", "leaderboard", "dashboard"],
+  "placement-records": ["placement-records", "dashboard"],
+  users: ["users", "students", "faculty", "hr", "college-admins", "dashboard"],
+  students: ["students", "leaderboard", "dashboard", "users"],
+  "students/profile": ["students", "students/profile", "leaderboard", "dashboard"],
+  tests: ["tests", "test-assignments", "results", "dashboard", "leaderboard"],
+  "test-assignments": ["test-assignments", "tests", "results", "dashboard", "leaderboard"],
+  results: ["results", "test-assignments", "dashboard", "leaderboard"],
+  interviews: ["interviews", "dashboard"],
+  batches: ["batches", "students", "dashboard"],
+  departments: ["departments", "students", "faculty"],
+  institutions: ["institutions", "college-admins", "departments"],
+  notifications: ["notifications"],
+  profile: ["profile"],
+  resume: ["resume"],
+};
+
+/** First path segment of a relative API url ("/students/123" -> "students",
+ * "/students/profile" -> tries the two-segment form first since that's its
+ * own group key above). */
+function resourceGroupFor(url: string): string[] {
+  const path = url.split("?")[0].replace(/^\/+/, "");
+  const segments = path.split("/").filter(Boolean);
+  const twoSegmentKey = segments.slice(0, 2).join("/");
+  if (RESOURCE_GROUPS[twoSegmentKey]) return RESOURCE_GROUPS[twoSegmentKey];
+  const key = segments[0] || "";
+  return RESOURCE_GROUPS[key] || (key ? [key] : []);
+}
+
+function invalidateForUrl(url: string) {
+  const group = resourceGroupFor(url);
+  if (group.length === 0) {
+    clearApiCache();
+    return;
+  }
+  group.forEach((segment) => clearApiCache(`/${segment}`));
+}
+
+function invalidateAfter<T>(promise: Promise<T>, url: string): Promise<T> {
   return promise.then(
     (result) => {
-      clearApiCache();
+      invalidateForUrl(url);
       return result;
     },
     (error) => {
-      clearApiCache();
+      invalidateForUrl(url);
       throw error;
     }
   );
 }
 
 api.post = function invalidatingPost(this: unknown, ...args: Parameters<typeof rawPost>) {
-  return invalidateAfter(rawPost(...args));
+  return invalidateAfter(rawPost(...args), String(args[0]));
 } as typeof api.post;
 
 api.put = function invalidatingPut(this: unknown, ...args: Parameters<typeof rawPut>) {
-  return invalidateAfter(rawPut(...args));
+  return invalidateAfter(rawPut(...args), String(args[0]));
 } as typeof api.put;
 
 api.patch = function invalidatingPatch(this: unknown, ...args: Parameters<typeof rawPatch>) {
-  return invalidateAfter(rawPatch(...args));
+  return invalidateAfter(rawPatch(...args), String(args[0]));
 } as typeof api.patch;
 
 api.delete = function invalidatingDelete(this: unknown, ...args: Parameters<typeof rawDelete>) {
-  return invalidateAfter(rawDelete(...args));
+  return invalidateAfter(rawDelete(...args), String(args[0]));
 } as typeof api.delete;

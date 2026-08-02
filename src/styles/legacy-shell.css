@@ -1,0 +1,13 @@
+/* Combined, layer-scoped entry point for the legacy dashboard-shell CSS
+   (legacy-portal.css, legacy-settings.css, theme-refined.css). These predate
+   the Tailwind v4 migration and are plain/unlayered CSS, including a
+   `*, *::before, *::after { margin: 0; padding: 0 }` reset — per the CSS
+   cascade-layers spec, unlayered rules always win over layered rules
+   regardless of specificity, so without `layer(legacy)` here that reset
+   (and everything else in these files) silently overrides every Tailwind
+   utility class on the routes that import this file. `legacy` is declared
+   lowest-priority in src/app/globals.css's `@layer legacy, theme, base,
+   components, utilities;` line, so Tailwind utilities still win. */
+@import "./legacy-portal.css" layer(legacy);
+@import "./legacy-settings.css" layer(legacy);
+@import "./theme-refined.css" layer(legacy);

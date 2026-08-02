@@ -93,11 +93,11 @@ export default function ContactSection() {
               Get In Touch
             </div>
             <RevealHeading className="ui-section-title mb-4">
-              Let&apos;s talk <span className="scale-mark">placements</span>
+              Let&apos;s talk about your <span className="scale-mark">institution</span>
             </RevealHeading>
             <p className="ui-lede mb-8 max-w-md">
-              Whether you&apos;re an institution exploring UpScaler for your placement cell or a
-              recruiter with questions — send us a message and our team will follow up directly.
+              Whether you&apos;re evaluating UpScaler for your HR team, faculty, or student body —
+              request a demo and our team will walk you through the platform directly.
             </p>
 
             <div className="flex flex-col gap-4">
@@ -139,7 +139,7 @@ export default function ContactSection() {
                   </a>
                   .
                 </p>
-                <button type="button" onClick={() => setStatus("idle")} className="scale-btn-secondary !px-4 !py-2 !text-[13px]">
+                <button type="button" onClick={() => setStatus("idle")} className="scale-btn-secondary px-4! py-2! text-[13px]!">
                   Send another message
                 </button>
               </div>
@@ -171,7 +171,7 @@ export default function ContactSection() {
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       aria-invalid={!!errors.name}
                       aria-describedby={errors.name ? "contact-name-error" : undefined}
-                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-none focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200"
+                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-hidden focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200"
                       placeholder="Jane Doe"
                     />
                     {errors.name && (
@@ -192,7 +192,7 @@ export default function ContactSection() {
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       aria-invalid={!!errors.email}
                       aria-describedby={errors.email ? "contact-email-error" : undefined}
-                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-none focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200"
+                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-hidden focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200"
                       placeholder="jane@college.edu"
                     />
                     {errors.email && (
@@ -211,7 +211,7 @@ export default function ContactSection() {
                       type="text"
                       value={form.institution}
                       onChange={(e) => setForm({ ...form, institution: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-none focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200"
+                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-hidden focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200"
                       placeholder="e.g. Nirmala College for Women"
                     />
                   </div>
@@ -227,7 +227,7 @@ export default function ContactSection() {
                       aria-invalid={!!errors.message}
                       aria-describedby={errors.message ? "contact-message-error" : undefined}
                       rows={4}
-                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-none focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200 resize-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-hidden focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200 resize-none"
                       placeholder="Tell us about your institution or what you'd like to know..."
                     />
                     {errors.message && (

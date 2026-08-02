@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { toast } from "@/lib/toast";
 
 type Question = {
   id: number;
@@ -170,7 +171,7 @@ export function MNCTestModule() {
       setTimeLeft(totalTime);
       setTimerActive(true);
     } catch (err) {
-      alert("Failed to load test data.");
+      toast.error("Failed to load test data.");
       setActiveTrack(null);
     } finally {
       setLoading(false);

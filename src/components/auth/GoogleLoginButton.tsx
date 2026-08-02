@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
+import { extractErrorMessage } from "@/lib/errors";
 
 const SCRIPT_ID = "google-identity-services";
 const SCRIPT_SRC = "https://accounts.google.com/gsi/client";
@@ -24,7 +25,7 @@ declare global {
             parent: HTMLElement,
             options: {
               type?: "standard" | "icon";
-              theme?: "outline" | "filled_blue" | "filled_black";
+              theme?: "outline-solid" | "filled_blue" | "filled_black";
               size?: "large" | "medium" | "small";
               shape?: "rectangular" | "pill" | "circle" | "square";
               text?: "signin_with" | "signup_with" | "continue_with" | "signin";
@@ -54,6 +55,14 @@ function loadGsiScript(): Promise<void> {
     document.head.appendChild(script);
   });
 }
+
+/**
+ * Callers should gate the "OR" divider that precedes GoogleLoginButton on
+ * this too — otherwise an unconfigured client ID leaves the divider
+ * dangling above an empty gap instead of hiding the whole Google sign-in
+ * option together.
+ */
+export const isGoogleLoginConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
 /**
  * Renders Google's own Sign-In button and exchanges the resulting ID token
@@ -88,12 +97,7 @@ export function GoogleLoginButton({ onError }: { onError?: (message: string) => 
           access_token
         );
       } catch (err: unknown) {
-        const error = err as { response?: { data?: { detail?: unknown; message?: string } } };
-        const detail = error?.response?.data?.detail;
-        const message =
-          (typeof detail === "string" ? detail : error?.response?.data?.message) ||
-          "Google sign-in failed. Please try again.";
-        onError?.(message);
+        onError?.(extractErrorMessage(err, "Google sign-in failed. Please try again."));
       }
     };
 
@@ -102,7 +106,7 @@ export function GoogleLoginButton({ onError }: { onError?: (message: string) => 
         if (cancelled || !window.google || !containerRef.current) return;
         window.google.accounts.id.initialize({ client_id: clientId, callback: handleCredential });
         window.google.accounts.id.renderButton(containerRef.current, {
-          theme: "outline",
+          theme: "outline-solid",
           size: "large",
           shape: "pill",
           text: "continue_with",
