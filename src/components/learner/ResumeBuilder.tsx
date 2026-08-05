@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
@@ -151,24 +151,46 @@ export function ResumeBuilder() {
     fetchResumeData();
   }, []);
 
-  // `triggerSave` intentionally not in deps — verified safe, not just
-  // omitted. It closes over `formData`, which IS this effect's dependency;
-  // every formData change cancels the previous pending timer (cleanup,
-  // below) and schedules a new one, so the timer that actually survives to
-  // fire 3s later was always scheduled against the current formData at that
-  // time. A stale `formData` closure can't reach triggerSave() here — the
-  // debounce's own cancel-and-reschedule is what would have to fail first.
+  // Declared (as useCallback) before the debounce effect below so that
+  // effect can list it as a dependency — dependency arrays are evaluated
+  // synchronously during render, so a plain `const` declared further down
+  // would be a temporal-dead-zone reference at that point.
+  //
+  // Memoized on `[formData]`: identity changes exactly when formData does,
+  // so the effect below can depend on `triggerSave` alone (the value it
+  // actually calls) rather than on `formData` directly (which its body
+  // never reads), while still re-running at exactly the same moments.
+  const triggerSave = useCallback(async (silent = true) => {
+    if (!silent) setSaving(true);
+    setSaveStatus("Saving...");
+    try {
+      const res = await api.post("/resume", formData);
+      setSaveStatus("Saved");
+      setLastSaved(new Date(res.data.updated_at).toLocaleTimeString());
+    } catch (err) {
+      console.error("Failed to auto-save", err);
+      setSaveStatus("Unsaved Changes");
+    } finally {
+      if (!silent) setSaving(false);
+    }
+  }, [formData]);
+
+  // `triggerSave`'s identity tracks `formData` 1:1 (see above), so this
+  // effect re-runs — cancelling and rescheduling the debounce timer — at
+  // exactly the same moments a `[formData]` dependency array would have
+  // caused, with the timer's closure always over the version of
+  // `triggerSave` (and therefore `formData`) current as of that run.
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
-    
+
     setSaveStatus("Unsaved Changes");
     if (autoSaveTimer.current) {
       clearTimeout(autoSaveTimer.current);
     }
-    
+
     autoSaveTimer.current = setTimeout(() => {
       triggerSave();
     }, 3000);
@@ -176,7 +198,7 @@ export function ResumeBuilder() {
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [formData]);
+  }, [triggerSave]);
 
   const fetchResumeData = async () => {
     setLoading(true);
@@ -195,21 +217,6 @@ export function ResumeBuilder() {
       console.error("Failed to load resume", err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const triggerSave = async (silent = true) => {
-    if (!silent) setSaving(true);
-    setSaveStatus("Saving...");
-    try {
-      const res = await api.post("/resume", formData);
-      setSaveStatus("Saved");
-      setLastSaved(new Date(res.data.updated_at).toLocaleTimeString());
-    } catch (err) {
-      console.error("Failed to auto-save", err);
-      setSaveStatus("Unsaved Changes");
-    } finally {
-      if (!silent) setSaving(false);
     }
   };
 

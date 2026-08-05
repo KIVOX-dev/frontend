@@ -96,49 +96,20 @@ export function LearnerMockInterview() {
     }
   };
 
-  // `handleNextQuestion` is intentionally not in this effect's deps.
-  // Verified safe rather than just asserted: its own reactive dependencies
-  // are `currentQuestionIndex` and `questions` — both already listed here —
-  // so this effect already tears down and recreates the interval (capturing
-  // a fresh `handleNextQuestion` closure) at exactly the moments
-  // `handleNextQuestion`'s behavior would actually change. Adding it
-  // explicitly would be redundant, not incorrect. `role`/`company`/`user`
-  // (closed over transitively via finishInterview) are frozen for the
-  // interview's duration by construction — editable only during setup,
-  // which has already ended once this effect's interval can fire. The one
-  // value that genuinely changes mid-interview without retriggering this
-  // effect, `answers`, is read through answersRef.current (above) instead
-  // of the closed-over `answers` variable specifically to avoid that gap.
-  useEffect(() => {
-    if (!setup && !interviewComplete && questions.length > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            handleNextQuestion();
-            return 60; // Reset for next, though handleNextQuestion might end it
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [setup, currentQuestionIndex, interviewComplete, questions]);
-
-  const handleNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
-      setTimeLeft(60);
-    } else {
-      finishInterview();
-    }
-  };
-
-  const finishInterview = async () => {
+  // Declared (as useCallback) before the timer effect below so the effect
+  // can list it in its dependency array — a plain `const` declared after
+  // the effect would be a temporal-dead-zone reference at that point, since
+  // dependency arrays are evaluated synchronously during render, unlike the
+  // effect body itself (which only runs post-commit, after every render-time
+  // declaration below it has already been assigned).
+  //
+  // Deps are `questions` and `user?.id`/`role` — the only reactive values
+  // actually read in the body. `answersRef.current` (a ref) is read instead
+  // of closing over `answers` directly so this identity doesn't change on
+  // every keystroke — see answersRef's own comment above.
+  const finishInterview = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    
+
     // Submit to backend
     try {
       const formattedResponses = Object.entries(answersRef.current).map(([qId, ans]) => ({
@@ -167,7 +138,45 @@ export function LearnerMockInterview() {
     } finally {
       setInterviewComplete(true);
     }
-  };
+  }, [questions, user?.id, role]);
+
+  // Deps: `currentQuestionIndex`/`questions` (read directly) plus
+  // `finishInterview` (called in the else branch). `role`/`user`/`company`
+  // are frozen for the interview's duration by construction — editable only
+  // during setup, which has already ended by the time this can be called —
+  // so `finishInterview`'s identity can't actually change mid-interview even
+  // though it's transitively part of this dependency chain.
+  const handleNextQuestion = useCallback(() => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+      setTimeLeft(60);
+    } else {
+      finishInterview();
+    }
+  }, [currentQuestionIndex, questions, finishInterview]);
+
+  // `handleNextQuestion` is now a genuine, correctly-listed dependency.
+  // Since its own deps (`currentQuestionIndex`, `questions`) are already
+  // tracked directly by this effect, and `finishInterview` can't change
+  // identity mid-interview (see above), this re-creates the interval at
+  // exactly the same moments it did before — no extra reruns introduced.
+  useEffect(() => {
+    if (!setup && !interviewComplete && questions.length > 0) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            handleNextQuestion();
+            return 60; // Reset for next, though handleNextQuestion might end it
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [setup, currentQuestionIndex, interviewComplete, questions, handleNextQuestion]);
 
   if (setup) {
     return (

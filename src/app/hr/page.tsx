@@ -4,9 +4,26 @@ import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { HrLogin } from "@/components/hr/HrLogin";
 import { HrShell } from "@/components/layout/HrShell";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
+
+// Pure — reads only its own argument, nothing from component scope — so it
+// lives at module scope rather than being redeclared (and needing to be
+// listed as a dependency of fetchLeaderboard below) on every render.
+function normalizeLeaderboardScore(entry: any) {
+  const accuracy = Number(entry?.accuracy);
+  if (Number.isFinite(accuracy) && accuracy >= 0) {
+    return Math.min(100, Math.max(0, accuracy));
+  }
+
+  const rawScore = Number(entry?.score);
+  if (!Number.isFinite(rawScore) || rawScore <= 0) {
+    return 0;
+  }
+
+  return Math.min(100, Math.max(0, rawScore > 100 ? rawScore / 10 : rawScore));
+}
 
 export default function HrPage() {
   const { isAuthenticated, user } = useAuthStore();
@@ -30,48 +47,38 @@ export default function HrPage() {
   const [newSkill, setNewSkill] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const normalizeLeaderboardScore = (entry: any) => {
-    const accuracy = Number(entry?.accuracy);
-    if (Number.isFinite(accuracy) && accuracy >= 0) {
-      return Math.min(100, Math.max(0, accuracy));
-    }
-
-    const rawScore = Number(entry?.score);
-    if (!Number.isFinite(rawScore) || rawScore <= 0) {
-      return 0;
-    }
-
-    return Math.min(100, Math.max(0, rawScore > 100 ? rawScore / 10 : rawScore));
-  };
-
-  const fetchJobs = async () => {
+  // Stable across renders — deps are just `api` (module-level) and setState
+  // setters (React guarantees their identity never changes) — so wrapping in
+  // useCallback lets the effect below list these as real dependencies
+  // without ever re-running on that account.
+  const fetchJobs = useCallback(async () => {
     try {
       const res = await api.get("/jobs/me");
       setJobs(res.data);
     } catch (err) {
       console.error("Error fetching jobs", err);
     }
-  };
+  }, []);
 
-  const fetchAllJobs = async () => {
+  const fetchAllJobs = useCallback(async () => {
     try {
       const res = await api.get("/jobs");
       setAllJobs(res.data);
     } catch (err) {
       console.error("Error fetching all jobs", err);
     }
-  };
+  }, []);
 
-  const fetchApplicants = async () => {
+  const fetchApplicants = useCallback(async () => {
     try {
       const res = await api.get("/jobs/applications/me");
       setApplicants(res.data);
     } catch (err) {
       console.error("Error fetching applicants", err);
     }
-  };
+  }, []);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     try {
       const res = await api.get("/leaderboard");
       if (res.data.success) {
@@ -86,17 +93,12 @@ export default function HrPage() {
     } catch (err) {
       console.error("Error fetching leaderboard", err);
     }
-  };
+  }, []);
 
-  // fetchJobs/fetchAllJobs/fetchApplicants/fetchLeaderboard intentionally
-  // not in deps. Unlike a mount-once effect, this one already re-runs on
-  // every activeScreen/isAuthenticated/user change (all listed) — the four
-  // fetch functions close over nothing reactive beyond `api` and stable
-  // setters (fetchLeaderboard's one extra call, normalizeLeaderboardScore,
-  // is pure), so whichever version exists at the render this effect fires
-  // behaves identically to whichever version existed a render earlier.
-  // Nothing here can go stale the way a closure over changing props/state
-  // could.
+  // All four fetchers are useCallback([])-memoized, so their identities
+  // never change — listing them here satisfies exhaustive-deps without
+  // adding a single extra run: this effect still only re-fires when
+  // activeScreen/isAuthenticated/user actually change, exactly as before.
   useEffect(() => {
     setMounted(true);
     if (activeScreen === "dash") {
@@ -108,7 +110,7 @@ export default function HrPage() {
       fetchApplicants();
       fetchLeaderboard();
     }
-  }, [activeScreen, setActiveScreen, isAuthenticated, user]);
+  }, [activeScreen, setActiveScreen, isAuthenticated, user, fetchJobs, fetchAllJobs, fetchApplicants, fetchLeaderboard]);
 
   if (!mounted) return null;
 
