@@ -22,6 +22,7 @@ type User = {
   role: string;
   status: string;
   department?: string;
+  roll_number?: string;
   created_at?: string;
 };
 
@@ -64,6 +65,15 @@ type Department = {
   id: string;
   name: string;
   code?: string;
+};
+
+// The students collection's own row id — what placements/test-assignments
+// actually key on — is distinct from the linked user's id (see student.id
+// vs student.user_id in student.model.js). Fetched separately from `users`
+// so the Add Placement picker can resolve a chosen user to the right id.
+type StudentRecord = {
+  id: string;
+  user_id: string;
 };
 
 type Placement = {
@@ -212,6 +222,9 @@ export function CollegeAdminDashboard() {
   const { activeScreen } = useUiStore();
   const departmentOptions = getDepartmentOptions(currentUser?.college_name);
   const [users, setUsers] = useState<User[]>([]);
+  const [studentRecords, setStudentRecords] = useState<StudentRecord[]>([]);
+  const [userRoleFilter, setUserRoleFilter] = useState("");
+  const [userDeptFilter, setUserDeptFilter] = useState("");
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [drives, setDrives] = useState<Drive[]>([]);
@@ -231,6 +244,7 @@ export function CollegeAdminDashboard() {
   // Post drive form
   const [showPostDrive, setShowPostDrive] = useState(false);
   const [driveForm, setDriveForm] = useState({ title: "", company_name: "", location: "", job_type: "full_time", salary_min_lpa: "", salary_max_lpa: "", application_deadline: "", eligible_departments: [] as string[] });
+  const [driveDeptSearch, setDriveDeptSearch] = useState("");
   const [driveMsg, setDriveMsg] = useState("");
   const [postingDrive, setPostingDrive] = useState(false);
 
@@ -359,12 +373,32 @@ export function CollegeAdminDashboard() {
   const fetchUsers = async () => {
     try {
       const res = await api.get("/users/");
-      // Filter out college admins so they don't see themselves in the Manage Users table
-      const filteredUsers = res.data.filter((u: User) => u.role !== "college_admin" && u.role !== "institution_admin");
-      setUsers(filteredUsers);
-      const students = res.data.filter((u: User) => u.role === "student").length;
-      const faculty = res.data.filter((u: User) => u.role === "faculty").length;
+      // The API returns full_name/roll_number (roll_number only resolved for
+      // student rows) — mapped to this component's User shape here so every
+      // other reader of `users` can just use u.name/u.roll_number.
+      const mapped: User[] = res.data
+        .filter((u: any) => u.role !== "college_admin" && u.role !== "institution_admin")
+        .map((u: any) => ({
+          id: u.id,
+          name: u.full_name,
+          email: u.email,
+          role: u.role,
+          status: u.status,
+          department: u.department,
+          roll_number: u.roll_number,
+          created_at: u.created_at,
+        }));
+      setUsers(mapped);
+      const students = mapped.filter(u => u.role === "student").length;
+      const faculty = mapped.filter(u => u.role === "faculty").length;
       setStats(prev => ({ ...prev, totalUsers: res.data.length, totalStudents: students, totalFaculty: faculty }));
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchStudentRecords = async () => {
+    try {
+      const res = await api.get("/students?limit=1000");
+      setStudentRecords(res.data);
     } catch (err) { console.error(err); }
   };
 
@@ -399,6 +433,7 @@ export function CollegeAdminDashboard() {
 
   useEffect(() => {
     fetchUsers();
+    fetchStudentRecords();
     fetchAssessments();
     fetchPlacements();
     fetchDrives();
@@ -406,6 +441,26 @@ export function CollegeAdminDashboard() {
   }, []);
 
   const studentsById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
+  const studentRecordIdByUserId = useMemo(
+    () => new Map(studentRecords.map(s => [String(s.user_id), s.id])),
+    [studentRecords]
+  );
+
+  const userRoleOptions = useMemo(
+    () => Array.from(new Set(users.map(u => u.role))).sort((a, b) => a.localeCompare(b)),
+    [users]
+  );
+  const userDeptOptions = useMemo(
+    () => Array.from(new Set(users.map(u => u.department).filter((d): d is string => Boolean(d)))).sort((a, b) => a.localeCompare(b)),
+    [users]
+  );
+  const filteredUsers = useMemo(
+    () => users.filter(u =>
+      (!userRoleFilter || u.role === userRoleFilter) &&
+      (!userDeptFilter || u.department === userDeptFilter)
+    ),
+    [users, userRoleFilter, userDeptFilter]
+  );
 
   const companyStats = useMemo(() => {
     const byCompany = new Map<string, { company: string; count: number; totalSalary: number }>();
@@ -449,7 +504,9 @@ export function CollegeAdminDashboard() {
     setPlacementMsg("");
     try {
       await api.post("/placements", {
-        student_id: parseInt(placementForm.student_id),
+        // student_id is a UUID (the students collection's own row id) —
+        // never a number, so it must be sent as-is, not through parseInt().
+        student_id: placementForm.student_id,
         company_name: placementForm.company_name,
         role: placementForm.role,
         salary_lpa: parseFloat(placementForm.salary_lpa) || 0,
@@ -489,6 +546,7 @@ export function CollegeAdminDashboard() {
       });
       setShowPostDrive(false);
       setDriveForm({ title: "", company_name: "", location: "", job_type: "full_time", salary_min_lpa: "", salary_max_lpa: "", application_deadline: "", eligible_departments: [] });
+      setDriveDeptSearch("");
       fetchDrives();
     } catch (err: unknown) {
       setDriveMsg(apiErrorMessage(err, "Failed to post drive"));
@@ -876,7 +934,7 @@ export function CollegeAdminDashboard() {
         <div className="card" style={{ padding: "24px", marginBottom: "24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
             <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>Placement Drives</h3>
-            <button className="btn btn-p" onClick={() => { setDriveMsg(""); setShowPostDrive(true); }}>+ Post Drive</button>
+            <button className="btn btn-p" onClick={() => { setDriveMsg(""); setDriveDeptSearch(""); setShowPostDrive(true); }}>+ Post Drive</button>
           </div>
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
             <thead>
@@ -916,29 +974,60 @@ export function CollegeAdminDashboard() {
       {/* Manage Users (standalone) */}
       {activeScreen === "users" && (
         <div className="card" style={{ padding: "24px", marginBottom: "24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
             <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>Manage Users</h3>
             <button className="btn btn-p" onClick={() => setShowCreateUser(true)}>+ Add User</button>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+            <select className="fi" value={userRoleFilter} onChange={e => setUserRoleFilter(e.target.value)} style={{ maxWidth: "200px" }}>
+              <option value="">All roles ({users.length})</option>
+              {userRoleOptions.map(role => (
+                <option key={role} value={role}>
+                  {role.replace("_", " ")} ({users.filter(u => u.role === role).length})
+                </option>
+              ))}
+            </select>
+            <select className="fi" value={userDeptFilter} onChange={e => setUserDeptFilter(e.target.value)} style={{ maxWidth: "240px" }}>
+              <option value="">All departments</option>
+              {userDeptOptions.map(dept => (
+                <option key={dept} value={dept}>
+                  {dept} ({users.filter(u => u.department === dept).length})
+                </option>
+              ))}
+            </select>
+            {(userRoleFilter || userDeptFilter) && (
+              <button
+                type="button"
+                onClick={() => { setUserRoleFilter(""); setUserDeptFilter(""); }}
+                style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}
+              >
+                Clear filters
+              </button>
+            )}
           </div>
           {createMsg && <div style={{ padding: "10px", marginBottom: "12px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>{createMsg}</div>}
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
                 <th style={{ padding: "12px 8px" }}>Name</th>
+                <th style={{ padding: "12px 8px" }}>Roll No</th>
                 <th style={{ padding: "12px 8px" }}>Email</th>
                 <th style={{ padding: "12px 8px" }}>Role</th>
+                <th style={{ padding: "12px 8px" }}>Department</th>
                 <th style={{ padding: "12px 8px" }}>Status</th>
                 <th style={{ padding: "12px 8px", textAlign: "right" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {users.map(u => (
+              {filteredUsers.map(u => (
                 <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={{ padding: "12px 8px", fontWeight: 500 }}>{u.name}</td>
+                  <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.role === "student" ? (u.roll_number || "—") : "—"}</td>
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.email}</td>
                   <td style={{ padding: "12px 8px" }}>
                     <span style={{ padding: "4px 10px", background: u.role === "faculty" ? "var(--purple-l, #ede9fe)" : "var(--accent-l)", color: u.role === "faculty" ? "var(--purple, #7c3aed)" : "var(--accent)", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{u.role.replace("_", " ")}</span>
                   </td>
+                  <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.department || "—"}</td>
                   <td style={{ padding: "12px 8px" }}>
                     <span style={{ padding: "4px 10px", background: u.status === "approved" ? "#e6f4ea" : u.status === "pending" ? "#fef3c7" : "#fee2e2", color: u.status === "approved" ? "#1e8e3e" : u.status === "pending" ? "#b45309" : "#dc2626", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{u.status}</span>
                   </td>
@@ -947,8 +1036,8 @@ export function CollegeAdminDashboard() {
                   </td>
                 </tr>
               ))}
-              {users.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No users found.</td></tr>
+              {filteredUsers.length === 0 && (
+                <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>{users.length === 0 ? "No users found." : "No users match the selected filters."}</td></tr>
               )}
             </tbody>
           </table>
@@ -1447,9 +1536,18 @@ export function CollegeAdminDashboard() {
                 <label className="lbl">Student</label>
                 <select className="fi" value={placementForm.student_id} onChange={e => setPlacementForm({ ...placementForm, student_id: e.target.value })} required>
                   <option value="">Select a student</option>
-                  {users.filter(u => u.role === "student").map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.email})</option>
-                  ))}
+                  {users.filter(u => u.role === "student").map(s => {
+                    // The dropdown must submit the students collection's row
+                    // id, not this user's own id — see student_id comment in
+                    // handleCreatePlacement. Skip anyone whose student
+                    // profile hasn't loaded/resolved rather than submit the
+                    // wrong id.
+                    const studentRecordId = studentRecordIdByUserId.get(String(s.id));
+                    if (!studentRecordId) return null;
+                    return (
+                      <option key={s.id} value={studentRecordId}>{s.name} ({s.email})</option>
+                    );
+                  })}
                 </select>
               </div>
               <div style={{ marginBottom: "14px" }}>
@@ -1531,18 +1629,75 @@ export function CollegeAdminDashboard() {
                 <input type="date" className="fi" value={driveForm.application_deadline} onChange={e => setDriveForm({ ...driveForm, application_deadline: e.target.value })} />
               </div>
               <div style={{ marginBottom: "20px" }}>
-                <label className="lbl">Eligible Departments (Optional — leave empty for all)</label>
-                <select
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <label className="lbl">Eligible Departments (Optional — leave empty for all)</label>
+                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>{driveForm.eligible_departments.length} selected</span>
+                </div>
+                <input
+                  type="text"
                   className="fi"
-                  multiple
-                  style={{ height: "120px" }}
-                  value={driveForm.eligible_departments}
-                  onChange={e => setDriveForm({ ...driveForm, eligible_departments: Array.from(e.target.selectedOptions, o => o.value) })}
-                >
-                  {departmentOptions.map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
+                  placeholder="Search departments…"
+                  value={driveDeptSearch}
+                  onChange={e => setDriveDeptSearch(e.target.value)}
+                  style={{ marginBottom: "8px" }}
+                />
+                {(() => {
+                  const filteredDepts = departmentOptions.filter(d =>
+                    d.toLowerCase().includes(driveDeptSearch.trim().toLowerCase())
+                  );
+                  const allFilteredSelected = filteredDepts.length > 0 && filteredDepts.every(d => driveForm.eligible_departments.includes(d));
+                  return (
+                    <>
+                      <div style={{ display: "flex", gap: "12px", marginBottom: "6px" }}>
+                        <button
+                          type="button"
+                          onClick={() => setDriveForm({
+                            ...driveForm,
+                            eligible_departments: allFilteredSelected
+                              ? driveForm.eligible_departments.filter(d => !filteredDepts.includes(d))
+                              : Array.from(new Set([...driveForm.eligible_departments, ...filteredDepts])),
+                          })}
+                          style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "12px", fontWeight: 600, padding: 0 }}
+                        >
+                          {allFilteredSelected ? "Deselect all" : "Select all"}{driveDeptSearch ? " (matching)" : ""}
+                        </button>
+                        {driveForm.eligible_departments.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setDriveForm({ ...driveForm, eligible_departments: [] })}
+                            style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "12px", fontWeight: 600, padding: 0 }}
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ border: "1px solid var(--border)", borderRadius: "8px", maxHeight: "180px", overflowY: "auto" }}>
+                        {filteredDepts.length === 0 ? (
+                          <div style={{ padding: "12px", fontSize: "13px", color: "var(--muted)" }}>No departments match your search.</div>
+                        ) : (
+                          filteredDepts.map(dept => (
+                            <label
+                              key={dept}
+                              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", fontSize: "13px", cursor: "pointer", borderBottom: "1px solid var(--border)" }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={driveForm.eligible_departments.includes(dept)}
+                                onChange={e => setDriveForm({
+                                  ...driveForm,
+                                  eligible_departments: e.target.checked
+                                    ? [...driveForm.eligible_departments, dept]
+                                    : driveForm.eligible_departments.filter(d => d !== dept),
+                                })}
+                              />
+                              {dept}
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
                 <button type="button" className="btn" disabled={postingDrive} onClick={() => { setShowPostDrive(false); setDriveMsg(""); }}>Cancel</button>

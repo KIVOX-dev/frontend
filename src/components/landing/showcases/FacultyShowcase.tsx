@@ -1,29 +1,29 @@
-import { CalendarDays, Users, CalendarCheck, ClipboardList, GraduationCap } from "lucide-react";
+import { LayoutDashboard, UserPlus, UploadCloud, Activity, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/Table";
-import { ShowcaseFrame, ShowcaseStatCard, ShowcaseBarChart } from "./ShowcaseFrame";
+import { ShowcaseFrame } from "./ShowcaseFrame";
 
 const navItems = [
-  { icon: CalendarDays, label: "Classes", active: true },
-  { icon: Users, label: "Students" },
-  { icon: CalendarCheck, label: "Attendance" },
-  { icon: ClipboardList, label: "Assignments" },
-  { icon: GraduationCap, label: "Grades" },
+  { icon: LayoutDashboard, label: "Dashboard", active: true },
+  { icon: UserPlus, label: "Add Student" },
+  { icon: UploadCloud, label: "Upload Students" },
+  { icon: Activity, label: "Student Tracking" },
+  { icon: MessageSquare, label: "Messages" },
 ];
 
-const schedule = [
-  { time: "9:00 AM", cls: "CSE-3A · Data Structures" },
-  { time: "11:00 AM", cls: "CSE-3B · Data Structures" },
-  { time: "2:00 PM", cls: "CSE-4A · Algorithms" },
+const quickActions = [
+  { label: "Add Student", desc: "Create a new student account" },
+  { label: "Upload Students", desc: "Bulk import via CSV" },
+  { label: "Student Tracking", desc: "View student performance" },
 ];
 
 const students = [
-  { name: "Rahul Verma", assignment: "Submitted", grade: "A" },
-  { name: "Sneha Iyer", assignment: "Submitted", grade: "A-" },
-  { name: "Karan Mehta", assignment: "Pending", grade: "—" },
+  { name: "Rahul Verma", department: "Computer Science", status: "Approved" as const },
+  { name: "Sneha Iyer", department: "Electronics", status: "Approved" as const },
+  { name: "Karan Mehta", department: "Mechanical", status: "Pending" as const },
 ];
 
-const gradeTone = { A: "success", "A-": "success", "—": "neutral" } as const;
+const statusTone = { Approved: "success", Pending: "warning" } as const;
 
 export function FacultyShowcase() {
   return (
@@ -33,55 +33,60 @@ export function FacultyShowcase() {
       searchPlaceholder="Search students…"
       userInitials="PS"
     >
-      <div className="grid grid-cols-4 gap-2.5 mb-3">
-        <ShowcaseStatCard label="Classes Today" value="3" />
-        <ShowcaseStatCard label="Students" value="126" />
-        <ShowcaseStatCard label="Assignments Due" value="2" />
-        <ShowcaseStatCard label="Avg. Grade" value="B+" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="rounded-md border border-line p-3">
-          <p className="text-caption font-semibold mb-2.5">Today&apos;s Schedule</p>
-          <div className="space-y-2">
-            {schedule.map((s) => (
-              <div key={s.cls} className="flex items-center justify-between text-caption">
-                <span className="font-semibold text-ink truncate">{s.cls}</span>
-                <span className="text-ink-faint shrink-0">{s.time}</span>
-              </div>
-            ))}
+      <div className="grid grid-cols-3 gap-2.5 mb-3">
+        {quickActions.map((a) => (
+          <div key={a.label} className="rounded-md border border-line bg-[var(--color-sidebar)] px-3 py-2.5">
+            <p className="text-caption font-bold text-ink mb-0.5">{a.label}</p>
+            <p className="text-[11px] text-ink-faint">{a.desc}</p>
           </div>
-        </div>
-
-        <ShowcaseBarChart
-          title="Class Performance"
-          bars={[
-            { label: "3A", value: 84 },
-            { label: "3B", value: 76 },
-            { label: "4A", value: 90 },
-          ]}
-        />
+        ))}
       </div>
 
-      <p className="text-caption font-semibold mb-2">Assignment Review — CSE-3A</p>
+      <p className="text-caption font-semibold mb-2">Student Tracking</p>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Student</TableHead>
-            <TableHead>Assignment</TableHead>
-            <TableHead>Grade</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Department</TableHead>
+            <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {students.map((s) => (
             <TableRow key={s.name}>
               <TableCell className="font-semibold">{s.name}</TableCell>
-              <TableCell>{s.assignment}</TableCell>
+              <TableCell>{s.department}</TableCell>
               <TableCell>
-                <Badge tone={gradeTone[s.grade as keyof typeof gradeTone]}>{s.grade}</Badge>
+                <Badge tone={statusTone[s.status]}>{s.status}</Badge>
               </TableCell>
             </TableRow>
           ))}
+        </TableBody>
+      </Table>
+
+      <p className="text-caption font-semibold mb-2 mt-3">Rahul Verma — Profile Insights</p>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Date</TableHead>
+            <TableHead>Score</TableHead>
+            <TableHead>Accuracy</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell>May 12</TableCell>
+            <TableCell>17 / 20</TableCell>
+            <TableCell>85%</TableCell>
+            <TableCell><Badge tone="success">Passed</Badge></TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>May 9</TableCell>
+            <TableCell>12 / 20</TableCell>
+            <TableCell>60%</TableCell>
+            <TableCell><Badge tone="success">Passed</Badge></TableCell>
+          </TableRow>
         </TableBody>
       </Table>
     </ShowcaseFrame>

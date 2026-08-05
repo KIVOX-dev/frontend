@@ -7,9 +7,9 @@ import {
   ArrowRight,
   LayoutDashboard,
   Users,
-  GraduationCap,
   Briefcase,
-  FileBarChart,
+  ClipboardList,
+  Building2,
   Search,
   Bell,
   BellRing,
@@ -66,9 +66,9 @@ function AnimatedCounter({ value, inView }: { value: string; inView: boolean }) 
 const sidebarItems = [
   { icon: LayoutDashboard, active: true },
   { icon: Users },
-  { icon: GraduationCap },
   { icon: Briefcase },
-  { icon: FileBarChart },
+  { icon: ClipboardList },
+  { icon: Building2 },
 ];
 
 function InstitutionPreview() {
@@ -109,7 +109,7 @@ function InstitutionPreview() {
             <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-line shrink-0">
               <div className="flex-1 h-7 rounded-md bg-[var(--color-sidebar)] flex items-center px-2 gap-1.5 min-w-0">
                 <Search className="size-3.5 text-ink-faint shrink-0" />
-                <span className="text-caption truncate">Search students, staff…</span>
+                <span className="text-caption truncate">Search users, placements, or drives…</span>
               </div>
               <div className="relative shrink-0">
                 <Bell className="size-4 text-ink-muted" />
@@ -122,9 +122,9 @@ function InstitutionPreview() {
             <div className="flex-1 p-3.5 overflow-hidden bg-white">
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {[
-                  { label: "Students", value: "2,450" },
-                  { label: "Faculty", value: "312" },
-                  { label: "Attendance", value: "98%" },
+                  { label: "Students", value: "4,820" },
+                  { label: "Faculty", value: "186" },
+                  { label: "Placements", value: "128" },
                 ].map((s) => (
                   <div key={s.label} className="rounded-md border border-line bg-[var(--color-sidebar)] px-2.5 py-2">
                     <p className="text-caption">{s.label}</p>
@@ -134,7 +134,7 @@ function InstitutionPreview() {
               </div>
 
               <div className="rounded-md border border-line p-2.5">
-                <p className="text-caption font-semibold mb-2">Weekly Attendance</p>
+                <p className="text-caption font-semibold mb-2">Placement Trend</p>
                 <div className="flex items-end gap-1.5 h-14">
                   {bars.map((h, i) => (
                     <motion.div
@@ -162,8 +162,8 @@ function InstitutionPreview() {
         <Card className="px-3.5 py-2.5 flex items-center gap-2">
           <BellRing className="size-4 text-primary" />
           <div>
-            <p className="text-caption font-bold uppercase tracking-wide">New Admission</p>
-            <p className="text-sm font-bold text-ink">12 pending approvals</p>
+            <p className="text-caption font-bold uppercase tracking-wide">New Placement</p>
+            <p className="text-sm font-bold text-ink">Student placed at TCS</p>
           </div>
         </Card>
       </motion.div>
@@ -177,8 +177,8 @@ function InstitutionPreview() {
         <Card className="px-3.5 py-2.5 flex items-center gap-2">
           <CheckCircle2 className="size-4 text-primary" />
           <div>
-            <p className="text-caption font-bold uppercase tracking-wide">Report Ready</p>
-            <p className="text-sm font-bold text-ink">Department Q2 summary</p>
+            <p className="text-caption font-bold uppercase tracking-wide">Results Ready</p>
+            <p className="text-sm font-bold text-ink">Aptitude Test — 42 students</p>
           </div>
         </Card>
       </motion.div>

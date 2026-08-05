@@ -12,25 +12,25 @@ const steps = [
     number: "01",
     icon: Settings2,
     title: "Setup Institution",
-    desc: "Register your institution and configure departments, batches, and academic structure with a guided setup wizard.",
+    desc: "Register your institution and add departments — each with its own code and duration — from the admin console.",
   },
   {
     number: "02",
     icon: Users2,
     title: "Connect Users",
-    desc: "Onboard HR, faculty, students, and administrators — in bulk via spreadsheet import, or invite them individually.",
+    desc: "Onboard students individually or via bulk CSV upload, then add faculty and staff accounts from Manage Users.",
   },
   {
     number: "03",
     icon: Workflow,
-    title: "Automate Workflows",
-    desc: "Attendance, payroll, admissions, and approvals run on automated workflows instead of manual, paper-based processes.",
+    title: "Automate Assessments",
+    desc: "Create a test once and assign it to entire departments and batches in one action — no manual roster building.",
   },
   {
     number: "04",
     icon: LineChart,
     title: "Track Performance",
-    desc: "Live dashboards surface academic, operational, and financial performance across every department, in real time.",
+    desc: "Live dashboards surface placement trends, assessment results, and student performance across every department, in real time.",
   },
 ];
 

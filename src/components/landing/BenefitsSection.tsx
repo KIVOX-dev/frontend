@@ -12,13 +12,13 @@ const benefits = [
     icon: Clock,
     metric: "-70%",
     title: "Save administrative time",
-    desc: "Automated attendance, payroll, and admissions workflows remove hours of manual, repetitive work every week.",
+    desc: "Bulk student onboarding and department-wide assessment assignment remove hours of manual, repetitive admin work every week.",
   },
   {
     icon: Smile,
     metric: "+40%",
     title: "Improve student experience",
-    desc: "One portal for courses, exams, and results means students spend less time hunting for information.",
+    desc: "One portal for practice tests, mock interviews, and results means students spend less time hunting for prep resources.",
   },
   {
     icon: Gauge,

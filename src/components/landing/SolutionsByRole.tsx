@@ -14,23 +14,23 @@ const roles = [
     id: "hr",
     icon: Briefcase,
     role: "HR Team",
-    title: "HR Management",
-    description: "Manage employees, attendance, recruitment, payroll, and workforce operations.",
+    title: "Campus Recruiting",
+    description: "Post vacancies, review AI-scored applicants, and hire top campus talent.",
     benefits: [
-      "Employee database",
-      "Attendance tracking",
-      "Leave management",
-      "Recruitment workflow",
-      "Payroll insights",
+      "Post job vacancies",
+      "AI-scored applicant review",
+      "Global talent leaderboard",
+      "Candidate shortlisting",
+      "Hiring analytics",
     ],
     cta: "Explore HR Solution",
     href: "/hr",
     visual: (
       <div className="space-y-1.5">
         {[
-          { name: "Ananya Rao", tag: "Active" },
-          { name: "Vikram Shah", tag: "On Leave" },
-          { name: "Deepa Nair", tag: "Active" },
+          { name: "Full Stack Developer", tag: "24 applicants" },
+          { name: "Data Analyst", tag: "12 applicants" },
+          { name: "SDE Intern", tag: "31 applicants" },
         ].map((row) => (
           <div key={row.name} className="flex items-center gap-2 rounded-md border border-line bg-white px-2.5 py-1.5">
             <span className="size-6 rounded-full bg-primary/15 shrink-0" />
@@ -46,29 +46,29 @@ const roles = [
     icon: GraduationCap,
     role: "Student",
     title: "Student Experience",
-    description: "Give students a complete digital campus experience.",
+    description: "AI-powered aptitude practice, mock interviews, and a resume builder to prepare for placements.",
     benefits: [
-      "Course management",
-      "Attendance tracking",
-      "Assignments",
-      "Exam schedules",
-      "Academic progress",
+      "AI aptitude practice tests",
+      "AI mock interviews",
+      "AI resume builder",
+      "Performance analytics",
+      "National leaderboard ranking",
     ],
     cta: "Explore Student Solution",
     href: "/learner",
     visual: (
       <div className="space-y-1.5">
         <div className="rounded-md border border-line bg-white px-2.5 py-1.5 flex items-center justify-between">
-          <span className="text-caption font-semibold text-ink">Data Structures</span>
-          <span className="text-[10px] font-semibold text-primary">92%</span>
+          <span className="text-caption font-semibold text-ink">Tests Completed</span>
+          <span className="text-[10px] font-semibold text-primary">24</span>
         </div>
         <div className="rounded-md border border-line bg-white px-2.5 py-1.5 flex items-center justify-between">
-          <span className="text-caption font-semibold text-ink">Operating Systems</span>
-          <span className="text-[10px] font-semibold text-ink-faint">Assignment due</span>
+          <span className="text-caption font-semibold text-ink">Avg Accuracy</span>
+          <span className="text-[10px] font-semibold text-ink-faint">78%</span>
         </div>
         <div className="rounded-md border border-line bg-white px-2.5 py-1.5 flex items-center justify-between">
-          <span className="text-caption font-semibold text-ink">Exam Schedule</span>
-          <span className="text-[10px] font-semibold text-ink-faint">3 upcoming</span>
+          <span className="text-caption font-semibold text-ink">National Rank</span>
+          <span className="text-[10px] font-semibold text-ink-faint">#142</span>
         </div>
       </div>
     ),
@@ -77,30 +77,30 @@ const roles = [
     id: "faculty",
     icon: Users,
     role: "Faculty",
-    title: "Faculty Management",
-    description: "Help teachers manage classes, assessments, and student performance.",
+    title: "Faculty Tools",
+    description: "Onboard students and track their aptitude test performance.",
     benefits: [
-      "Class scheduling",
-      "Attendance",
-      "Grade management",
-      "Assignments",
-      "Student analytics",
+      "Add students individually",
+      "Bulk student upload (CSV)",
+      "Student performance tracking",
+      "Direct messaging",
+      "Secure account management",
     ],
     cta: "Explore Faculty Solution",
     href: "/faculty",
     visual: (
       <div className="space-y-1.5">
         <div className="rounded-md border border-line bg-white px-2.5 py-1.5 flex items-center justify-between">
-          <span className="text-caption font-semibold text-ink">CSE-3A · 9:00 AM</span>
-          <span className="text-[10px] font-semibold text-primary">Live</span>
+          <span className="text-caption font-semibold text-ink">Rahul Verma</span>
+          <span className="text-[10px] font-semibold text-primary">Approved</span>
         </div>
         <div className="rounded-md border border-line bg-white px-2.5 py-1.5 flex items-center justify-between">
-          <span className="text-caption font-semibold text-ink">Gradebook</span>
-          <span className="text-[10px] font-semibold text-ink-faint">42 submissions</span>
+          <span className="text-caption font-semibold text-ink">Sneha Iyer</span>
+          <span className="text-[10px] font-semibold text-primary">Approved</span>
         </div>
         <div className="rounded-md border border-line bg-white px-2.5 py-1.5 flex items-center justify-between">
-          <span className="text-caption font-semibold text-ink">Avg. Performance</span>
-          <span className="text-[10px] font-semibold text-ink-faint">B+</span>
+          <span className="text-caption font-semibold text-ink">Karan Mehta</span>
+          <span className="text-[10px] font-semibold text-ink-faint">Pending</span>
         </div>
       </div>
     ),
@@ -110,29 +110,29 @@ const roles = [
     icon: Building2,
     role: "College Admin",
     title: "Institution Management",
-    description: "Control every department and operation from one centralized system.",
+    description: "Run placement drives, manage assessments, and oversee every department's users.",
     benefits: [
-      "Admissions",
-      "Finance",
-      "Reports",
-      "Department analytics",
-      "Institutional insights",
+      "Placement drive management",
+      "Assessment creation & assignment",
+      "User & department management",
+      "Placement analytics",
+      "Multi-department test assignment",
     ],
     cta: "Explore Admin Solution",
     href: "/institutional",
     visual: (
       <div className="space-y-1.5">
         <div className="rounded-md border border-line bg-white px-2.5 py-1.5 flex items-center justify-between">
-          <span className="text-caption font-semibold text-ink">Admissions (Q2)</span>
-          <span className="text-[10px] font-semibold text-primary">+18%</span>
+          <span className="text-caption font-semibold text-ink">Active Drives</span>
+          <span className="text-[10px] font-semibold text-primary">9</span>
         </div>
         <div className="rounded-md border border-line bg-white px-2.5 py-1.5 flex items-center justify-between">
-          <span className="text-caption font-semibold text-ink">Pending Approvals</span>
-          <span className="text-[10px] font-semibold text-ink-faint">7</span>
+          <span className="text-caption font-semibold text-ink">Total Placements</span>
+          <span className="text-[10px] font-semibold text-ink-faint">128</span>
         </div>
         <div className="rounded-md border border-line bg-white px-2.5 py-1.5 flex items-center justify-between">
           <span className="text-caption font-semibold text-ink">Departments</span>
-          <span className="text-[10px] font-semibold text-ink-faint">12 active</span>
+          <span className="text-[10px] font-semibold text-ink-faint">42 active</span>
         </div>
       </div>
     ),

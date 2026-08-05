@@ -15,7 +15,7 @@ const showcases = [
     eyebrow: "For HR Teams",
     title: "HR Dashboard",
     description:
-      "Track workforce statistics, review attendance trends, action leave requests, and manage the employee directory — without leaving one screen.",
+      "Post job vacancies, review AI-scored applicant profiles, and hire top campus talent from a single Talent Board — no separate ATS needed.",
     Component: HRShowcase,
   },
   {
@@ -23,7 +23,7 @@ const showcases = [
     eyebrow: "For Students",
     title: "Student Portal",
     description:
-      "A single home for course progress, attendance, exam schedules, and announcements, so students always know exactly where they stand.",
+      "AI-powered aptitude practice, mock interviews, and a resume builder — plus a national leaderboard so students always know exactly where they stand.",
     Component: StudentShowcase,
   },
   {
@@ -31,7 +31,7 @@ const showcases = [
     eyebrow: "For Faculty",
     title: "Faculty Dashboard",
     description:
-      "See today's schedule, review submitted assignments, update the gradebook, and monitor class performance in real time.",
+      "Onboard students individually or in bulk via CSV, and track every student's aptitude test performance from one dashboard.",
     Component: FacultyShowcase,
   },
   {
@@ -39,7 +39,7 @@ const showcases = [
     eyebrow: "For Administrators",
     title: "College Admin Dashboard",
     description:
-      "A centralized view of admissions, revenue, department performance, and pending approvals across the entire institution.",
+      "Run placement drives, create and assign assessments, and manage every department's users — all from one centralized system.",
     Component: AdminShowcase,
   },
 ];

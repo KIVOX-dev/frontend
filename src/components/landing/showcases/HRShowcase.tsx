@@ -1,30 +1,33 @@
-import { LayoutDashboard, Users, CalendarCheck, FileClock, Wallet, UserPlus } from "lucide-react";
+import { LayoutDashboard, Briefcase, Users, Trophy, LineChart } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/Table";
-import { ShowcaseFrame, ShowcaseStatCard, ShowcaseBarChart } from "./ShowcaseFrame";
+import { ShowcaseFrame, ShowcaseStatCard } from "./ShowcaseFrame";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", active: true },
-  { icon: Users, label: "Employees" },
-  { icon: CalendarCheck, label: "Attendance" },
-  { icon: FileClock, label: "Leave" },
-  { icon: Wallet, label: "Payroll" },
-  { icon: UserPlus, label: "Recruitment" },
+  { icon: Briefcase, label: "Post a Vacancy" },
+  { icon: Users, label: "Applicants" },
+  { icon: Trophy, label: "Talent Board" },
+  { icon: LineChart, label: "Candidate Analytics" },
 ];
 
-const employees = [
-  { name: "Ananya Rao", dept: "Academics", status: "Active" as const },
-  { name: "Vikram Shah", dept: "Admissions", status: "On Leave" as const },
-  { name: "Deepa Nair", dept: "Finance", status: "Active" as const },
-  { name: "Rohit Malhotra", dept: "IT Services", status: "Active" as const },
+const applicants = [
+  { name: "Ananya Rao", job: "Full Stack Developer", status: "Shortlisted" as const },
+  { name: "Vikram Shah", job: "Data Analyst", status: "Under Review" as const },
+  { name: "Deepa Nair", job: "Full Stack Developer", status: "Under Review" as const },
 ];
 
-const statusTone = { Active: "success", "On Leave": "warning" } as const;
+const statusTone = { Shortlisted: "success", "Under Review": "info" } as const;
 
-const leaveRequests = [
-  { name: "Vikram Shah", type: "Sick Leave", days: "2 days" },
-  { name: "Priya Menon", type: "Casual Leave", days: "1 day" },
-  { name: "Suresh Kumar", type: "Earned Leave", days: "5 days" },
+const vacancies = [
+  { title: "Full Stack Developer", meta: "TCS · Full-time" },
+  { title: "Data Analyst", meta: "TCS · Internship" },
+];
+
+const talentBoard = [
+  { rank: 1, name: "Priya Menon", department: "Computer Science", tests: 12, score: "94.2" },
+  { rank: 2, name: "Arjun Kumar", department: "Electronics", tests: 9, score: "91.5" },
+  { rank: 3, name: "Sneha Iyer", department: "Computer Science", tests: 11, score: "89.8" },
 ];
 
 export function HRShowcase() {
@@ -32,57 +35,60 @@ export function HRShowcase() {
     <ShowcaseFrame
       path="/hr"
       navItems={navItems}
-      searchPlaceholder="Search employees…"
+      searchPlaceholder="Search by name, college, or role…"
       userInitials="HR"
     >
       <div className="grid grid-cols-4 gap-2.5 mb-3">
-        <ShowcaseStatCard label="Total Staff" value="312" delta="+8" />
-        <ShowcaseStatCard label="Present Today" value="298" />
-        <ShowcaseStatCard label="On Leave" value="14" />
-        <ShowcaseStatCard label="Open Roles" value="6" />
+        <ShowcaseStatCard label="Active Vacancies" value="6" />
+        <ShowcaseStatCard label="Total Applicants" value="148" />
+        <ShowcaseStatCard label="Shortlisted" value="22" />
+        <ShowcaseStatCard label="Top Score (Avg)" value="88.4" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <ShowcaseBarChart
-          title="Attendance This Week"
-          bars={[
-            { label: "M", value: 92 },
-            { label: "T", value: 95 },
-            { label: "W", value: 88 },
-            { label: "T", value: 96 },
-            { label: "F", value: 90 },
-          ]}
-        />
         <div className="rounded-md border border-line p-3">
-          <p className="text-caption font-semibold mb-2.5">Leave Requests</p>
+          <p className="text-caption font-semibold mb-2.5">Recent Applicants</p>
           <div className="space-y-2">
-            {leaveRequests.map((r) => (
-              <div key={r.name} className="flex items-center justify-between text-caption">
-                <span className="font-semibold text-ink truncate">{r.name}</span>
-                <span className="text-ink-faint shrink-0">{r.type} · {r.days}</span>
+            {applicants.map((a) => (
+              <div key={a.name} className="flex items-center justify-between gap-2 text-caption">
+                <span className="text-ink truncate">{a.name} · {a.job}</span>
+                <Badge tone={statusTone[a.status]} className="shrink-0">{a.status}</Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-md border border-line p-3">
+          <p className="text-caption font-semibold mb-2.5">Your Vacancies</p>
+          <div className="space-y-2">
+            {vacancies.map((v) => (
+              <div key={v.title} className="flex items-center justify-between text-caption">
+                <span className="font-semibold text-ink truncate">{v.title}</span>
+                <span className="text-ink-faint shrink-0">{v.meta}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <p className="text-caption font-semibold mb-2">Employee Directory</p>
+      <p className="text-caption font-semibold mb-2">Global Talent Board</p>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
+            <TableHead>Rank</TableHead>
+            <TableHead>Candidate</TableHead>
             <TableHead>Department</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Tests</TableHead>
+            <TableHead>Score</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {employees.map((e) => (
-            <TableRow key={e.name}>
-              <TableCell className="font-semibold">{e.name}</TableCell>
-              <TableCell>{e.dept}</TableCell>
-              <TableCell>
-                <Badge tone={statusTone[e.status]}>{e.status}</Badge>
-              </TableCell>
+          {talentBoard.map((t) => (
+            <TableRow key={t.rank}>
+              <TableCell>#{t.rank}</TableCell>
+              <TableCell className="font-semibold">{t.name}</TableCell>
+              <TableCell>{t.department}</TableCell>
+              <TableCell>{t.tests} completed</TableCell>
+              <TableCell>{t.score}/100</TableCell>
             </TableRow>
           ))}
         </TableBody>

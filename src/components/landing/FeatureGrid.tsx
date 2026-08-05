@@ -2,53 +2,53 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { CalendarCheck, GraduationCap, Users, BarChart3, MessageSquare, FileBarChart, FolderOpen } from "lucide-react";
+import { Target, Mic, FileText, Briefcase, ClipboardList, BarChart3, MessageSquare } from "lucide-react";
 import { TiltCard } from "./TiltCard";
 import { RevealHeading } from "./RevealHeading";
 import { Badge } from "@/components/ui/Badge";
 
 const features = [
   {
-    icon: CalendarCheck,
-    badge: "Attendance",
-    title: "Smart Attendance",
-    desc: "Automated attendance capture for students and staff, with real-time percentage tracking and low-attendance alerts.",
+    icon: Target,
+    badge: "Practice",
+    title: "AI Aptitude Practice",
+    desc: "Adaptive Quantitative, Logical Reasoning, Data Interpretation, and Verbal tests, with streaks and a national leaderboard rank.",
   },
   {
-    icon: GraduationCap,
-    badge: "Academics",
-    title: "Academic Management",
-    desc: "Course scheduling, gradebooks, exam management, and academic progress tracking in one connected workflow.",
+    icon: Mic,
+    badge: "Interviews",
+    title: "AI Mock Interviews",
+    desc: "Students rehearse real interview scenarios with AI-driven feedback before they ever face a recruiter.",
   },
   {
-    icon: Users,
-    badge: "HR",
-    title: "HR Automation",
-    desc: "Recruitment pipelines, payroll processing, and employee records — automated end to end for the HR team.",
+    icon: FileText,
+    badge: "Resume",
+    title: "AI Resume Builder",
+    desc: "Parse, analyze, and auto-improve a resume, matched directly against a target job description.",
+  },
+  {
+    icon: ClipboardList,
+    badge: "Assessments",
+    title: "Assessment Management",
+    desc: "Create a test once, auto-draw questions from the bank, and assign it to whole departments and batches in one action.",
+  },
+  {
+    icon: Briefcase,
+    badge: "Recruiting",
+    title: "Campus Recruiting",
+    desc: "HR teams post vacancies and hire straight from an AI-scored applicant leaderboard — no separate ATS needed.",
   },
   {
     icon: BarChart3,
     badge: "Insights",
     title: "Analytics Dashboard",
-    desc: "Live, role-aware dashboards that turn institutional data into decisions — no spreadsheets required.",
+    desc: "Live, role-aware dashboards that turn placement, assessment, and user data into decisions — no spreadsheets required.",
   },
   {
     icon: MessageSquare,
     badge: "Messaging",
     title: "Communication",
-    desc: "Announcements, notifications, and direct messaging keep students, faculty, and staff aligned.",
-  },
-  {
-    icon: FileBarChart,
-    badge: "Reporting",
-    title: "Reports",
-    desc: "Generate department, batch, and institution-wide reports on demand, exportable in the formats you need.",
-  },
-  {
-    icon: FolderOpen,
-    badge: "Documents",
-    title: "Document Management",
-    desc: "A secure, searchable home for every institutional record, policy, and student document.",
+    desc: "Direct messaging keeps students, faculty, HR, and administrators aligned without leaving the platform.",
   },
 ];
 
