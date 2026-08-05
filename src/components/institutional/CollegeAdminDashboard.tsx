@@ -93,9 +93,8 @@ type StudentInsights = {
 };
 
 type Placement = {
-  id: number;
-  student_id: number;
-  college_id: number;
+  id: string;
+  student_id: string;
   company_name: string;
   role: string;
   salary_lpa: number;
@@ -103,7 +102,7 @@ type Placement = {
   mode: string;
   location?: string;
   status: string;
-  verification_status: string;
+  verification_status: "pending" | "verified" | "rejected";
   proof_url?: string;
   created_at?: string;
 };
@@ -300,6 +299,7 @@ export function CollegeAdminDashboard() {
   const [showAddPlacement, setShowAddPlacement] = useState(false);
   const [placementForm, setPlacementForm] = useState({ student_id: "", company_name: "", role: "", salary_lpa: "", work_type: "onsite", mode: "campus", location: "" });
   const [placementMsg, setPlacementMsg] = useState("");
+  const [verifyingPlacementId, setVerifyingPlacementId] = useState<string | null>(null);
 
   // Post drive form
   const [showPostDrive, setShowPostDrive] = useState(false);
@@ -479,7 +479,11 @@ export function CollegeAdminDashboard() {
 
   const fetchPlacements = async () => {
     try {
-      const res = await api.get("/placements");
+      // /placements is a distinct collection (HR/recruiter job postings —
+      // see placement.model.js) that happens to share a name; per-student
+      // placement outcomes (with proof, verification workflow) live in
+      // placement-records instead.
+      const res = await api.get<Placement[]>("/placement-records?limit=1000");
       setPlacements(res.data);
     } catch (err) { console.error(err); }
   };
@@ -570,7 +574,7 @@ export function CollegeAdminDashboard() {
     e.preventDefault();
     setPlacementMsg("");
     try {
-      await api.post("/placements", {
+      await api.post("/placement-records", {
         // student_id is a UUID (the students collection's own row id) —
         // never a number, so it must be sent as-is, not through parseInt().
         student_id: placementForm.student_id,
@@ -586,6 +590,18 @@ export function CollegeAdminDashboard() {
       fetchPlacements();
     } catch (err: unknown) {
       setPlacementMsg(apiErrorMessage(err, "Failed to add placement"));
+    }
+  };
+
+  const handleVerifyPlacement = async (placement: Placement, verification_status: "verified" | "rejected") => {
+    setVerifyingPlacementId(placement.id);
+    try {
+      await api.put(`/placement-records/${placement.id}/verify`, { verification_status });
+      setPlacements(prev => prev.map(p => (p.id === placement.id ? { ...p, verification_status } : p)));
+    } catch (err) {
+      toast.error(err, "Failed to update verification status");
+    } finally {
+      setVerifyingPlacementId(null);
     }
   };
 
@@ -1117,14 +1133,20 @@ export function CollegeAdminDashboard() {
                 <th style={{ padding: "12px 8px" }}>Salary (LPA)</th>
                 <th style={{ padding: "12px 8px" }}>Verification</th>
                 <th style={{ padding: "12px 8px" }}>Proof</th>
+                <th style={{ padding: "12px 8px", textAlign: "right" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {[...placements]
                 .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-                .map(p => (
+                .map(p => {
+                  const student = userByStudentRecordId.get(p.student_id);
+                  return (
                   <tr key={p.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "12px 8px", fontWeight: 500 }}>{studentsById.get(p.student_id)?.name || `Student #${p.student_id}`}</td>
+                    <td style={{ padding: "12px 8px", fontWeight: 500 }}>
+                      <div style={{ color: "var(--text)" }}>{student?.name || `Student #${p.student_id}`}</div>
+                      {student?.email && <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 400 }}>{student.email}</div>}
+                    </td>
                     <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <CompanyLogo name={p.company_name} size={22} />
@@ -1134,7 +1156,7 @@ export function CollegeAdminDashboard() {
                     <td style={{ padding: "12px 8px" }}>{p.role}</td>
                     <td style={{ padding: "12px 8px" }}>{p.salary_lpa}</td>
                     <td style={{ padding: "12px 8px" }}>
-                      <span style={{ padding: "4px 10px", background: p.verification_status === "verified" ? "#e6f4ea" : "#fef3c7", color: p.verification_status === "verified" ? "#1e8e3e" : "#b45309", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{p.verification_status}</span>
+                      <span style={{ padding: "4px 10px", background: p.verification_status === "verified" ? "#e6f4ea" : p.verification_status === "rejected" ? "#fee2e2" : "#fef3c7", color: p.verification_status === "verified" ? "#1e8e3e" : p.verification_status === "rejected" ? "#dc2626" : "#b45309", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{p.verification_status}</span>
                     </td>
                     <td style={{ padding: "12px 8px" }}>
                       {p.proof_url ? (
@@ -1145,10 +1167,33 @@ export function CollegeAdminDashboard() {
                         <span style={{ color: "var(--muted)", fontSize: "13px" }}>—</span>
                       )}
                     </td>
+                    <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                      {p.verification_status === "pending" ? (
+                        <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                          <button
+                            onClick={() => handleVerifyPlacement(p, "verified")}
+                            disabled={verifyingPlacementId === p.id}
+                            style={{ background: "none", border: "none", color: "#1e8e3e", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleVerifyPlacement(p, "rejected")}
+                            disabled={verifyingPlacementId === p.id}
+                            style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ color: "var(--muted)", fontSize: "13px" }}>—</span>
+                      )}
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               {placements.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No students placed yet.</td></tr>
+                <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No students placed yet.</td></tr>
               )}
             </tbody>
           </table>
@@ -1968,7 +2013,7 @@ export function CollegeAdminDashboard() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}>
           <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px", maxHeight: "90vh", overflowY: "auto" }}>
             <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Shortlist a Candidate</h3>
-            <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>Adds a student straight to the drive's shortlist — they don't need to have applied first.</p>
+            <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>Adds a student straight to the drive&apos;s shortlist — they don&apos;t need to have applied first.</p>
             <form onSubmit={handleCreateShortlist}>
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "10px", marginBottom: "14px" }}>
                 <div>

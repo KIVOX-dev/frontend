@@ -96,15 +96,20 @@ export function PlatformChat() {
 
   // Fetch contacts (users from the same college or all for super admin)
   useEffect(() => {
+    const isAdmin = user?.role === "super_admin" || user?.role === "institution_admin";
     const fetchContacts = async () => {
       try {
-        const res = await api.get("/users/");
+        // GET /users/ is admin-only (403 for everyone else) — picking the
+        // right endpoint up front instead of trying it and catching avoids
+        // deliberately firing a request every non-admin is guaranteed to
+        // get rejected on.
+        const res = await api.get(isAdmin ? "/users/" : "/students");
         let allUsers = (res.data as Record<string, unknown>[])
           .map(toContact)
           .filter((c) => String(c.id) !== String(user?.id));
 
         // Add virtual broadcast contacts for admins
-        if (user?.role === "super_admin" || user?.role === "institution_admin") {
+        if (isAdmin) {
           allUsers = [
             { id: -3, name: "📢 Broadcast to Everyone", email: "Sends to all users", role: "broadcast" },
             { id: -2, name: "📢 Broadcast to Faculty", email: "Sends to all faculty", role: "broadcast" },
@@ -114,17 +119,7 @@ export function PlatformChat() {
         }
         setContacts(allUsers);
       } catch {
-        // If not authorized to list users, try students endpoint
-        try {
-          const res = await api.get("/students");
-          setContacts(
-            (res.data as Record<string, unknown>[])
-              .map(toContact)
-              .filter((c) => String(c.id) !== String(user?.id))
-          );
-        } catch {
-          setContacts([]);
-        }
+        setContacts([]);
       }
     };
     if (user) fetchContacts();
