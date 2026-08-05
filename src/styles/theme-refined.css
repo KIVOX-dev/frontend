@@ -8,14 +8,22 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── 1. Motion: one easing language, calmer distances ────────── */
+/* Opacity-only on purpose: animating `transform` here (even down to
+   `none`) leaves affected browsers resolving the end keyframe as an
+   identity matrix rather than the literal `none` keyword, which — with
+   `animation-fill-mode: both` keeping it attached after the animation
+   ends — silently makes every `.screen.active`/`.l-panel.active` a new
+   containing block for its `position: fixed` descendants. Every modal
+   rendered inside one (effectively all of them) was being confined to
+   that element's own box instead of the viewport, so a modal taller
+   than its scrolled-into-view container clipped off-screen with no way
+   to reach the rest of the form. */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 

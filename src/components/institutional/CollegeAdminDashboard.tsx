@@ -1407,7 +1407,7 @@ export function CollegeAdminDashboard() {
       {/* Assign Test Modal */}
       {assigningTest && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
+          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px", maxHeight: "85vh", overflowY: "auto" }}>
             <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Assign Test</h3>
             <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>{assigningTest.title}</p>
             <form onSubmit={handleAssignTest}>
@@ -1587,20 +1587,22 @@ export function CollegeAdminDashboard() {
 
       {/* Post Drive Modal */}
       {showPostDrive && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
-            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "20px", color: "var(--text)" }}>Post Placement Drive</h3>
-            {driveMsg && <div style={{ padding: "10px", marginBottom: "14px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", color: "#DC2626", fontSize: "13px" }}>{driveMsg}</div>}
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "24px" }}>
+          <div className="card" style={{ padding: "24px", width: "100%", maxWidth: "480px", maxHeight: "90vh", overflowY: "auto" }}>
+            <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "14px", color: "var(--text)" }}>Post Placement Drive</h3>
+            {driveMsg && <div style={{ padding: "10px", marginBottom: "10px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", color: "#DC2626", fontSize: "13px" }}>{driveMsg}</div>}
             <form onSubmit={handleCreateDrive}>
-              <div style={{ marginBottom: "14px" }}>
-                <label className="lbl">Title</label>
-                <input type="text" className="fi" value={driveForm.title} onChange={e => setDriveForm({ ...driveForm, title: e.target.value })} required placeholder="e.g. Campus Drive - SDE Roles" />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
+                <div>
+                  <label className="lbl">Title</label>
+                  <input type="text" className="fi" value={driveForm.title} onChange={e => setDriveForm({ ...driveForm, title: e.target.value })} required placeholder="e.g. Campus Drive - SDE" />
+                </div>
+                <div>
+                  <label className="lbl">Company</label>
+                  <input type="text" className="fi" value={driveForm.company_name} onChange={e => setDriveForm({ ...driveForm, company_name: e.target.value })} required placeholder="e.g. Infosys" />
+                </div>
               </div>
-              <div style={{ marginBottom: "14px" }}>
-                <label className="lbl">Company</label>
-                <input type="text" className="fi" value={driveForm.company_name} onChange={e => setDriveForm({ ...driveForm, company_name: e.target.value })} required placeholder="e.g. Infosys" />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                 <div>
                   <label className="lbl">Job Type</label>
                   <select className="fi" value={driveForm.job_type} onChange={e => setDriveForm({ ...driveForm, job_type: e.target.value })}>
@@ -1614,21 +1616,21 @@ export function CollegeAdminDashboard() {
                   <input type="text" className="fi" value={driveForm.location} onChange={e => setDriveForm({ ...driveForm, location: e.target.value })} placeholder="e.g. Chennai" />
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                 <div>
-                  <label className="lbl">Min Salary (LPA)</label>
+                  <label className="lbl">Min Salary</label>
                   <input type="number" step="0.1" className="fi" value={driveForm.salary_min_lpa} onChange={e => setDriveForm({ ...driveForm, salary_min_lpa: e.target.value })} placeholder="e.g. 4" />
                 </div>
                 <div>
-                  <label className="lbl">Max Salary (LPA)</label>
+                  <label className="lbl">Max Salary</label>
                   <input type="number" step="0.1" className="fi" value={driveForm.salary_max_lpa} onChange={e => setDriveForm({ ...driveForm, salary_max_lpa: e.target.value })} placeholder="e.g. 8" />
                 </div>
+                <div>
+                  <label className="lbl">Deadline</label>
+                  <input type="date" className="fi" value={driveForm.application_deadline} onChange={e => setDriveForm({ ...driveForm, application_deadline: e.target.value })} />
+                </div>
               </div>
-              <div style={{ marginBottom: "20px" }}>
-                <label className="lbl">Application Deadline (Optional)</label>
-                <input type="date" className="fi" value={driveForm.application_deadline} onChange={e => setDriveForm({ ...driveForm, application_deadline: e.target.value })} />
-              </div>
-              <div style={{ marginBottom: "20px" }}>
+              <div style={{ marginBottom: "14px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                   <label className="lbl">Eligible Departments (Optional — leave empty for all)</label>
                   <span style={{ fontSize: "12px", color: "var(--muted)" }}>{driveForm.eligible_departments.length} selected</span>
@@ -1639,7 +1641,7 @@ export function CollegeAdminDashboard() {
                   placeholder="Search departments…"
                   value={driveDeptSearch}
                   onChange={e => setDriveDeptSearch(e.target.value)}
-                  style={{ marginBottom: "8px" }}
+                  style={{ marginBottom: "6px" }}
                 />
                 {(() => {
                   const filteredDepts = departmentOptions.filter(d =>
@@ -1648,7 +1650,7 @@ export function CollegeAdminDashboard() {
                   const allFilteredSelected = filteredDepts.length > 0 && filteredDepts.every(d => driveForm.eligible_departments.includes(d));
                   return (
                     <>
-                      <div style={{ display: "flex", gap: "12px", marginBottom: "6px" }}>
+                      <div style={{ display: "flex", gap: "12px", marginBottom: "4px" }}>
                         <button
                           type="button"
                           onClick={() => setDriveForm({
@@ -1671,14 +1673,14 @@ export function CollegeAdminDashboard() {
                           </button>
                         )}
                       </div>
-                      <div style={{ border: "1px solid var(--border)", borderRadius: "8px", maxHeight: "180px", overflowY: "auto" }}>
+                      <div style={{ border: "1px solid var(--border)", borderRadius: "8px", maxHeight: "120px", overflowY: "auto" }}>
                         {filteredDepts.length === 0 ? (
                           <div style={{ padding: "12px", fontSize: "13px", color: "var(--muted)" }}>No departments match your search.</div>
                         ) : (
                           filteredDepts.map(dept => (
                             <label
                               key={dept}
-                              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", fontSize: "13px", cursor: "pointer", borderBottom: "1px solid var(--border)" }}
+                              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 10px", fontSize: "13px", cursor: "pointer", borderBottom: "1px solid var(--border)" }}
                             >
                               <input
                                 type="checkbox"

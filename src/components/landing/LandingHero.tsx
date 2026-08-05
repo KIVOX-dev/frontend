@@ -3,22 +3,10 @@
 import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, useInView } from "framer-motion";
-import {
-  ArrowRight,
-  LayoutDashboard,
-  Users,
-  Briefcase,
-  ClipboardList,
-  Building2,
-  Search,
-  Bell,
-  BellRing,
-  CheckCircle2,
-} from "lucide-react";
+import { ArrowRight, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { Avatar } from "@/components/ui/Avatar";
 
 const entrance = { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const };
 const fadeUp = (delay = 0) => ({
@@ -63,17 +51,7 @@ function AnimatedCounter({ value, inView }: { value: string; inView: boolean }) 
   return <>{display}</>;
 }
 
-const sidebarItems = [
-  { icon: LayoutDashboard, active: true },
-  { icon: Users },
-  { icon: Briefcase },
-  { icon: ClipboardList },
-  { icon: Building2 },
-];
-
 function InstitutionPreview() {
-  const bars = [58, 72, 65, 88, 76, 94, 81];
-
   return (
     <div className="relative w-full max-w-[480px] mx-auto select-none">
       <Card className="p-0 overflow-hidden">
@@ -89,99 +67,14 @@ function InstitutionPreview() {
           </div>
         </div>
 
-        <div className="flex h-[300px]">
-          {/* Mini sidebar */}
-          <div className="w-12 border-r border-line bg-[var(--color-sidebar)] flex flex-col items-center gap-2 py-3 shrink-0">
-            {sidebarItems.map((item, i) => (
-              <div
-                key={i}
-                className={`flex size-8 items-center justify-center rounded-md ${
-                  item.active ? "bg-primary text-white" : "text-ink-faint"
-                }`}
-              >
-                <item.icon className="size-4" />
-              </div>
-            ))}
+        {/* Placeholder */}
+        <div className="h-[420px] flex flex-col items-center justify-center gap-3 bg-[var(--color-sidebar)]">
+          <div className="flex size-12 items-center justify-center rounded-lg bg-white border border-line text-ink-faint">
+            <LayoutDashboard className="size-5" />
           </div>
-
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Topbar */}
-            <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-line shrink-0">
-              <div className="flex-1 h-7 rounded-md bg-[var(--color-sidebar)] flex items-center px-2 gap-1.5 min-w-0">
-                <Search className="size-3.5 text-ink-faint shrink-0" />
-                <span className="text-caption truncate">Search users, placements, or drives…</span>
-              </div>
-              <div className="relative shrink-0">
-                <Bell className="size-4 text-ink-muted" />
-                <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-danger" />
-              </div>
-              <Avatar fallback="AD" size="sm" className="shrink-0 size-6 text-[10px]" />
-            </div>
-
-            {/* Main content */}
-            <div className="flex-1 p-3.5 overflow-hidden bg-white">
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                {[
-                  { label: "Students", value: "4,820" },
-                  { label: "Faculty", value: "186" },
-                  { label: "Placements", value: "128" },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-md border border-line bg-[var(--color-sidebar)] px-2.5 py-2">
-                    <p className="text-caption">{s.label}</p>
-                    <p className="text-sm font-bold text-ink tabular-nums">{s.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-md border border-line p-2.5">
-                <p className="text-caption font-semibold mb-2">Placement Trend</p>
-                <div className="flex items-end gap-1.5 h-14">
-                  {bars.map((h, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ scaleY: 0 }}
-                      animate={{ scaleY: 1 }}
-                      transition={{ duration: 0.5, delay: 0.5 + i * 0.05, ease: [0.16, 1, 0.3, 1] }}
-                      style={{ height: `${h}%`, originY: 1 }}
-                      className="flex-1 rounded-sm bg-primary/70"
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <p className="text-caption text-ink-faint">Product preview coming soon</p>
         </div>
       </Card>
-
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        className="absolute -top-12 -left-14 hidden xl:block"
-      >
-        <Card className="px-3.5 py-2.5 flex items-center gap-2">
-          <BellRing className="size-4 text-primary" />
-          <div>
-            <p className="text-caption font-bold uppercase tracking-wide">New Placement</p>
-            <p className="text-sm font-bold text-ink">Student placed at TCS</p>
-          </div>
-        </Card>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.55 }}
-        className="absolute -bottom-6 -right-8 hidden xl:block"
-      >
-        <Card className="px-3.5 py-2.5 flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-primary" />
-          <div>
-            <p className="text-caption font-bold uppercase tracking-wide">Results Ready</p>
-            <p className="text-sm font-bold text-ink">Aptitude Test — 42 students</p>
-          </div>
-        </Card>
-      </motion.div>
     </div>
   );
 }
