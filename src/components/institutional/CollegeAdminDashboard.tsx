@@ -48,8 +48,11 @@ type Assessment = {
 
 type AttemptResult = {
   id: string;
+  test_id: string;
+  test_title: string;
   student_id: string;
   student_name: string;
+  roll_number: string;
   score: number;
   max_score: number;
   percentage: number;
@@ -245,16 +248,21 @@ export function CollegeAdminDashboard() {
   // department + batch year is a distinct action from authoring one.
   const [departments, setDepartments] = useState<Department[]>([]);
   const [assigningTest, setAssigningTest] = useState<Assessment | null>(null);
-  const [assignForm, setAssignForm] = useState({ department_id: "", batch_year: new Date().getFullYear() });
-  const [assignMsg, setAssignMsg] = useState("");
+  const [assignForm, setAssignForm] = useState<{ department_ids: string[]; batch_year: number }>({ department_ids: [], batch_year: new Date().getFullYear() });
+  const [assignDeptSearch, setAssignDeptSearch] = useState("");
+  const [assignResult, setAssignResult] = useState<{ summary: string; failures: { department: string; reason: string }[] } | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
 
-  // Results view — per-test student attempts (institution_admin's "View
-  // student attempts" / "View results and analytics" permission).
-  const [viewingResultsFor, setViewingResultsFor] = useState<Assessment | null>(null);
+  // Results panel — institution-wide student attempts across every
+  // assessment (institution_admin's "View student attempts" / "View results
+  // and analytics" permission). Toggled inline in place of the assessments
+  // table, rather than per-test in a modal, so one button surfaces results
+  // across the whole catalog at once.
+  const [showResultsPanel, setShowResultsPanel] = useState(false);
   const [results, setResults] = useState<AttemptResult[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [resultsView, setResultsView] = useState<"table" | "cards">("table");
+  const [resultsTestFilter, setResultsTestFilter] = useState("");
   const [isExporting, setIsExporting] = useState<"excel" | "pdf" | null>(null);
   const resultsContentRef = useRef<HTMLDivElement>(null);
 
@@ -265,12 +273,10 @@ export function CollegeAdminDashboard() {
   const [deptMsg, setDeptMsg] = useState("");
   const [isCreatingDept, setIsCreatingDept] = useState(false);
 
-  const handleViewResults = async (test: Assessment) => {
-    setViewingResultsFor(test);
-    setResultsView("table");
+  const fetchAllResults = async () => {
     setResultsLoading(true);
     try {
-      const res = await api.get<AttemptResult[]>(`/tests/${test.id}/results`);
+      const res = await api.get<AttemptResult[]>("/tests/college/results");
       setResults(res.data);
     } catch (err) {
       console.error(err);
@@ -280,18 +286,33 @@ export function CollegeAdminDashboard() {
     }
   };
 
-  const resultsFileBaseName = (viewingResultsFor?.title || "results")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "") || "results";
+  const handleToggleResults = () => {
+    const next = !showResultsPanel;
+    setShowResultsPanel(next);
+    if (next) {
+      setResultsView("table");
+      setResultsTestFilter("");
+      fetchAllResults();
+    }
+  };
+
+  const resultTestOptions = useMemo(
+    () => Array.from(new Set(results.map((r) => r.test_title))).sort((a, b) => a.localeCompare(b)),
+    [results]
+  );
+  const filteredResults = useMemo(
+    () => (resultsTestFilter ? results.filter((r) => r.test_title === resultsTestFilter) : results),
+    [results, resultsTestFilter]
+  );
 
   const handleExportExcel = async () => {
-    if (results.length === 0) return;
+    if (filteredResults.length === 0) return;
     setIsExporting("excel");
     try {
       const XLSX = await import("xlsx");
-      const rows = results.map((r) => ({
+      const rows = filteredResults.map((r) => ({
+        Test: r.test_title,
+        "Roll No": r.roll_number,
         Student: r.student_name,
         Score: r.score,
         "Max Score": r.max_score,
@@ -302,7 +323,7 @@ export function CollegeAdminDashboard() {
       const sheet = XLSX.utils.json_to_sheet(rows);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, sheet, "Results");
-      XLSX.writeFile(workbook, `${resultsFileBaseName}-results.xlsx`);
+      XLSX.writeFile(workbook, "assessment-results.xlsx");
     } catch (err) {
       console.error(err);
       toast.error("Failed to export Excel file");
@@ -312,14 +333,14 @@ export function CollegeAdminDashboard() {
   };
 
   const handleExportPdf = async () => {
-    if (results.length === 0 || !resultsContentRef.current) return;
+    if (filteredResults.length === 0 || !resultsContentRef.current) return;
     setIsExporting("pdf");
     try {
       const html2pdf = (await import("html2pdf.js")).default;
       await html2pdf()
         .set({
           margin: 12,
-          filename: `${resultsFileBaseName}-results.pdf`,
+          filename: "assessment-results.pdf",
           image: { type: "jpeg", quality: 0.98 },
           html2canvas: { scale: 2 },
           jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
@@ -575,21 +596,43 @@ export function CollegeAdminDashboard() {
   const handleAssignTest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningTest) return;
-    setAssignMsg("");
-    setIsAssigning(true);
-    try {
-      const res = await api.post("/test-assignments", {
-        test_id: assigningTest.id,
-        department_id: assignForm.department_id,
-        batch_year: assignForm.batch_year,
-      });
-      const { assigned_count, matched_students } = res.data as { assigned_count: number; matched_students: number };
-      setAssignMsg(`Assigned to ${assigned_count} of ${matched_students} matching student(s).`);
-    } catch (err: any) {
-      setAssignMsg(apiErrorMessage(err, "Failed to assign test"));
-    } finally {
-      setIsAssigning(false);
+    if (assignForm.department_ids.length === 0) {
+      setAssignResult({ summary: "Select at least one department.", failures: [] });
+      return;
     }
+    setAssignResult(null);
+    setIsAssigning(true);
+
+    // The API assigns to one department per call — loop sequentially (rather
+    // than Promise.all) so a slow/large department doesn't pile requests up
+    // against the same institution's student collection at once.
+    let totalAssigned = 0;
+    let totalMatched = 0;
+    const failures: { department: string; reason: string }[] = [];
+    for (const deptId of assignForm.department_ids) {
+      try {
+        const res = await api.post("/test-assignments", {
+          test_id: assigningTest.id,
+          department_id: deptId,
+          batch_year: assignForm.batch_year,
+        });
+        const { assigned_count, matched_students } = res.data as { assigned_count: number; matched_students: number };
+        totalAssigned += assigned_count;
+        totalMatched += matched_students;
+      } catch (err: unknown) {
+        const deptName = departments.find(d => d.id === deptId)?.name || deptId;
+        failures.push({ department: deptName, reason: apiErrorMessage(err, "failed") });
+      }
+    }
+
+    setIsAssigning(false);
+    const deptCount = assignForm.department_ids.length - failures.length;
+    setAssignResult({
+      summary: deptCount > 0
+        ? `Assigned to ${totalAssigned} of ${totalMatched} matching student(s) across ${deptCount} department(s).`
+        : "",
+      failures,
+    });
   };
 
   const handleCreateDepartment = async (e: React.FormEvent) => {
@@ -950,65 +993,192 @@ export function CollegeAdminDashboard() {
       {/* Assessments Section */}
       {(activeScreen === "dash" || activeScreen === "assessments") && (
         <div className="card" style={{ padding: "24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>Manage Assessments</h3>
-            <button className="btn btn-p" onClick={() => setShowCreateAssessment(true)}>+ Create Assessment</button>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+            <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>{showResultsPanel ? "Results" : "Manage Assessments"}</h3>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button className="btn btn-p" onClick={() => setShowCreateAssessment(true)}>+ Create Assessment</button>
+              <button
+                type="button"
+                className="btn"
+                onClick={handleToggleResults}
+                aria-pressed={showResultsPanel}
+                style={showResultsPanel ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : undefined}
+              >
+                {showResultsPanel ? "← Assessments" : "Results"}
+              </button>
+            </div>
           </div>
 
-          <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
-                <th style={{ padding: "12px 8px" }}>Title</th>
-                <th style={{ padding: "12px 8px" }}>Source</th>
-                <th style={{ padding: "12px 8px" }}>Difficulty</th>
-                <th style={{ padding: "12px 8px" }}>Duration</th>
-                <th style={{ padding: "12px 8px" }}>Questions</th>
-                <th style={{ padding: "12px 8px" }}>Marks</th>
-                <th style={{ padding: "12px 8px", textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assessments.map(a => (
-                <tr key={a.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>
-                    {a.title}
-                    {a.category && (
-                      <span style={{ marginLeft: "8px", padding: "2px 8px", background: "#DCFCE7", color: "#15803D", borderRadius: "999px", fontSize: "11px", fontWeight: 700 }}>
-                        Practice
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ padding: "12px 8px", textTransform: "capitalize" }}>{(a.source_category || a.category || "—").replace("_", " ")}</td>
-                  <td style={{ padding: "12px 8px" }}>
-                    <span style={{ padding: "4px 10px", background: a.difficulty === "hard" ? "#fee2e2" : a.difficulty === "medium" ? "#fef3c7" : "#e6f4ea", color: a.difficulty === "hard" ? "#dc2626" : a.difficulty === "medium" ? "#b45309" : "#1e8e3e", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{a.difficulty}</span>
-                  </td>
-                  <td style={{ padding: "12px 8px" }}>{a.duration_minutes} min</td>
-                  <td style={{ padding: "12px 8px" }}>{a.question_count ?? "—"}</td>
-                  <td style={{ padding: "12px 8px" }}>{a.total_marks}</td>
-                  <td style={{ padding: "12px 8px", textAlign: "right" }}>
-                    {!a.category && (
-                      <button
-                        onClick={() => { setAssigningTest(a); setAssignMsg(""); setAssignForm({ department_id: "", batch_year: new Date().getFullYear() }); }}
-                        style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}
-                      >
-                        Assign
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleViewResults(a)}
-                      style={{ background: "none", border: "none", color: "var(--text)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}
-                    >
-                      Results
-                    </button>
-                    <button onClick={() => handleDeleteAssessment(a.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>Delete</button>
-                  </td>
+          {!showResultsPanel ? (
+            <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
+                  <th style={{ padding: "12px 8px" }}>Title</th>
+                  <th style={{ padding: "12px 8px" }}>Source</th>
+                  <th style={{ padding: "12px 8px" }}>Difficulty</th>
+                  <th style={{ padding: "12px 8px" }}>Duration</th>
+                  <th style={{ padding: "12px 8px" }}>Questions</th>
+                  <th style={{ padding: "12px 8px" }}>Marks</th>
+                  <th style={{ padding: "12px 8px", textAlign: "right" }}>Actions</th>
                 </tr>
-              ))}
-              {assessments.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No assessments created yet.</td></tr>
+              </thead>
+              <tbody>
+                {assessments.map(a => (
+                  <tr key={a.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                    <td style={{ padding: "12px 8px", fontWeight: 500 }}>
+                      {a.title}
+                      {a.category && (
+                        <span style={{ marginLeft: "8px", padding: "2px 8px", background: "#DCFCE7", color: "#15803D", borderRadius: "999px", fontSize: "11px", fontWeight: 700 }}>
+                          Practice
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px 8px", textTransform: "capitalize" }}>{(a.source_category || a.category || "—").replace("_", " ")}</td>
+                    <td style={{ padding: "12px 8px" }}>
+                      <span style={{ padding: "4px 10px", background: a.difficulty === "hard" ? "#fee2e2" : a.difficulty === "medium" ? "#fef3c7" : "#e6f4ea", color: a.difficulty === "hard" ? "#dc2626" : a.difficulty === "medium" ? "#b45309" : "#1e8e3e", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{a.difficulty}</span>
+                    </td>
+                    <td style={{ padding: "12px 8px" }}>{a.duration_minutes} min</td>
+                    <td style={{ padding: "12px 8px" }}>{a.question_count ?? "—"}</td>
+                    <td style={{ padding: "12px 8px" }}>{a.total_marks}</td>
+                    <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                      {!a.category && (
+                        <button
+                          onClick={() => { setAssigningTest(a); setAssignResult(null); setAssignDeptSearch(""); setAssignForm({ department_ids: [], batch_year: new Date().getFullYear() }); }}
+                          style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}
+                        >
+                          Assign
+                        </button>
+                      )}
+                      <button onClick={() => handleDeleteAssessment(a.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+                {assessments.length === 0 && (
+                  <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No assessments created yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          ) : (
+            <div>
+              {results.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+                  {/* Filter by test */}
+                  <select
+                    className="fi"
+                    value={resultsTestFilter}
+                    onChange={(e) => setResultsTestFilter(e.target.value)}
+                    style={{ maxWidth: "260px" }}
+                  >
+                    <option value="">All tests ({results.length})</option>
+                    {resultTestOptions.map((title) => (
+                      <option key={title} value={title}>
+                        {title} ({results.filter((r) => r.test_title === title).length})
+                      </option>
+                    ))}
+                  </select>
+
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
+                  {/* Table / Cards toggle */}
+                  <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: "8px", padding: "2px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setResultsView("table")}
+                      aria-pressed={resultsView === "table"}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "6px",
+                        fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer",
+                        background: resultsView === "table" ? "var(--ink)" : "transparent",
+                        color: resultsView === "table" ? "#fff" : "var(--muted)",
+                      }}
+                    >
+                      <LayoutList size={14} /> Table
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResultsView("cards")}
+                      aria-pressed={resultsView === "cards"}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "6px",
+                        fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer",
+                        background: resultsView === "cards" ? "var(--ink)" : "transparent",
+                        color: resultsView === "cards" ? "#fff" : "var(--muted)",
+                      }}
+                    >
+                      <LayoutGrid size={14} /> Cards
+                    </button>
+                  </div>
+
+                  {/* Export buttons */}
+                  <button type="button" className="btn" onClick={handleExportExcel} disabled={isExporting !== null}>
+                    <FileSpreadsheet size={14} /> {isExporting === "excel" ? "Exporting…" : "Excel"}
+                  </button>
+                  <button type="button" className="btn btn-p" onClick={handleExportPdf} disabled={isExporting !== null}>
+                    <FileDown size={14} /> {isExporting === "pdf" ? "Exporting…" : "PDF"}
+                  </button>
+                  </div>
+                </div>
               )}
-            </tbody>
-          </table>
+
+              {resultsLoading ? (
+                <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>Loading...</div>
+              ) : results.length === 0 ? (
+                <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>No attempts yet.</div>
+              ) : filteredResults.length === 0 ? (
+                <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>No attempts for this test.</div>
+              ) : (
+                <div ref={resultsContentRef}>
+                  {resultsView === "table" ? (
+                    <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
+                          <th style={{ padding: "8px" }}>Roll No</th>
+                          <th style={{ padding: "8px" }}>Student</th>
+                          <th style={{ padding: "8px" }}>Score</th>
+                          <th style={{ padding: "8px" }}>%</th>
+                          <th style={{ padding: "8px" }}>Result</th>
+                          <th style={{ padding: "8px" }}>Completed</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredResults.map(r => (
+                          <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                            <td style={{ padding: "8px", fontWeight: 500 }}>{r.roll_number}</td>
+                            <td style={{ padding: "8px" }}>{r.student_name}</td>
+                            <td style={{ padding: "8px" }}>{r.score} / {r.max_score}</td>
+                            <td style={{ padding: "8px" }}>{r.percentage}%</td>
+                            <td style={{ padding: "8px" }}>
+                              <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: r.passed ? "#DCFCE7" : "#FEE2E2", color: r.passed ? "#15803D" : "#DC2626" }}>
+                                {r.passed ? "Passed" : "Failed"}
+                              </span>
+                            </td>
+                            <td style={{ padding: "8px", fontSize: "13px", color: "var(--muted)" }}>{r.completed_at ? new Date(r.completed_at).toLocaleString() : "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
+                      {filteredResults.map((r) => (
+                        <div key={r.id} className="card-sm" style={{ padding: "16px", borderRadius: "12px" }}>
+                          <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: "2px" }}>{r.student_name}</p>
+                          <p style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "8px" }}>{r.test_title}</p>
+                          <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "10px" }}>
+                            {r.score} / {r.max_score} · {r.percentage}%
+                          </p>
+                          <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: r.passed ? "#DCFCE7" : "#FEE2E2", color: r.passed ? "#15803D" : "#DC2626" }}>
+                            {r.passed ? "Passed" : "Failed"}
+                          </span>
+                          <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "10px" }}>
+                            {r.completed_at ? new Date(r.completed_at).toLocaleString() : "—"}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -1153,21 +1323,77 @@ export function CollegeAdminDashboard() {
             <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>{assigningTest.title}</p>
             <form onSubmit={handleAssignTest}>
               <div style={{ marginBottom: "14px" }}>
-                <label className="lbl">Department</label>
-                <select
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <label className="lbl">Departments</label>
+                  <span style={{ fontSize: "12px", color: "var(--muted)" }}>{assignForm.department_ids.length} selected</span>
+                </div>
+                <input
+                  type="text"
                   className="fi"
-                  value={assignForm.department_id}
-                  onChange={e => setAssignForm({ ...assignForm, department_id: e.target.value })}
-                  required
-                >
-                  <option value="" disabled>Select a department</option>
-                  {departments.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-                {departments.length === 0 && (
-                  <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>No departments found for this institution yet.</div>
-                )}
+                  placeholder="Search departments…"
+                  value={assignDeptSearch}
+                  onChange={e => setAssignDeptSearch(e.target.value)}
+                  style={{ marginBottom: "8px" }}
+                />
+                {(() => {
+                  const filteredDepts = departments.filter(d =>
+                    d.name.toLowerCase().includes(assignDeptSearch.trim().toLowerCase())
+                  );
+                  const allFilteredSelected = filteredDepts.length > 0 && filteredDepts.every(d => assignForm.department_ids.includes(d.id));
+                  return (
+                    <>
+                      <div style={{ display: "flex", gap: "12px", marginBottom: "6px" }}>
+                        <button
+                          type="button"
+                          onClick={() => setAssignForm({
+                            ...assignForm,
+                            department_ids: allFilteredSelected
+                              ? assignForm.department_ids.filter(id => !filteredDepts.some(d => d.id === id))
+                              : Array.from(new Set([...assignForm.department_ids, ...filteredDepts.map(d => d.id)])),
+                          })}
+                          style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "12px", fontWeight: 600, padding: 0 }}
+                        >
+                          {allFilteredSelected ? "Deselect all" : "Select all"}{assignDeptSearch ? " (matching)" : ""}
+                        </button>
+                        {assignForm.department_ids.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setAssignForm({ ...assignForm, department_ids: [] })}
+                            style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "12px", fontWeight: 600, padding: 0 }}
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ border: "1px solid var(--border)", borderRadius: "8px", maxHeight: "180px", overflowY: "auto" }}>
+                        {filteredDepts.length === 0 ? (
+                          <div style={{ padding: "12px", fontSize: "13px", color: "var(--muted)" }}>
+                            {departments.length === 0 ? "No departments found for this institution yet." : "No departments match your search."}
+                          </div>
+                        ) : (
+                          filteredDepts.map(d => (
+                            <label
+                              key={d.id}
+                              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", fontSize: "13px", cursor: "pointer", borderBottom: "1px solid var(--border)" }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={assignForm.department_ids.includes(d.id)}
+                                onChange={e => setAssignForm({
+                                  ...assignForm,
+                                  department_ids: e.target.checked
+                                    ? [...assignForm.department_ids, d.id]
+                                    : assignForm.department_ids.filter(id => id !== d.id),
+                                })}
+                              />
+                              {d.name}{d.code ? ` (${d.code})` : ""}
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               <div style={{ marginBottom: "20px" }}>
                 <label className="lbl">Graduation / Batch Year</label>
@@ -1179,128 +1405,34 @@ export function CollegeAdminDashboard() {
                   required
                 />
               </div>
-              {assignMsg && <div style={{ padding: "10px", marginBottom: "14px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>{assignMsg}</div>}
+              {assignResult && (
+                <div style={{ marginBottom: "14px" }}>
+                  {assignResult.summary && (
+                    <div style={{ padding: "10px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px", marginBottom: assignResult.failures.length > 0 ? "8px" : 0 }}>
+                      {assignResult.summary}
+                    </div>
+                  )}
+                  {assignResult.failures.length > 0 && (
+                    <div style={{ padding: "10px", background: "#FEF2F2", borderRadius: "8px" }}>
+                      <div style={{ fontSize: "13px", fontWeight: 700, color: "#DC2626", marginBottom: "6px" }}>
+                        Failed ({assignResult.failures.length})
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", color: "#DC2626" }}>
+                        {assignResult.failures.map((f, i) => (
+                          <li key={i} style={{ marginBottom: i === assignResult.failures.length - 1 ? 0 : "4px" }}>
+                            <strong>{f.department}</strong> — {f.reason}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
                 <button type="button" className="btn" onClick={() => setAssigningTest(null)}>Close</button>
                 <button type="submit" className="btn btn-p" disabled={isAssigning}>{isAssigning ? "Assigning..." : "Assign"}</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Results Modal */}
-      {viewingResultsFor && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "720px", maxHeight: "85vh", overflowY: "auto" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "20px" }}>
-              <div>
-                <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Results</h3>
-                <p style={{ fontSize: "13px", color: "var(--muted)" }}>{viewingResultsFor.title}</p>
-              </div>
-
-              {results.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
-                  {/* Table / Cards toggle */}
-                  <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: "8px", padding: "2px" }}>
-                    <button
-                      type="button"
-                      onClick={() => setResultsView("table")}
-                      aria-pressed={resultsView === "table"}
-                      style={{
-                        display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "6px",
-                        fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer",
-                        background: resultsView === "table" ? "var(--ink)" : "transparent",
-                        color: resultsView === "table" ? "#fff" : "var(--muted)",
-                      }}
-                    >
-                      <LayoutList size={14} /> Table
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setResultsView("cards")}
-                      aria-pressed={resultsView === "cards"}
-                      style={{
-                        display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "6px",
-                        fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer",
-                        background: resultsView === "cards" ? "var(--ink)" : "transparent",
-                        color: resultsView === "cards" ? "#fff" : "var(--muted)",
-                      }}
-                    >
-                      <LayoutGrid size={14} /> Cards
-                    </button>
-                  </div>
-
-                  {/* Export buttons */}
-                  <button type="button" className="btn" onClick={handleExportExcel} disabled={isExporting !== null}>
-                    <FileSpreadsheet size={14} /> {isExporting === "excel" ? "Exporting…" : "Excel"}
-                  </button>
-                  <button type="button" className="btn btn-p" onClick={handleExportPdf} disabled={isExporting !== null}>
-                    <FileDown size={14} /> {isExporting === "pdf" ? "Exporting…" : "PDF"}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {resultsLoading ? (
-              <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>Loading...</div>
-            ) : results.length === 0 ? (
-              <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>No attempts yet.</div>
-            ) : (
-              <div ref={resultsContentRef}>
-                {resultsView === "table" ? (
-                  <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
-                        <th style={{ padding: "8px" }}>Student</th>
-                        <th style={{ padding: "8px" }}>Score</th>
-                        <th style={{ padding: "8px" }}>%</th>
-                        <th style={{ padding: "8px" }}>Result</th>
-                        <th style={{ padding: "8px" }}>Completed</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {results.map(r => {
-                        return (
-                          <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                            <td style={{ padding: "8px" }}>{r.student_name}</td>
-                            <td style={{ padding: "8px" }}>{r.score} / {r.max_score}</td>
-                            <td style={{ padding: "8px" }}>{r.percentage}%</td>
-                            <td style={{ padding: "8px" }}>
-                              <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: r.passed ? "#DCFCE7" : "#FEE2E2", color: r.passed ? "#15803D" : "#DC2626" }}>
-                                {r.passed ? "Passed" : "Failed"}
-                              </span>
-                            </td>
-                            <td style={{ padding: "8px", fontSize: "13px", color: "var(--muted)" }}>{r.completed_at ? new Date(r.completed_at).toLocaleString() : "—"}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
-                    {results.map((r) => (
-                      <div key={r.id} className="card-sm" style={{ padding: "16px", borderRadius: "12px" }}>
-                        <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: "6px" }}>{r.student_name}</p>
-                        <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "10px" }}>
-                          {r.score} / {r.max_score} · {r.percentage}%
-                        </p>
-                        <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: r.passed ? "#DCFCE7" : "#FEE2E2", color: r.passed ? "#15803D" : "#DC2626" }}>
-                          {r.passed ? "Passed" : "Failed"}
-                        </span>
-                        <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "10px" }}>
-                          {r.completed_at ? new Date(r.completed_at).toLocaleString() : "—"}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
-              <button type="button" className="btn" onClick={() => setViewingResultsFor(null)}>Close</button>
-            </div>
           </div>
         </div>
       )}
