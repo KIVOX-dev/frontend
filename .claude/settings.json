@@ -23,7 +23,8 @@
       "Bash(curl -s -o /dev/null -w \"frontend: %{http_code}\\\\n\" --max-time 3 http://localhost:3000)",
       "Bash(curl -s -o /dev/null -w \"backend: %{http_code}\\\\n\" --max-time 3 http://127.0.0.1:8000/health)",
       "Bash(git diff HEAD -- src/components/superadmin/SuperAdminDashboard.tsx | wc -l *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(grep -rn \"process.env\\\\|localhost\\\\|http://\\\\|https://\" d:/Upscaler-frontend/src --include=\"*.ts\" --include=\"*.tsx\")"
     ],
     "additionalDirectories": [
       "\\tmp"

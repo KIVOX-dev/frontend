@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { api } from "@/lib/api";
+import { api, getApiUrl } from "@/lib/api";
 
 type Drive = {
   id: string;
@@ -60,8 +60,11 @@ const REPORT_FORM_DEFAULT = {
   work_type: "onsite",
   mode: "campus",
   location: "",
-  proof_url: "",
 };
+
+// proof_url comes back as a backend-relative path (/uploads/placement-proof/…),
+// served by node-api's own static mount, not this app's origin.
+const uploadsOrigin = () => getApiUrl().replace(/\/api\/v1\/?$/, "");
 
 export function PlacementOpportunities() {
   const [drives, setDrives] = useState<Drive[]>([]);
@@ -73,6 +76,7 @@ export function PlacementOpportunities() {
 
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportForm, setReportForm] = useState(REPORT_FORM_DEFAULT);
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [reportMsg, setReportMsg] = useState("");
   const [submittingReport, setSubmittingReport] = useState(false);
 
@@ -142,18 +146,27 @@ export function PlacementOpportunities() {
     setSubmittingReport(true);
     setReportMsg("");
     try {
-      const res = await api.post<PlacementRecord>("/placement-records", {
-        company_name: reportForm.company_name.trim(),
-        role: reportForm.role.trim(),
-        salary_lpa: parseFloat(reportForm.salary_lpa),
-        work_type: reportForm.work_type,
-        mode: reportForm.mode,
-        location: reportForm.location.trim() || undefined,
-        proof_url: reportForm.proof_url.trim() || undefined,
+      const formData = new FormData();
+      formData.append("company_name", reportForm.company_name.trim());
+      formData.append("role", reportForm.role.trim());
+      formData.append("salary_lpa", reportForm.salary_lpa);
+      formData.append("work_type", reportForm.work_type);
+      formData.append("mode", reportForm.mode);
+      if (reportForm.location.trim()) formData.append("location", reportForm.location.trim());
+      if (proofFile) formData.append("proof_file", proofFile);
+
+      // The shared `api` instance defaults to Content-Type: application/json,
+      // which would make axios silently JSON.stringify this FormData instead
+      // of sending it as multipart (see axios/lib/defaults/index.js's
+      // transformRequest). Clearing it here lets the browser set the correct
+      // multipart/form-data header — including its boundary — itself.
+      const res = await api.post<PlacementRecord>("/placement-records", formData, {
+        headers: { "Content-Type": undefined },
       });
       setRecords((prev) => [res.data, ...prev]);
       setShowReportForm(false);
       setReportForm(REPORT_FORM_DEFAULT);
+      setProofFile(null);
     } catch (err: any) {
       setReportMsg(err.response?.data?.message || "Failed to submit your placement. Please check the details and try again.");
     } finally {
@@ -288,7 +301,7 @@ export function PlacementOpportunities() {
       <div className="card" style={{ padding: "24px", marginTop: "16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div className="ct" style={{ marginBottom: 0 }}>Report Your Placement</div>
-          <button className="btn btn-p btn-sm" onClick={() => { setShowReportForm((v) => !v); setReportMsg(""); }}>
+          <button className="btn btn-p btn-sm" onClick={() => { setShowReportForm((v) => !v); setReportMsg(""); setProofFile(null); }}>
             {showReportForm ? "Cancel" : "+ Report Placement"}
           </button>
         </div>
@@ -342,8 +355,14 @@ export function PlacementOpportunities() {
               </div>
             </div>
             <div style={{ marginBottom: "20px" }}>
-              <label className="lbl">Proof Link (Optional)</label>
-              <input type="url" className="fi" value={reportForm.proof_url} onChange={(e) => setReportForm({ ...reportForm, proof_url: e.target.value })} placeholder="Link to offer letter (Drive, etc.)" />
+              <label className="lbl">Offer Letter (Optional)</label>
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="fi"
+                onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+              />
+              <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "6px" }}>PDF, JPG, or PNG — up to 10MB.</p>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button type="submit" className="btn btn-p" disabled={submittingReport}>
@@ -362,6 +381,7 @@ export function PlacementOpportunities() {
                 <th style={{ padding: "12px 8px" }}>LPA</th>
                 <th style={{ padding: "12px 8px" }}>Location</th>
                 <th style={{ padding: "12px 8px" }}>Verification</th>
+                <th style={{ padding: "12px 8px" }}>Offer Letter</th>
               </tr>
             </thead>
             <tbody>
@@ -373,6 +393,15 @@ export function PlacementOpportunities() {
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{r.location || "—"}</td>
                   <td style={{ padding: "12px 8px" }}>
                     <span className={`badge ${VERIFICATION_BADGE[r.verification_status] || "bb"}`}>{r.verification_status}</span>
+                  </td>
+                  <td style={{ padding: "12px 8px" }}>
+                    {r.proof_url ? (
+                      <a href={`${uploadsOrigin()}${r.proof_url}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", fontSize: "13px", fontWeight: 600 }}>
+                        View
+                      </a>
+                    ) : (
+                      <span style={{ color: "var(--muted)", fontSize: "13px" }}>—</span>
+                    )}
                   </td>
                 </tr>
               ))}

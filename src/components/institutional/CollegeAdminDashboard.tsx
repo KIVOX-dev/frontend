@@ -5,7 +5,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
 import { LayoutList, LayoutGrid, FileSpreadsheet, FileDown } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, getApiUrl } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { extractErrorMessage as apiErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
@@ -76,6 +76,22 @@ type StudentRecord = {
   user_id: string;
 };
 
+type InsightAttempt = {
+  id: string;
+  score: number;
+  max_score: number;
+  percentage: number;
+  passed: boolean;
+  created_at: string;
+};
+
+type StudentInsights = {
+  tests_completed: number;
+  avg_accuracy: number;
+  interviews_completed: number;
+  history: InsightAttempt[];
+};
+
 type Placement = {
   id: number;
   student_id: number;
@@ -88,6 +104,7 @@ type Placement = {
   location?: string;
   status: string;
   verification_status: string;
+  proof_url?: string;
   created_at?: string;
 };
 
@@ -101,6 +118,14 @@ type Drive = {
   application_deadline?: string;
   created_at?: string;
   applicant_count: number;
+};
+
+type PlacementApplication = {
+  id: string;
+  placement_id: string;
+  student_id: string;
+  status: "applied" | "shortlisted" | "interview" | "selected" | "rejected" | "withdrawn";
+  round?: number;
 };
 
 // Single accent hue for the trend line — it's genuinely one series over time,
@@ -217,12 +242,47 @@ function ChartEmptyState({ message }: { message: string }) {
   );
 }
 
+// proof_url comes back as a backend-relative path (/uploads/placement-proof/…),
+// served by node-api's own static mount, not this app's origin.
+const uploadsOrigin = () => getApiUrl().replace(/\/api\/v1\/?$/, "");
+
 export function CollegeAdminDashboard() {
   const { user: currentUser } = useAuthStore();
   const { activeScreen } = useUiStore();
   const departmentOptions = getDepartmentOptions(currentUser?.college_name);
   const [users, setUsers] = useState<User[]>([]);
   const [studentRecords, setStudentRecords] = useState<StudentRecord[]>([]);
+  const [viewingInsightsFor, setViewingInsightsFor] = useState<User | null>(null);
+  const [insightsData, setInsightsData] = useState<StudentInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+
+  // Applicants panel — toggled from the Placement Drives header (next to
+  // + Post Drive), same pattern as the Assessments screen's Results toggle.
+  // Shows every applicant across every drive at once (a "Drive" column tells
+  // them apart), with a further Applicants/Shortlist toggle; shortlisting is
+  // a client-side status flip after PATCH so that inner toggle needs no
+  // re-fetch.
+  const [showApplicantsPanel, setShowApplicantsPanel] = useState(false);
+  const [applicants, setApplicants] = useState<PlacementApplication[]>([]);
+  const [applicantsLoading, setApplicantsLoading] = useState(false);
+  const [applicantsView, setApplicantsView] = useState<"applicants" | "shortlist">("applicants");
+  const [updatingApplicantId, setUpdatingApplicantId] = useState<string | null>(null);
+
+  // + Shortlist form — lets staff shortlist a candidate for a drive directly,
+  // without requiring the student to have self-applied first (see
+  // placementApplication.service.js#createOnBehalf).
+  const [showShortlistForm, setShowShortlistForm] = useState(false);
+  const [shortlistForm, setShortlistForm] = useState({ placement_id: "", student_id: "", round: "" });
+  const [shortlistMsg, setShortlistMsg] = useState("");
+  const [isShortlisting, setIsShortlisting] = useState(false);
+  // Excel roster upload — mutually exclusive with the manual Student picker
+  // above. Matched entirely client-side against students already loaded in
+  // `users` (roll number is the only reliable key a spreadsheet can supply),
+  // so the server only ever sees an already-resolved student_id list.
+  const [shortlistFile, setShortlistFile] = useState<File | null>(null);
+  const [shortlistFilePreview, setShortlistFilePreview] = useState<{ matched: User[]; unmatchedCount: number } | null>(null);
+  const [isParsingShortlistFile, setIsParsingShortlistFile] = useState(false);
+
   const [userRoleFilter, setUserRoleFilter] = useState("");
   const [userDeptFilter, setUserDeptFilter] = useState("");
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -445,6 +505,13 @@ export function CollegeAdminDashboard() {
     () => new Map(studentRecords.map(s => [String(s.user_id), s.id])),
     [studentRecords]
   );
+  // Reverse of the above — an application only carries a student_id, so the
+  // Applicants panel needs student.id -> user (for the name/email to show).
+  const userByStudentRecordId = useMemo(() => {
+    const userById = new Map(users.map(u => [String(u.id), u]));
+    return new Map(studentRecords.map(s => [s.id, userById.get(String(s.user_id))]));
+  }, [studentRecords, users]);
+  const driveById = useMemo(() => new Map(drives.map(d => [String(d.id), d])), [drives]);
 
   const userRoleOptions = useMemo(
     () => Array.from(new Set(users.map(u => u.role))).sort((a, b) => a.localeCompare(b)),
@@ -578,6 +645,155 @@ export function CollegeAdminDashboard() {
       await api.delete(`/users/${id}`);
       fetchUsers();
     } catch { toast.error("Failed to delete"); }
+  };
+
+  // /dashboard/student/:id keys on the students collection's own row id,
+  // not this user's id — same distinction handleCreatePlacement resolves
+  // via studentRecordIdByUserId (see StudentRecord's comment above).
+  const handleViewInsights = async (u: User) => {
+    setViewingInsightsFor(u);
+    setInsightsData(null);
+    const studentRecordId = studentRecordIdByUserId.get(String(u.id));
+    if (!studentRecordId) return;
+    setInsightsLoading(true);
+    try {
+      // This endpoint is intentionally double-wrapped server-side (see
+      // dashboard.controller.js#student / ApiResponse.okDoubleWrapped) — the
+      // axios interceptor's usual unwrap still leaves one {success, data}
+      // layer here, matching what StudentTracking.tsx already reads.
+      const res = await api.get<{ success: boolean; data: StudentInsights }>(`/dashboard/student/${studentRecordId}`);
+      if (res.data?.success) setInsightsData(res.data.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setInsightsLoading(false);
+    }
+  };
+
+  const fetchApplicants = async () => {
+    setApplicantsLoading(true);
+    try {
+      const res = await api.get<PlacementApplication[]>("/placement-applications?limit=1000");
+      setApplicants(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setApplicantsLoading(false);
+    }
+  };
+
+  const handleToggleApplicants = () => {
+    const next = !showApplicantsPanel;
+    setShowApplicantsPanel(next);
+    if (!next) return;
+    setApplicantsView("applicants");
+    fetchApplicants();
+  };
+
+  const handleUpdateApplicantStatus = async (application: PlacementApplication, status: PlacementApplication["status"]) => {
+    setUpdatingApplicantId(application.id);
+    try {
+      await api.patch(`/placement-applications/${application.id}/status`, { status });
+      setApplicants(prev => prev.map(a => (a.id === application.id ? { ...a, status } : a)));
+    } catch (err) {
+      toast.error(err, "Failed to update applicant status");
+    } finally {
+      setUpdatingApplicantId(null);
+    }
+  };
+
+  // Matches an uploaded roster against students already loaded in `users` —
+  // by roll number only, since that's the one column guaranteed unique
+  // within this institution. Name/Department can appear in any order (or
+  // not at all beyond roll number); any other columns, and any row whose
+  // roll number doesn't match a known student, are silently ignored.
+  const handleShortlistFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setShortlistFile(file);
+    setShortlistFilePreview(null);
+    setShortlistForm(prev => ({ ...prev, student_id: "" }));
+    if (!file) return;
+
+    setIsParsingShortlistFile(true);
+    try {
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+
+      const rollToUser = new Map(
+        users
+          .filter(u => u.role === "student" && u.roll_number)
+          .map(u => [u.roll_number!.trim().toLowerCase(), u])
+      );
+
+      const matched = new Map<string, User>();
+      let unmatchedCount = 0;
+      for (const row of rows) {
+        const rollKey = Object.keys(row).find(k => k.toLowerCase().replace(/[^a-z]/g, "").includes("roll"));
+        const rollValue = rollKey ? String(row[rollKey]).trim().toLowerCase() : "";
+        const user = rollValue ? rollToUser.get(rollValue) : undefined;
+        if (user) matched.set(user.roll_number!, user);
+        else unmatchedCount += 1;
+      }
+      setShortlistFilePreview({ matched: Array.from(matched.values()), unmatchedCount });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to read that file — expected an Excel (.xlsx/.xls) or CSV export.");
+      setShortlistFile(null);
+    } finally {
+      setIsParsingShortlistFile(false);
+    }
+  };
+
+  const closeShortlistForm = () => {
+    setShowShortlistForm(false);
+    setShortlistForm({ placement_id: "", student_id: "", round: "" });
+    setShortlistFile(null);
+    setShortlistFilePreview(null);
+  };
+
+  const handleCreateShortlist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setShortlistMsg("");
+    setIsShortlisting(true);
+    const round = shortlistForm.round ? parseInt(shortlistForm.round, 10) : undefined;
+    try {
+      if (shortlistFilePreview) {
+        const studentIds = shortlistFilePreview.matched
+          .map(u => studentRecordIdByUserId.get(String(u.id)))
+          .filter((id): id is string => Boolean(id));
+        if (studentIds.length === 0) {
+          setShortlistMsg("No rows in that file matched a known student's roll number.");
+          return;
+        }
+        const res = await api.post<{ shortlisted_count: number; requested_count: number }>("/placement-applications/bulk-shortlist", {
+          placement_id: shortlistForm.placement_id,
+          student_ids: studentIds,
+          round,
+        });
+        await fetchApplicants();
+        closeShortlistForm();
+        toast.success(`Shortlisted ${res.data.shortlisted_count} candidate(s)`, shortlistFilePreview.unmatchedCount > 0 ? `${shortlistFilePreview.unmatchedCount} row(s) had no matching roll number and were skipped.` : undefined);
+      } else {
+        const res = await api.post<PlacementApplication>("/placement-applications", {
+          placement_id: shortlistForm.placement_id,
+          student_id: shortlistForm.student_id,
+          round,
+        });
+        // Same row whether newly created or an existing application was
+        // promoted to shortlisted (see createOnBehalf) — either way replace
+        // any prior entry for this id rather than risk a duplicate row.
+        setApplicants(prev => [...prev.filter(a => a.id !== res.data.id), res.data]);
+        closeShortlistForm();
+        toast.success("Candidate shortlisted");
+      }
+    } catch (err: unknown) {
+      setShortlistMsg(apiErrorMessage(err, "Failed to shortlist candidate(s)"));
+    } finally {
+      setIsShortlisting(false);
+    }
   };
 
   const handleCreateAssessment = async (e: React.FormEvent) => {
@@ -900,6 +1116,7 @@ export function CollegeAdminDashboard() {
                 <th style={{ padding: "12px 8px" }}>Role</th>
                 <th style={{ padding: "12px 8px" }}>Salary (LPA)</th>
                 <th style={{ padding: "12px 8px" }}>Verification</th>
+                <th style={{ padding: "12px 8px" }}>Proof</th>
               </tr>
             </thead>
             <tbody>
@@ -919,10 +1136,19 @@ export function CollegeAdminDashboard() {
                     <td style={{ padding: "12px 8px" }}>
                       <span style={{ padding: "4px 10px", background: p.verification_status === "verified" ? "#e6f4ea" : "#fef3c7", color: p.verification_status === "verified" ? "#1e8e3e" : "#b45309", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{p.verification_status}</span>
                     </td>
+                    <td style={{ padding: "12px 8px" }}>
+                      {p.proof_url ? (
+                        <a href={`${uploadsOrigin()}${p.proof_url}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", fontSize: "13px", fontWeight: 600 }}>
+                          View
+                        </a>
+                      ) : (
+                        <span style={{ color: "var(--muted)", fontSize: "13px" }}>—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               {placements.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No students placed yet.</td></tr>
+                <tr><td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No students placed yet.</td></tr>
               )}
             </tbody>
           </table>
@@ -932,42 +1158,160 @@ export function CollegeAdminDashboard() {
       {/* Placement Drives (standalone) */}
       {activeScreen === "drives" && (
         <div className="card" style={{ padding: "24px", marginBottom: "24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>Placement Drives</h3>
-            <button className="btn btn-p" onClick={() => { setDriveMsg(""); setDriveDeptSearch(""); setShowPostDrive(true); }}>+ Post Drive</button>
-          </div>
-          <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
-                <th style={{ padding: "12px 8px" }}>Title</th>
-                <th style={{ padding: "12px 8px" }}>Company</th>
-                <th style={{ padding: "12px 8px" }}>Applicants</th>
-                <th style={{ padding: "12px 8px" }}>Deadline</th>
-                <th style={{ padding: "12px 8px" }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {drives.map(d => (
-                <tr key={d.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>{d.title}</td>
-                  <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <CompanyLogo name={d.company_name} size={22} />
-                      {d.company_name}
-                    </div>
-                  </td>
-                  <td style={{ padding: "12px 8px" }}>{d.applicant_count}</td>
-                  <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{d.application_deadline ? new Date(d.application_deadline).toLocaleDateString() : "—"}</td>
-                  <td style={{ padding: "12px 8px" }}>
-                    <span style={{ padding: "4px 10px", background: d.status === "active" ? "#e6f4ea" : "#f3f4f6", color: d.status === "active" ? "#1e8e3e" : "#6b7280", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{d.status}</span>
-                  </td>
-                </tr>
-              ))}
-              {drives.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No students have applied for a drive — none have been posted yet.</td></tr>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+            <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>{showApplicantsPanel ? "Applicants" : "Placement Drives"}</h3>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button className="btn btn-p" onClick={() => { setDriveMsg(""); setDriveDeptSearch(""); setShowPostDrive(true); }}>+ Post Drive</button>
+              {showApplicantsPanel && (
+                <button
+                  className="btn btn-p"
+                  onClick={() => { setShortlistMsg(""); setShortlistForm({ placement_id: "", student_id: "", round: "" }); setShortlistFile(null); setShortlistFilePreview(null); setShowShortlistForm(true); }}
+                >
+                  + Shortlist
+                </button>
               )}
-            </tbody>
-          </table>
+              <button
+                type="button"
+                className="btn"
+                onClick={handleToggleApplicants}
+                aria-pressed={showApplicantsPanel}
+                style={showApplicantsPanel ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : undefined}
+              >
+                {showApplicantsPanel ? "← Drives" : "Applicants"}
+              </button>
+            </div>
+          </div>
+
+          {!showApplicantsPanel ? (
+            <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
+                  <th style={{ padding: "12px 8px" }}>Title</th>
+                  <th style={{ padding: "12px 8px" }}>Company</th>
+                  <th style={{ padding: "12px 8px" }}>Applicants</th>
+                  <th style={{ padding: "12px 8px" }}>Deadline</th>
+                  <th style={{ padding: "12px 8px" }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {drives.map(d => (
+                  <tr key={d.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                    <td style={{ padding: "12px 8px", fontWeight: 500 }}>{d.title}</td>
+                    <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <CompanyLogo name={d.company_name} size={22} />
+                        {d.company_name}
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 8px" }}>{d.applicant_count}</td>
+                    <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{d.application_deadline ? new Date(d.application_deadline).toLocaleDateString() : "—"}</td>
+                    <td style={{ padding: "12px 8px" }}>
+                      <span style={{ padding: "4px 10px", background: d.status === "active" ? "#e6f4ea" : "#f3f4f6", color: d.status === "active" ? "#1e8e3e" : "#6b7280", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{d.status}</span>
+                    </td>
+                  </tr>
+                ))}
+                {drives.length === 0 && (
+                  <tr><td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No students have applied for a drive — none have been posted yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          ) : (
+            <div>
+              {/* Applicants / Shortlist toggle switch */}
+              <div style={{ display: "inline-flex", border: "1px solid var(--border)", borderRadius: "8px", padding: "2px", marginBottom: "20px" }}>
+                <button
+                  type="button"
+                  onClick={() => setApplicantsView("applicants")}
+                  aria-pressed={applicantsView === "applicants"}
+                  style={{
+                    padding: "6px 16px", borderRadius: "6px", fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer",
+                    background: applicantsView === "applicants" ? "var(--ink)" : "transparent",
+                    color: applicantsView === "applicants" ? "#fff" : "var(--muted)",
+                  }}
+                >
+                  Applicants ({applicants.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApplicantsView("shortlist")}
+                  aria-pressed={applicantsView === "shortlist"}
+                  style={{
+                    padding: "6px 16px", borderRadius: "6px", fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer",
+                    background: applicantsView === "shortlist" ? "var(--ink)" : "transparent",
+                    color: applicantsView === "shortlist" ? "#fff" : "var(--muted)",
+                  }}
+                >
+                  Shortlist ({applicants.filter(a => a.status === "shortlisted").length})
+                </button>
+              </div>
+
+              {applicantsLoading ? (
+                <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>Loading applicants...</div>
+              ) : (() => {
+                const filteredApplicants = applicantsView === "shortlist" ? applicants.filter(a => a.status === "shortlisted") : applicants;
+                if (filteredApplicants.length === 0) {
+                  return (
+                    <div style={{ padding: "32px", textAlign: "center", background: "var(--bg)", borderRadius: "12px", color: "var(--muted)" }}>
+                      {applicantsView === "shortlist" ? "No applicants shortlisted yet." : "No applicants across any drive yet."}
+                    </div>
+                  );
+                }
+                return (
+                  <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
+                        <th style={{ padding: "12px 8px" }}>Drive</th>
+                        <th style={{ padding: "12px 8px" }}>Student</th>
+                        <th style={{ padding: "12px 8px" }}>Round</th>
+                        <th style={{ padding: "12px 8px" }}>Status</th>
+                        <th style={{ padding: "12px 8px", textAlign: "right" }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredApplicants.map(a => {
+                        const student = userByStudentRecordId.get(a.student_id);
+                        const drive = driveById.get(String(a.placement_id));
+                        return (
+                          <tr key={a.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                            <td style={{ padding: "12px 8px", fontWeight: 500 }}>
+                              {drive ? `${drive.title} — ${drive.company_name}` : `Drive #${a.placement_id}`}
+                            </td>
+                            <td style={{ padding: "12px 8px" }}>
+                              <div style={{ color: "var(--text)" }}>{student?.name || `Student #${a.student_id}`}</div>
+                              {student?.email && <div style={{ fontSize: "12px", color: "var(--muted)" }}>{student.email}</div>}
+                            </td>
+                            <td style={{ padding: "12px 8px", color: "var(--muted)" }}>{a.round ?? "—"}</td>
+                            <td style={{ padding: "12px 8px" }}>
+                              <span style={{ padding: "4px 10px", background: a.status === "shortlisted" ? "#e6f4ea" : a.status === "rejected" || a.status === "withdrawn" ? "#fee2e2" : "#f3f4f6", color: a.status === "shortlisted" ? "#1e8e3e" : a.status === "rejected" || a.status === "withdrawn" ? "#dc2626" : "#6b7280", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{a.status}</span>
+                            </td>
+                            <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                              {applicantsView === "shortlist" ? (
+                                <button
+                                  onClick={() => handleUpdateApplicantStatus(a, "applied")}
+                                  disabled={updatingApplicantId === a.id}
+                                  style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}
+                                >
+                                  {updatingApplicantId === a.id ? "Removing..." : "Remove"}
+                                </button>
+                              ) : a.status !== "shortlisted" && (
+                                <button
+                                  onClick={() => handleUpdateApplicantStatus(a, "shortlisted")}
+                                  disabled={updatingApplicantId === a.id}
+                                  style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}
+                                >
+                                  {updatingApplicantId === a.id ? "Shortlisting..." : "Shortlist"}
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                );
+              })()}
+            </div>
+          )}
         </div>
       )}
 
@@ -1032,6 +1376,9 @@ export function CollegeAdminDashboard() {
                     <span style={{ padding: "4px 10px", background: u.status === "approved" ? "#e6f4ea" : u.status === "pending" ? "#fef3c7" : "#fee2e2", color: u.status === "approved" ? "#1e8e3e" : u.status === "pending" ? "#b45309" : "#dc2626", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{u.status}</span>
                   </td>
                   <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                    {u.role === "student" && (
+                      <button onClick={() => handleViewInsights(u)} style={{ background: "none", border: "none", color: "var(--purple, #7c3aed)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}>View Insights</button>
+                    )}
                     <button onClick={() => handleDeleteUser(u.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>Delete</button>
                   </td>
                 </tr>
@@ -1526,6 +1873,176 @@ export function CollegeAdminDashboard() {
         </div>
       )}
 
+      {/* Student Insights Modal */}
+      {viewingInsightsFor && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}>
+          <div className="card" style={{ width: "100%", maxWidth: "800px", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+            <div style={{ position: "sticky", top: 0, background: "var(--card-bg, var(--surface))", padding: "24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
+              <div>
+                <h3 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text)" }}>{viewingInsightsFor.name}&apos;s Profile Insights</h3>
+                <p style={{ color: "var(--muted)", fontSize: "14px", marginTop: "4px" }}>{viewingInsightsFor.email}</p>
+              </div>
+              <button
+                onClick={() => { setViewingInsightsFor(null); setInsightsData(null); }}
+                style={{ width: "32px", height: "32px", borderRadius: "50%", border: "none", background: "var(--bg)", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: "24px" }}>
+              {insightsLoading ? (
+                <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>Loading insights...</div>
+              ) : insightsData ? (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "32px" }}>
+                    <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
+                      <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Aptitude Tests</div>
+                      <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)" }}>{insightsData.tests_completed}</div>
+                    </div>
+                    <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
+                      <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Average Accuracy</div>
+                      <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--accent)" }}>{insightsData.avg_accuracy}%</div>
+                    </div>
+                    <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
+                      <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Mock Interviews</div>
+                      <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)" }}>{insightsData.interviews_completed}</div>
+                    </div>
+                  </div>
+
+                  <h4 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px", color: "var(--text)" }}>Detailed Test History</h4>
+                  {insightsData.history && insightsData.history.length > 0 ? (
+                    <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", fontSize: "14px" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "12px", textTransform: "uppercase" }}>
+                          <th style={{ padding: "12px 8px" }}>Date</th>
+                          <th style={{ padding: "12px 8px" }}>Score</th>
+                          <th style={{ padding: "12px 8px" }}>Accuracy</th>
+                          <th style={{ padding: "12px 8px", textAlign: "right" }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {insightsData.history.map(attempt => (
+                          <tr key={attempt.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                            <td style={{ padding: "12px 8px", color: "var(--muted)" }}>
+                              {new Date(attempt.created_at).toLocaleDateString()}
+                            </td>
+                            <td style={{ padding: "12px 8px", fontWeight: 500, color: "var(--text)" }}>
+                              {attempt.score} / {attempt.max_score}
+                            </td>
+                            <td style={{ padding: "12px 8px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <div style={{ flex: 1, height: "6px", background: "var(--bg)", borderRadius: "3px", overflow: "hidden" }}>
+                                  <div style={{ height: "100%", width: `${attempt.percentage}%`, background: attempt.percentage >= 70 ? "#1e8e3e" : attempt.percentage >= 40 ? "#f59e0b" : "#dc2626" }} />
+                                </div>
+                                <span style={{ fontSize: "13px", fontWeight: 600, width: "36px", color: "var(--text)" }}>{Math.round(attempt.percentage)}%</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                              <span style={{ padding: "4px 8px", background: attempt.passed ? "#e6f4ea" : "#fee2e2", color: attempt.passed ? "#1e8e3e" : "#dc2626", borderRadius: "6px", fontSize: "12px", fontWeight: 600 }}>
+                                {attempt.passed ? "Pass" : "Fail"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div style={{ padding: "32px", textAlign: "center", background: "var(--bg)", borderRadius: "12px", color: "var(--muted)" }}>
+                      No assessments completed by this student yet.
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ padding: "32px", textAlign: "center", background: "var(--bg)", borderRadius: "12px", color: "var(--muted)" }}>
+                  No student profile linked to this account yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shortlist Candidate Modal */}
+      {showShortlistForm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}>
+          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px", maxHeight: "90vh", overflowY: "auto" }}>
+            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Shortlist a Candidate</h3>
+            <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>Adds a student straight to the drive's shortlist — they don't need to have applied first.</p>
+            <form onSubmit={handleCreateShortlist}>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "10px", marginBottom: "14px" }}>
+                <div>
+                  <label className="lbl">Drive</label>
+                  <select className="fi" value={shortlistForm.placement_id} onChange={e => setShortlistForm({ ...shortlistForm, placement_id: e.target.value })} required>
+                    <option value="">Select a drive</option>
+                    {drives.map(d => (
+                      <option key={d.id} value={d.id}>{d.title} — {d.company_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="lbl">Round</label>
+                  <select className="fi" value={shortlistForm.round} onChange={e => setShortlistForm({ ...shortlistForm, round: e.target.value })}>
+                    <option value="">—</option>
+                    {[1, 2, 3, 4, 5].map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: "8px" }}>
+                <label className="lbl">Student</label>
+                <select
+                  className="fi"
+                  value={shortlistForm.student_id}
+                  onChange={e => setShortlistForm({ ...shortlistForm, student_id: e.target.value })}
+                  required={!shortlistFile}
+                  disabled={!!shortlistFile}
+                >
+                  <option value="">Select a student</option>
+                  {users.filter(u => u.role === "student").map(s => {
+                    const studentRecordId = studentRecordIdByUserId.get(String(s.id));
+                    if (!studentRecordId) return null;
+                    return (
+                      <option key={s.id} value={studentRecordId}>{s.name} ({s.email})</option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "14px 0" }}>
+                <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+                <span style={{ fontSize: "12px", color: "var(--muted)" }}>OR upload a roster</span>
+                <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+              </div>
+
+              <div style={{ marginBottom: "20px" }}>
+                <input type="file" accept=".xlsx,.xls,.csv" className="fi" onChange={handleShortlistFileChange} />
+                <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "6px" }}>
+                  Columns for Student Name, Roll No, and Department, in any order — matched by Roll No. Anything else in the file is ignored.
+                </p>
+                {isParsingShortlistFile && <p style={{ fontSize: "13px", color: "var(--muted)", marginTop: "8px" }}>Reading file…</p>}
+                {shortlistFilePreview && (
+                  <div style={{ marginTop: "8px", padding: "10px", background: "var(--bg)", borderRadius: "8px", fontSize: "13px", color: "var(--text)" }}>
+                    Matched <strong>{shortlistFilePreview.matched.length}</strong> student(s) by roll number.
+                    {shortlistFilePreview.unmatchedCount > 0 && (
+                      <> {shortlistFilePreview.unmatchedCount} row(s) didn&apos;t match and will be skipped.</>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {shortlistMsg && <div style={{ padding: "10px", marginBottom: "14px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", color: "#DC2626", fontSize: "13px" }}>{shortlistMsg}</div>}
+              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                <button type="button" className="btn" disabled={isShortlisting} onClick={closeShortlistForm}>Cancel</button>
+                <button type="submit" className="btn btn-p" disabled={isShortlisting || isParsingShortlistFile}>{isShortlisting ? "Shortlisting..." : "Shortlist"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Add Placement Modal */}
       {showAddPlacement && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
@@ -1635,6 +2152,26 @@ export function CollegeAdminDashboard() {
                   <label className="lbl">Eligible Departments (Optional — leave empty for all)</label>
                   <span style={{ fontSize: "12px", color: "var(--muted)" }}>{driveForm.eligible_departments.length} selected</span>
                 </div>
+                {driveForm.eligible_departments.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "6px" }}>
+                    {driveForm.eligible_departments.map(dept => (
+                      <span
+                        key={dept}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "3px 6px 3px 10px", background: "var(--accent-l)", color: "var(--accent)", borderRadius: "999px", fontSize: "12px", fontWeight: 600 }}
+                      >
+                        {dept}
+                        <button
+                          type="button"
+                          onClick={() => setDriveForm({ ...driveForm, eligible_departments: driveForm.eligible_departments.filter(d => d !== dept) })}
+                          aria-label={`Remove ${dept}`}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", fontSize: "14px", lineHeight: 1, padding: "0 2px" }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <input
                   type="text"
                   className="fi"
@@ -1680,7 +2217,7 @@ export function CollegeAdminDashboard() {
                           filteredDepts.map(dept => (
                             <label
                               key={dept}
-                              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 10px", fontSize: "13px", cursor: "pointer", borderBottom: "1px solid var(--border)" }}
+                              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 10px", fontSize: "13px", cursor: "pointer", borderBottom: "1px solid var(--border)", background: driveForm.eligible_departments.includes(dept) ? "var(--accent-l)" : "transparent" }}
                             >
                               <input
                                 type="checkbox"
