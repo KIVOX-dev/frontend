@@ -81,7 +81,7 @@ export function AuthSplitLayout({
             pointerEvents: "none",
           }}
         >
-          <Logo variant="icon" height={400} />
+          <Logo variant="mark" height={400} />
         </div>
         {children}
       </div>

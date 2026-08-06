@@ -51,10 +51,10 @@ export function HrShell({ children }: { children: React.ReactNode }) {
           padding: isSidebarCollapsed ? "20px 0" : "20px"
         }}>
           {isSidebarCollapsed ? (
-            <Logo variant="icon" height={28} />
+            <Logo variant="mark" height={28} />
           ) : (
             <>
-              <Logo variant="mark" height={36} className="brand-logo" style={{ marginBottom: "8px" }} />
+              <Logo variant="brand" height={36} className="brand-logo" style={{ marginBottom: "8px" }} />
               <div className="logo-text" style={{ fontSize: "11px", opacity: 0.6, textTransform: "uppercase", letterSpacing: "1px" }}>Recruiter Portal</div>
             </>
           )}

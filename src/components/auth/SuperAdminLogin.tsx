@@ -55,7 +55,7 @@ export function SuperAdminLogin() {
       <div className="lp-card">
         <div style={{ textAlign: "center", marginBottom: "30px" }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
-            <Logo variant="full" height={50} priority />
+            <Logo variant="brand" height={50} priority />
           </div>
           <h2 style={{ fontSize: "24px", color: "var(--text)", fontWeight: 700, marginBottom: "8px" }}>
             Super Admin Portal

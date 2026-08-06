@@ -1,25 +1,33 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
 
-type LogoVariant = "full" | "mark" | "icon" | "sidebar";
+type LogoVariant = "primary" | "brand" | "bar" | "mark" | "icon";
 
-// Real dimensions of the trimmed source assets in public/logos/ — used to
-// derive width from a target height so the mark is never stretched.
+// Real dimensions of the trimmed source assets in public/logos/ (and
+// app/icon.png for the "icon" variant) — used to derive width from a target
+// height so the mark is never stretched.
 const VARIANTS: Record<LogoVariant, { src: string; width: number; height: number }> = {
-  // Full lockup: mark + "UpScaler" wordmark + tagline. For larger, roomier
-  // placements (auth screens, footer, splash).
-  full: { src: "/logos/primary_logo_blue.png", width: 1036, height: 864 },
-  // Mark only, no text — for compact header/sidebar slots next to a text label.
-  mark: { src: "/logos/icon_mark_blue.png", width: 808, height: 864 },
-  // Mark inside a ring, square — for favicon/app-icon-shaped contexts.
-  icon: { src: "/logos/app_icon_blue.png", width: 864, height: 864 },
-  // Mark + wordmark lockup on its own light card background (self-contained,
-  // not transparent) — the "sidebar" asset, also usable standalone in a nav.
-  sidebar: { src: "/logos/sidebar_logo_blue.png", width: 1536, height: 837 },
+  // Stacked lockup: mark over "UpScaler" wordmark over tagline. Portrait —
+  // only fits contexts with real vertical room (footer, docs, big brand
+  // sections), never a shallow navbar/sidebar row.
+  primary: { src: "/logos/primary-logo.png", width: 751, height: 900 },
+  // Horizontal mark + "UpScaler" wordmark, no tagline. The default for any
+  // shallow horizontal slot: navbars, expanded sidebars, auth screens.
+  brand: { src: "/logos/brand-logo.png", width: 900, height: 269 },
+  // Compact horizontal mark + wordmark for the tightest spaces (mobile nav,
+  // thin bars) — use via <ResponsiveLogo> rather than directly in most cases.
+  bar: { src: "/logos/bar-logo.png", width: 700, height: 186 },
+  // Arrow mark only, no text — collapsed sidebar, floating buttons, loaders,
+  // decorative watermarks, anywhere text would be too small to read.
+  mark: { src: "/logos/logo-mark.png", width: 437, height: 500 },
+  // Circular app-icon badge — matches app/icon.png, for the rare in-app
+  // spot that wants the literal favicon-shaped mark rather than the bare
+  // arrow (e.g. an "install app" prompt).
+  icon: { src: "/icon.png", width: 512, height: 512 },
 };
 
 export function Logo({
-  variant = "full",
+  variant = "brand",
   height = 40,
   className,
   priority,
@@ -44,5 +52,27 @@ export function Logo({
       className={className}
       style={{ height, width: "auto", ...style }}
     />
+  );
+}
+
+// Viewport-responsive brand mark for the landing nav: full horizontal
+// lockup on desktop, the more compact bar lockup once the row gets tight,
+// down to the bare mark on the narrowest phones. Plain Tailwind breakpoint
+// visibility (not a JS matchMedia hook) so there's no hydration mismatch —
+// same pattern already used for responsive layout elsewhere in this app.
+export function ResponsiveLogo({
+  height = 40,
+  className,
+  priority,
+}: {
+  height?: number;
+  className?: string;
+  priority?: boolean;
+}) {
+  return (
+    <>
+      <Logo variant="brand" height={height} priority={priority} className={`hidden sm:block ${className ?? ""}`} />
+      <Logo variant="bar" height={height} priority={priority} className={`sm:hidden ${className ?? ""}`} />
+    </>
   );
 }

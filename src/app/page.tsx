@@ -16,12 +16,12 @@ import LandingCta from "@/components/landing/LandingCta";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 export const metadata: Metadata = {
-  title: "UpScaler — Complete Education Management Platform",
+  title: "UpScalerAI",
   description:
     "One intelligent platform connecting HR, students, faculty, and administrators across your institution. Manage attendance, academics, payroll, and reporting from a single system.",
   keywords: "education management system, college ERP, student information system, HR management, faculty management, institution administration",
   openGraph: {
-    title: "UpScaler — Complete Education Management Platform",
+    title: "UpScalerAI",
     description: "Manage your entire institution from one intelligent platform — built for HR, students, faculty, and administrators.",
     type: "website",
   },

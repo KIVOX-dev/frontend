@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { List, X, ArrowRight } from "@phosphor-icons/react";
-import { Logo } from "@/components/shared/Logo";
+import { ResponsiveLogo } from "@/components/shared/Logo";
 import { Button, ButtonIconChip } from "@/components/ui/Button";
 
 const navLinks = [
@@ -59,7 +59,7 @@ export default function LandingNav() {
       <div className="ui-container">
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
           <Link href="/" className="flex items-center shrink-0">
-            <Logo variant="sidebar" height={48} priority />
+            <ResponsiveLogo height={40} priority />
           </Link>
 
           <div className="hidden md:flex items-center gap-1">

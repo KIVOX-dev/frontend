@@ -45,14 +45,12 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+// Favicon / apple-touch-icon / manifest are wired via Next's file-convention
+// (src/app/icon.png, src/app/apple-icon.png, src/app/manifest.ts) — no manual
+// `icons` block needed here; Next auto-generates the right <link> tags.
 export const metadata: Metadata = {
-  title: "UpScaler — AI Aptitude Trainer & Career Intelligence",
+  title: "UpScalerAI",
   description: "Campus Placement & Assessment Management Platform",
-  icons: {
-    icon: "/logos/app_icon_blue.png",
-    shortcut: "/logos/app_icon_blue.png",
-    apple: "/logos/app_icon_blue.png",
-  },
 };
 
 export default function RootLayout({

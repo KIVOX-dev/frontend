@@ -49,9 +49,8 @@ export default function LandingFooter() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-10 mb-14">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
-            <div className="flex items-center gap-2.5 mb-5">
-              <Logo variant="mark" height={28} />
-              <span className="text-ink font-extrabold text-lg tracking-tight">UpScaler</span>
+            <div className="mb-5">
+              <Logo variant="primary" height={64} />
             </div>
             <p className="text-ink-muted text-sm leading-relaxed mb-6 max-w-[240px]">
               One intelligent platform connecting HR, students, faculty, and administrators across
