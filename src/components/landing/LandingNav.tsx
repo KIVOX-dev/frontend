@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ArrowRight } from "lucide-react";
+import { List, X, ArrowRight } from "@phosphor-icons/react";
 import { Logo } from "@/components/shared/Logo";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonIconChip } from "@/components/ui/Button";
 
 const navLinks = [
   { label: "Platform", href: "#platform" },
@@ -85,14 +85,16 @@ export default function LandingNav() {
 
           <div className="hidden md:flex items-center gap-2">
             <Link href="/learner">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" shape="pill">
                 Login
               </Button>
             </Link>
             <Link href="#contact">
-              <Button size="sm">
+              <Button size="sm" shape="pill" className="group pr-1.5">
                 Request Demo
-                <ArrowRight className="size-3.5" />
+                <ButtonIconChip className="size-5">
+                  <ArrowRight className="size-3" />
+                </ButtonIconChip>
               </Button>
             </Link>
           </div>
@@ -103,7 +105,7 @@ export default function LandingNav() {
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
           >
-            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            {menuOpen ? <X className="size-5" /> : <List className="size-5" />}
           </button>
         </div>
       </div>
@@ -130,12 +132,14 @@ export default function LandingNav() {
               ))}
               <div className="pt-4 mt-2 border-t border-line flex flex-col gap-2">
                 <Link href="/learner" onClick={() => setMenuOpen(false)}>
-                  <Button variant="secondary" className="w-full justify-center">
+                  <Button variant="secondary" shape="pill" className="w-full justify-center">
                     Login
                   </Button>
                 </Link>
                 <Link href="#contact" onClick={() => setMenuOpen(false)}>
-                  <Button className="w-full justify-center">Request Demo</Button>
+                  <Button shape="pill" className="w-full justify-center">
+                    Request Demo
+                  </Button>
                 </Link>
               </div>
             </div>

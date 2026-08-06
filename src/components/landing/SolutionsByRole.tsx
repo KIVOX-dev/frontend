@@ -3,9 +3,9 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { motion, useInView } from "framer-motion";
-import { Briefcase, GraduationCap, Users, Building2, Check, ArrowRight } from "lucide-react";
+import { Briefcase, GraduationCap, Users, Buildings, Check, ArrowRight } from "@phosphor-icons/react";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonIconChip } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { RevealHeading } from "./RevealHeading";
 
@@ -107,7 +107,7 @@ const roles = [
   },
   {
     id: "admin",
-    icon: Building2,
+    icon: Buildings,
     role: "College Admin",
     title: "Institution Management",
     description: "Run placement drives, manage assessments, and oversee every department's users.",
@@ -196,9 +196,11 @@ export default function SolutionsByRole() {
                 </ul>
 
                 <Link href={r.href} className="w-full">
-                  <Button variant="secondary" className="w-full justify-center">
+                  <Button variant="secondary" shape="pill" className="group w-full justify-center pr-2">
                     {r.cta}
-                    <ArrowRight className="size-3.5" />
+                    <ButtonIconChip tone="dark" className="size-5">
+                      <ArrowRight className="size-3" />
+                    </ButtonIconChip>
                   </Button>
                 </Link>
               </Card>

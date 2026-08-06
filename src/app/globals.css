@@ -262,9 +262,13 @@
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
 
   --shadow-hair: 0 0 0 1px rgba(45, 170, 31, 0.06);
-  --shadow-card-lift: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-card-hover: 0 4px 10px rgba(0, 0, 0, 0.08);
-  --shadow-card-float: 0 6px 16px rgba(0, 0, 0, 0.1);
+  /* Softer, more diffused two-layer "airy floating" shadow — a tight,
+     barely-there near shadow plus a large soft far shadow, tinted
+     toward ink rather than pure black. Replaces the previous flat
+     single-layer shadows everywhere Card/ui-card is used. */
+  --shadow-card-lift: 0 1px 2px rgba(17, 24, 39, 0.04), 0 8px 24px rgba(17, 24, 39, 0.05);
+  --shadow-card-hover: 0 2px 4px rgba(17, 24, 39, 0.05), 0 16px 40px rgba(17, 24, 39, 0.08);
+  --shadow-card-float: 0 4px 8px rgba(17, 24, 39, 0.05), 0 24px 56px rgba(17, 24, 39, 0.1);
   --shadow-ink:
     0 1px 2px rgba(17, 24, 39, 0.14), 0 6px 18px rgba(17, 24, 39, 0.16);
   --shadow-ink-hover:
@@ -282,10 +286,11 @@
   --shadow-nova-btn-glow-lg: 0 8px 24px rgba(45, 170, 31, 0.34);
 
   /* ── Spec shadow system — named exactly per spec, for the new ui/
-     primitives (Card / Modal / Dropdown). ── */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-modal: 0 10px 30px rgba(0, 0, 0, 0.12);
-  --shadow-dropdown: 0 6px 20px rgba(0, 0, 0, 0.08);
+     primitives (Card / Modal / Dropdown). Same soft, diffused, ink-
+     tinted two-layer treatment as --shadow-card-lift above. ── */
+  --shadow-card: 0 1px 2px rgba(17, 24, 39, 0.04), 0 8px 24px rgba(17, 24, 39, 0.05);
+  --shadow-modal: 0 4px 10px rgba(17, 24, 39, 0.06), 0 28px 64px rgba(17, 24, 39, 0.14);
+  --shadow-dropdown: 0 2px 6px rgba(17, 24, 39, 0.05), 0 16px 40px rgba(17, 24, 39, 0.09);
 
   @keyframes accordion-down {
     from {
@@ -414,6 +419,31 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
   }
+}
+
+/* ── Landing-page-only display typography ─────────────────────────
+   Dashboards/portal pages spec "use only Inter" (see --font-jakarta /
+   --font-grotesk in the @theme block above, still resolving to Inter
+   for e.g. ResumeBuilder.tsx). This rule is deliberately UNLAYERED so
+   it outranks that layered @theme default (see the cascade-layer note
+   at the top of this file) but ONLY within .landing-typeset's own
+   subtree — every other page keeps rendering Inter, unchanged. Applied
+   once on the landing page's root <main> in app/page.tsx.
+
+   The text-heading-*, text-body, text-small, etc. utilities all bake in
+   `font-inter` directly (see the "spec type scale" utilities below),
+   so overriding --font-inter itself (not just --font-jakarta) is what
+   actually retypesets landing body copy; heading-scale utilities are
+   additionally forced to the display font for a distinct headline
+   voice. */
+.landing-typeset {
+  --font-inter: var(--font-display-jakarta), sans-serif;
+  --font-jakarta: var(--font-display-jakarta), sans-serif;
+  --font-grotesk: var(--font-display-grotesk), sans-serif;
+}
+
+.landing-typeset :where(.text-heading-xl, .text-heading-l, .text-heading-m, .ui-section-title, .ui-display) {
+  font-family: var(--font-display-grotesk), sans-serif;
 }
 
 /* ═══════════════════════════════════════════════════

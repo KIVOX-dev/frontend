@@ -5,11 +5,17 @@ import { Toaster } from "@/components/ui/Toaster";
 import { TooltipProvider } from "@/components/ui/Tooltip";
 
 // Plus Jakarta Sans / Space Grotesk are kept loaded so the pre-existing
-// font-jakarta/font-grotesk utility classes sprinkled across the app keep
+// font-jakarta/font-grotesk utility classes elsewhere in the app keep
 // resolving to a valid font (they're aliased to Inter in globals.css's
-// @theme block, per the "use only Inter" design spec — see the
-// `--font-jakarta`/`--font-grotesk` definitions there). Inter is the actual
-// default applied on <body> below.
+// @theme block, per the "use only Inter" design spec for the dashboard/
+// portal surfaces — see the `--font-jakarta`/`--font-grotesk` definitions
+// there, still used by e.g. ResumeBuilder.tsx). Inter is the actual default
+// applied on <body> below.
+//
+// These two get their own distinct variable names (`--font-display-*`)
+// rather than reusing `--font-jakarta`/`--font-grotesk`, so the landing
+// page can opt into the real fonts (see `.landing-typeset` in globals.css)
+// without touching that sitewide Inter alias or ResumeBuilder's rendering.
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
@@ -20,6 +26,18 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   variable: "--font-grotesk",
+});
+
+const displayJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-display-jakarta",
+});
+
+const displayGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display-grotesk",
 });
 const inter = Inter({
   subsets: ["latin"],
@@ -45,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${inter.variable} ${inter.className}`}
+        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${inter.variable} ${displayJakarta.variable} ${displayGrotesk.variable} ${inter.className}`}
         suppressHydrationWarning
       >
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>

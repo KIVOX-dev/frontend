@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-[14px] font-semibold " +
-    "transition-colors duration-150 ease-out select-none " +
+    "transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 " +
-    "disabled:pointer-events-none disabled:opacity-50",
+    "disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
   {
     variants: {
       variant: {
@@ -25,10 +25,18 @@ const buttonVariants = cva(
         lg: "h-12 px-6 text-[15px]",
         icon: "h-10 w-10 p-0",
       },
+      // Additive — defaults to the existing rectangular shape used across
+      // dashboards, so no call site changes appearance unless it opts in.
+      // "pill" is the landing page's shape (full rounded-full CTAs).
+      shape: {
+        default: "",
+        pill: "rounded-full",
+      },
     },
     defaultVariants: {
       variant: "primary",
       size: "default",
+      shape: "default",
     },
   }
 );
@@ -41,12 +49,12 @@ export interface ButtonProps
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, loading = false, disabled, children, ...props }, ref) => {
+  ({ className, variant, size, shape, asChild = false, loading = false, disabled, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
     return (
       <Comp
         ref={ref}
-        className={cn(buttonVariants({ variant, size }), className)}
+        className={cn(buttonVariants({ variant, size, shape }), className)}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
         {...props}
@@ -58,3 +66,33 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   }
 );
 Button.displayName = "Button";
+
+// ── Nested trailing-icon chip ─────────────────────────────────────
+// Wraps a button's trailing icon in its own small circular "island"
+// instead of letting it float bare next to the label — the icon
+// nudges diagonally and scales up on hover for a bit of kinetic
+// tension. Pair with a `group` class on the enclosing Button/Link.
+export function ButtonIconChip({
+  children,
+  className,
+  tone = "light",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  tone?: "light" | "dark";
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex size-6 shrink-0 items-center justify-center rounded-full",
+        "transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        "group-hover:translate-x-0.5 group-hover:-translate-y-px group-hover:scale-105",
+        tone === "light" ? "bg-white/15" : "bg-ink/5",
+        className
+      )}
+      aria-hidden="true"
+    >
+      {children}
+    </span>
+  );
+}

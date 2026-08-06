@@ -11,11 +11,12 @@ import { extractErrorMessage as apiErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { getDepartmentOptions } from "@/lib/departmentCatalog";
+import { PlacementDashboard } from "./PlacementDashboard";
 
 // ApexCharts touches `window` at import time, so it must never run during SSR.
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-type User = {
+export type User = {
   id: number;
   name: string;
   email: string;
@@ -61,7 +62,7 @@ type AttemptResult = {
   completed_at?: string;
 };
 
-type Department = {
+export type Department = {
   id: string;
   name: string;
   code?: string;
@@ -71,9 +72,10 @@ type Department = {
 // actually key on — is distinct from the linked user's id (see student.id
 // vs student.user_id in student.model.js). Fetched separately from `users`
 // so the Add Placement picker can resolve a chosen user to the right id.
-type StudentRecord = {
+export type StudentRecord = {
   id: string;
   user_id: string;
+  department_id?: string;
 };
 
 type InsightAttempt = {
@@ -92,7 +94,7 @@ type StudentInsights = {
   history: InsightAttempt[];
 };
 
-type Placement = {
+export type Placement = {
   id: string;
   student_id: string;
   company_name: string;
@@ -107,7 +109,7 @@ type Placement = {
   created_at?: string;
 };
 
-type Drive = {
+export type Drive = {
   id: number;
   title: string;
   company_name: string;
@@ -119,12 +121,13 @@ type Drive = {
   applicant_count: number;
 };
 
-type PlacementApplication = {
+export type PlacementApplication = {
   id: string;
   placement_id: string;
   student_id: string;
   status: "applied" | "shortlisted" | "interview" | "selected" | "rejected" | "withdrawn";
   round?: number;
+  created_at?: string;
 };
 
 // Single accent hue for the trend line — it's genuinely one series over time,
@@ -141,7 +144,7 @@ const CHART_COLOR = "#0145F2";
 // as the secondary encoding — already on via dataLabels below.
 const CATEGORICAL = ["#1f5c8f", "#b8632f", "#0d8c76", "#b98a2e", "#a13d5c", "#6b7a2e", "#6a4a94", "#a83a30"];
 
-function colorForKey(key: string) {
+export function colorForKey(key: string) {
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   return CATEGORICAL[hash % CATEGORICAL.length];
@@ -150,7 +153,7 @@ function colorForKey(key: string) {
 // Shared look for every chart on this dashboard — thin bars/lines, recessive
 // grid, hover tooltip. Merge chart-specific bits (xaxis categories, chart.type,
 // colors) into this per instance rather than duplicating the whole spec.
-const BASE_CHART_OPTIONS: ApexOptions = {
+export const BASE_CHART_OPTIONS: ApexOptions = {
   chart: { toolbar: { show: false }, fontFamily: "inherit", foreColor: "#5A6560" },
   grid: { borderColor: "#E7EBE9", strokeDashArray: 3 },
   dataLabels: { enabled: false },
@@ -192,7 +195,7 @@ function guessDomain(companyName: string): string | null {
   return slug ? `${slug}.com` : null;
 }
 
-function CompanyLogo({ name, size = 28 }: { name: string; size?: number }) {
+export function CompanyLogo({ name, size = 28 }: { name: string; size?: number }) {
   const [failed, setFailed] = useState(false);
   const domain = guessDomain(name);
   const color = colorForKey(name);
@@ -221,19 +224,19 @@ function CompanyLogo({ name, size = 28 }: { name: string; size?: number }) {
   );
 }
 
-function monthKey(iso?: string) {
+export function monthKey(iso?: string) {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function monthLabel(key: string) {
+export function monthLabel(key: string) {
   const [y, m] = key.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 }
 
-function ChartEmptyState({ message }: { message: string }) {
+export function ChartEmptyState({ message }: { message: string }) {
   return (
     <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: "14px", textAlign: "center", padding: "0 24px" }}>
       {message}
@@ -247,7 +250,7 @@ const uploadsOrigin = () => getApiUrl().replace(/\/api\/v1\/?$/, "");
 
 export function CollegeAdminDashboard() {
   const { user: currentUser } = useAuthStore();
-  const { activeScreen } = useUiStore();
+  const { activeScreen, setActiveScreen } = useUiStore();
   const departmentOptions = getDepartmentOptions(currentUser?.college_name);
   const [users, setUsers] = useState<User[]>([]);
   const [studentRecords, setStudentRecords] = useState<StudentRecord[]>([]);
@@ -288,6 +291,8 @@ export function CollegeAdminDashboard() {
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [drives, setDrives] = useState<Drive[]>([]);
   const [stats, setStats] = useState({ totalUsers: 0, totalStudents: 0, totalFaculty: 0, totalAssessments: 0 });
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Create user form
@@ -495,13 +500,30 @@ export function CollegeAdminDashboard() {
     } catch (err) { console.error(err); }
   };
 
+  // Drives every fetch this component needs — not just on mount, but also
+  // the Placement Dashboard's Refresh button. Promise.allSettled (not
+  // Promise.all) so one failing list doesn't stop the others from loading,
+  // matching how each fetch* function already swallows its own errors.
+  const refreshDashboard = async () => {
+    setDashboardLoading(true);
+    await Promise.allSettled([
+      fetchUsers(),
+      fetchStudentRecords(),
+      fetchAssessments(),
+      fetchPlacements(),
+      fetchDrives(),
+      fetchDepartments(),
+      // Eagerly fetched (not just on-demand from the Applicants panel toggle)
+      // so the Placement Dashboard's funnel/status/monthly-applications
+      // charts have data the moment an admin lands on it.
+      fetchApplicants(),
+    ]);
+    setDashboardLoading(false);
+    setLastUpdated(new Date());
+  };
+
   useEffect(() => {
-    fetchUsers();
-    fetchStudentRecords();
-    fetchAssessments();
-    fetchPlacements();
-    fetchDrives();
-    fetchDepartments();
+    refreshDashboard();
   }, []);
 
   const studentsById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
@@ -964,156 +986,19 @@ export function CollegeAdminDashboard() {
       </div>
 
       {activeScreen === "dash" && (
-        <>
-          {/* Placement KPIs */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
-            {[
-              { label: "Students Placed", value: placements.length, color: CHART_COLOR },
-              { label: "Companies Recruiting", value: companyStats.length, color: "#7c3aed" },
-              { label: "Active Drives", value: activeDrives, color: "#0891b2" },
-              { label: "Applications Received", value: totalApplications, color: "#eb6834" },
-            ].map(s => (
-              <div key={s.label} className="card" style={{ padding: "20px", borderLeft: `4px solid ${s.color}` }}>
-                <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>{s.label}</div>
-                <div style={{ fontSize: "28px", fontWeight: 800, color: "var(--text)" }}>{s.value}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Placement charts */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: "16px", marginBottom: "16px" }}>
-            <div className="card" style={{ padding: "20px" }}>
-              <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)", marginBottom: "16px" }}>Placements by Company</h3>
-              {companyStats.length === 0 ? (
-                <ChartEmptyState message="No students placed yet. Click “+ Add Placement” below to log the first one." />
-              ) : (
-                <ApexChart
-                  type="bar"
-                  height={220}
-                  series={[{ name: "Students placed", data: companyStats.slice(0, 8).map(c => c.count) }]}
-                  options={{
-                    ...BASE_CHART_OPTIONS,
-                    chart: { ...BASE_CHART_OPTIONS.chart, type: "bar" },
-                    colors: companyStats.slice(0, 8).map(c => colorForKey(c.company)),
-                    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "55%", distributed: true } },
-                    dataLabels: { enabled: true, style: { colors: ["#0F1512"], fontSize: "12px", fontWeight: 600 }, offsetX: 6, background: { enabled: false } },
-                    xaxis: {
-                      categories: companyStats.slice(0, 8).map(c => c.company),
-                      labels: { style: { fontSize: "12px" } },
-                      axisBorder: { color: "#C3C2B7" },
-                    },
-                    yaxis: { labels: { style: { fontSize: "12px" } } },
-                    tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v} student${v === 1 ? "" : "s"}` } },
-                  }}
-                />
-              )}
-            </div>
-
-            <div className="card" style={{ padding: "20px" }}>
-              <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)", marginBottom: "16px" }}>Placement Trend</h3>
-              {placementTrend.length === 0 ? (
-                <ChartEmptyState message="Trend appears once placements are recorded." />
-              ) : (
-                <ApexChart
-                  type="line"
-                  height={220}
-                  series={[{ name: "Placements", data: placementTrend.map(t => t.count) }]}
-                  options={{
-                    ...BASE_CHART_OPTIONS,
-                    chart: { ...BASE_CHART_OPTIONS.chart, type: "line" },
-                    colors: [CHART_COLOR],
-                    stroke: { curve: "smooth", width: 2 },
-                    markers: { size: 4, colors: [CHART_COLOR], strokeWidth: 0 },
-                    xaxis: {
-                      categories: placementTrend.map(t => t.month),
-                      labels: { style: { fontSize: "12px" } },
-                      axisBorder: { color: "#C3C2B7" },
-                    },
-                    yaxis: { labels: { style: { fontSize: "12px" } }, forceNiceScale: true, min: 0 },
-                    tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v} student${v === 1 ? "" : "s"}` } },
-                  }}
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="card" style={{ padding: "20px", marginBottom: "24px" }}>
-            <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)", marginBottom: "16px" }}>Applications per Drive</h3>
-            {driveApplications.length === 0 ? (
-              <ChartEmptyState message="No students have applied to a drive yet. Post a drive below to start receiving applications." />
-            ) : (
-              <ApexChart
-                type="bar"
-                height={220}
-                series={[{ name: "Applications", data: driveApplications.map(d => d.applicants) }]}
-                options={{
-                  ...BASE_CHART_OPTIONS,
-                  chart: { ...BASE_CHART_OPTIONS.chart, type: "bar" },
-                  colors: driveApplications.map(d => colorForKey(d.name)),
-                  plotOptions: { bar: { columnWidth: "40%", borderRadius: 4, distributed: true } },
-                  dataLabels: { enabled: true, style: { colors: ["#0F1512"], fontSize: "12px", fontWeight: 600 }, offsetY: -20, background: { enabled: false } },
-                  xaxis: {
-                    categories: driveApplications.map(d => d.name),
-                    labels: { style: { fontSize: "12px" } },
-                    axisBorder: { color: "#C3C2B7" },
-                  },
-                  yaxis: { labels: { style: { fontSize: "12px" } }, forceNiceScale: true, min: 0 },
-                  tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v} application${v === 1 ? "" : "s"}` } },
-                }}
-              />
-            )}
-          </div>
-
-          {/* Companies table */}
-          <div className="card" style={{ padding: "24px", marginBottom: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>Companies</h3>
-              <button className="btn btn-p" onClick={() => setShowAddPlacement(true)}>+ Add Placement</button>
-            </div>
-            {placementMsg && <div style={{ padding: "10px", marginBottom: "12px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>{placementMsg}</div>}
-            <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
-                  <th style={{ padding: "12px 8px" }}>Company</th>
-                  <th style={{ padding: "12px 8px" }}>Students Placed</th>
-                  <th style={{ padding: "12px 8px" }}>Avg. Salary (LPA)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {companyStats.map(c => (
-                  <tr key={c.company} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "12px 8px", fontWeight: 500 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <CompanyLogo name={c.company} />
-                        {c.company}
-                      </div>
-                    </td>
-                    <td style={{ padding: "12px 8px" }}>{c.count}</td>
-                    <td style={{ padding: "12px 8px" }}>{c.avgSalary.toFixed(1)}</td>
-                  </tr>
-                ))}
-                {companyStats.length === 0 && (
-                  <tr><td colSpan={3} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No companies yet — placements you add will appear here.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Platform KPIs (secondary) */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "32px" }}>
-            {[
-              { label: "Total Users", value: stats.totalUsers, color: "#4f46e5" },
-              { label: "Students", value: stats.totalStudents, color: "#0891b2" },
-              { label: "Faculty", value: stats.totalFaculty, color: "#7c3aed" },
-              { label: "Assessments", value: stats.totalAssessments, color: "#059669" },
-            ].map(s => (
-              <div key={s.label} className="card" style={{ padding: "20px", borderLeft: `4px solid ${s.color}` }}>
-                <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>{s.label}</div>
-                <div style={{ fontSize: "28px", fontWeight: 800, color: "var(--text)" }}>{s.value}</div>
-              </div>
-            ))}
-          </div>
-        </>
+        <PlacementDashboard
+          users={users}
+          placements={placements}
+          drives={drives}
+          departments={departments}
+          studentRecords={studentRecords}
+          applications={applicants}
+          loading={dashboardLoading}
+          lastUpdated={lastUpdated}
+          onRefresh={refreshDashboard}
+          onCreateDrive={() => { setDriveMsg(""); setDriveDeptSearch(""); setShowPostDrive(true); }}
+          onViewAllDrives={() => setActiveScreen("drives")}
+        />
       )}
 
       {/* Recent Placements (standalone) */}

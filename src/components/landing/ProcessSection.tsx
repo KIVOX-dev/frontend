@@ -2,33 +2,32 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { Settings2, Users2, Workflow, LineChart } from "lucide-react";
+import { Gear, UsersThree, FlowArrow, ChartLineUp } from "@phosphor-icons/react";
 import { TiltCard } from "./TiltCard";
 import { RevealHeading } from "./RevealHeading";
-import { Badge } from "@/components/ui/Badge";
 
 const steps = [
   {
     number: "01",
-    icon: Settings2,
+    icon: Gear,
     title: "Setup Institution",
-    desc: "Register your institution and add departments — each with its own code and duration — from the admin console.",
+    desc: "Register your institution and add departments, each with its own code and duration, from the admin console.",
   },
   {
     number: "02",
-    icon: Users2,
+    icon: UsersThree,
     title: "Connect Users",
     desc: "Onboard students individually or via bulk CSV upload, then add faculty and staff accounts from Manage Users.",
   },
   {
     number: "03",
-    icon: Workflow,
+    icon: FlowArrow,
     title: "Automate Assessments",
-    desc: "Create a test once and assign it to entire departments and batches in one action — no manual roster building.",
+    desc: "Create a test once and assign it to entire departments and batches in one action, with no manual roster building.",
   },
   {
     number: "04",
-    icon: LineChart,
+    icon: ChartLineUp,
     title: "Track Performance",
     desc: "Live dashboards surface placement trends, assessment results, and student performance across every department, in real time.",
   },
@@ -47,14 +46,11 @@ export default function ProcessSection() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="text-center max-w-2xl mx-auto mb-16"
         >
-          <Badge tone="success" className="mb-5">
-            How It Works
-          </Badge>
           <RevealHeading className="text-heading-l mb-4">
             Live in weeks, not semesters.
           </RevealHeading>
           <p className="text-body text-ink-muted">
-            A straightforward four-step rollout — from first setup to institution-wide adoption.
+            A straightforward four-step rollout, from first setup to institution-wide adoption.
           </p>
         </motion.div>
 

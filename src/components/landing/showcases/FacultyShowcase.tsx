@@ -1,14 +1,14 @@
-import { LayoutDashboard, UserPlus, UploadCloud, Activity, MessageSquare } from "lucide-react";
+import { SquaresFour, UserPlus, CloudArrowUp, Pulse, ChatCircle } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/Table";
 import { ShowcaseFrame } from "./ShowcaseFrame";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", active: true },
+  { icon: SquaresFour, label: "Dashboard", active: true },
   { icon: UserPlus, label: "Add Student" },
-  { icon: UploadCloud, label: "Upload Students" },
-  { icon: Activity, label: "Student Tracking" },
-  { icon: MessageSquare, label: "Messages" },
+  { icon: CloudArrowUp, label: "Upload Students" },
+  { icon: Pulse, label: "Student Tracking" },
+  { icon: ChatCircle, label: "Messages" },
 ];
 
 const quickActions = [
@@ -64,7 +64,7 @@ export function FacultyShowcase() {
         </TableBody>
       </Table>
 
-      <p className="text-caption font-semibold mb-2 mt-3">Rahul Verma — Profile Insights</p>
+      <p className="text-caption font-semibold mb-2 mt-3">Rahul Verma: Profile Insights</p>
       <Table>
         <TableHeader>
           <TableRow>

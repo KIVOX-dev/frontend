@@ -1,11 +1,11 @@
-import { LayoutDashboard, Target, Mic, FileText } from "lucide-react";
+import { SquaresFour, Target, Microphone, FileText } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
 import { ShowcaseFrame, ShowcaseStatCard } from "./ShowcaseFrame";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", active: true },
+  { icon: SquaresFour, label: "Dashboard", active: true },
   { icon: Target, label: "Practice" },
-  { icon: Mic, label: "Mock Interview" },
+  { icon: Microphone, label: "Mock Interview" },
   { icon: FileText, label: "Resume Builder" },
 ];
 

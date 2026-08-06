@@ -39,6 +39,19 @@ function GsapSync() {
   useEffect(() => {
     if (!lenis) return;
 
+    // The dashboard/portal routes (/institutional, /hr, /learner, ...) load
+    // legacy-portal.css, which sets an unscoped `html, body { overflow:
+    // hidden }` for their own fixed-shell layout. Next doesn't unload that
+    // stylesheet on client-side navigation, so once a visitor has opened any
+    // dashboard route, that rule stays in the page and silently breaks
+    // scrolling everywhere else — including back here. Inline styles beat
+    // stylesheet rules regardless of cascade layers, so forcing overflow
+    // back to visible here (and only here, cleaned up on unmount below)
+    // reclaims scrolling for this page without touching the dashboard CSS
+    // that legitimately needs `hidden` for its own shell.
+    document.documentElement.style.overflow = "visible";
+    document.body.style.overflow = "visible";
+
     lenis.on("scroll", ScrollTrigger.update);
 
     const onTick = (time: number) => lenis.raf(time * 1000);
@@ -47,6 +60,8 @@ function GsapSync() {
     ScrollTrigger.refresh();
 
     return () => {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
       lenis.off("scroll", ScrollTrigger.update);
       gsap.ticker.remove(onTick);
     };

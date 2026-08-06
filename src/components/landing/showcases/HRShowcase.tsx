@@ -1,14 +1,14 @@
-import { LayoutDashboard, Briefcase, Users, Trophy, LineChart } from "lucide-react";
+import { SquaresFour, Briefcase, Users, Trophy, ChartLineUp } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/Table";
 import { ShowcaseFrame, ShowcaseStatCard } from "./ShowcaseFrame";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", active: true },
+  { icon: SquaresFour, label: "Dashboard", active: true },
   { icon: Briefcase, label: "Post a Vacancy" },
   { icon: Users, label: "Applicants" },
   { icon: Trophy, label: "Talent Board" },
-  { icon: LineChart, label: "Candidate Analytics" },
+  { icon: ChartLineUp, label: "Candidate Analytics" },
 ];
 
 const applicants = [

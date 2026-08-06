@@ -1,13 +1,13 @@
-import { LayoutDashboard, Users, Briefcase, ClipboardList, Building2, ShieldCheck } from "lucide-react";
+import { SquaresFour, Users, Briefcase, ClipboardText, Buildings, ShieldCheck } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
 import { ShowcaseFrame, ShowcaseStatCard, ShowcaseBarChart } from "./ShowcaseFrame";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", active: true },
+  { icon: SquaresFour, label: "Dashboard", active: true },
   { icon: Users, label: "Manage Users" },
   { icon: Briefcase, label: "Placement Drives" },
-  { icon: ClipboardList, label: "Assessments" },
-  { icon: Building2, label: "Departments" },
+  { icon: ClipboardText, label: "Assessments" },
+  { icon: Buildings, label: "Departments" },
   { icon: ShieldCheck, label: "Security & Approvals" },
 ];
 
@@ -18,9 +18,9 @@ const topRecruiters = [
 ];
 
 const recentPlacements = [
-  { title: "Ananya Rao — TCS · Software Engineer", tone: "success" as const, badge: "6.5 LPA" },
-  { title: "Karthik S — Infosys · Analyst", tone: "success" as const, badge: "5.2 LPA" },
-  { title: "Divya M — Wipro · SDE", tone: "success" as const, badge: "7.0 LPA" },
+  { title: "Ananya Rao, TCS: Software Engineer", tone: "success" as const, badge: "6.5 LPA" },
+  { title: "Karthik S, Infosys: Analyst", tone: "success" as const, badge: "5.2 LPA" },
+  { title: "Divya M, Wipro: SDE", tone: "success" as const, badge: "7.0 LPA" },
 ];
 
 export function AdminShowcase() {

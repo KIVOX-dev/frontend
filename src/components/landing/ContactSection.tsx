@@ -2,7 +2,11 @@
 
 import { useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
+import { EnvelopeSimple, CheckCircle, PaperPlaneRight } from "@phosphor-icons/react";
 import { RevealHeading } from "./RevealHeading";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Field, Label, Input, FieldError } from "@/components/ui/Input";
 
 type FormState = {
   name: string;
@@ -62,7 +66,7 @@ export default function ContactSection() {
     try {
       const subject = encodeURIComponent(`UpScaler inquiry from ${form.name}`);
       const body = encodeURIComponent(
-        `Name: ${form.name}\nEmail: ${form.email}\nInstitution: ${form.institution || "—"}\n\n${form.message}`
+        `Name: ${form.name}\nEmail: ${form.email}\nInstitution: ${form.institution || "n/a"}\n\n${form.message}`
       );
       // Brief, deliberate pause so the loading state is perceptible rather
       // than an instant flicker — the actual "send" below is synchronous.
@@ -76,7 +80,7 @@ export default function ContactSection() {
   };
 
   return (
-    <section ref={ref} id="contact" className="bg-white ui-section border-t border-scale-line">
+    <section ref={ref} id="contact" className="bg-white ui-section border-t border-line">
       <div className="ui-container">
         <div className="grid lg:grid-cols-2 gap-14 items-start max-w-5xl mx-auto">
           {/* Left: copy */}
@@ -85,31 +89,21 @@ export default function ContactSection() {
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="scale-eyebrow mb-5">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M22 6l-10 7L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
-              </svg>
-              Get In Touch
-            </div>
-            <RevealHeading className="ui-section-title mb-4">
-              Let&apos;s talk about your <span className="scale-mark">institution</span>
+            <RevealHeading className="text-heading-l mb-4">
+              Let&apos;s talk about your <span className="ui-mark">institution</span>
             </RevealHeading>
-            <p className="ui-lede mb-8 max-w-md">
-              Whether you&apos;re evaluating UpScaler for your HR team, faculty, or student body —
+            <p className="text-body text-ink-muted mb-8 max-w-md">
+              Whether you&apos;re evaluating UpScaler for your HR team, faculty, or student body,
               request a demo and our team will walk you through the platform directly.
             </p>
 
             <div className="flex flex-col gap-4">
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
-                className="flex items-center gap-3 text-sm text-scale-ink-muted hover:text-scale-ink transition-colors duration-200 group w-fit"
+                className="flex items-center gap-3 text-sm text-ink-muted hover:text-ink transition-colors duration-200 group w-fit"
               >
-                <span className="w-9 h-9 rounded-lg bg-scale-50 border border-scale-line flex items-center justify-center shrink-0 group-hover:bg-scale-900 group-hover:border-scale-900 group-hover:text-scale-500 transition-all duration-300 ease-expo">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <path d="M22 6l-10 7L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
-                  </svg>
+                <span className="w-9 h-9 rounded-lg bg-paper-tint border border-line flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:border-primary group-hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                  <EnvelopeSimple className="size-4" />
                 </span>
                 {CONTACT_EMAIL}
               </a>
@@ -121,149 +115,127 @@ export default function ContactSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="scale-card p-6 lg:p-8"
           >
-            {status === "success" ? (
-              <div className="text-center py-6" role="status">
-                <div className="w-12 h-12 rounded-full bg-scale-100 border border-scale-300/50 text-scale-900 flex items-center justify-center mx-auto mb-4">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" />
-                    <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                  </svg>
-                </div>
-                <h3 className="font-bold text-scale-ink text-lg mb-2">Your email client should be opening</h3>
-                <p className="text-scale-ink-muted text-sm mb-6">
-                  If nothing happened, email us directly at{" "}
-                  <a href={`mailto:${CONTACT_EMAIL}`} className="text-scale-600 font-semibold hover:underline">
-                    {CONTACT_EMAIL}
-                  </a>
-                  .
-                </p>
-                <button type="button" onClick={() => setStatus("idle")} className="scale-btn-secondary px-4! py-2! text-[13px]!">
-                  Send another message
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} noValidate>
-                {/* Honeypot — visually hidden, kept out of the tab order, never seen by real users */}
-                <div className="absolute w-px h-px overflow-hidden opacity-0 pointer-events-none" aria-hidden="true">
-                  <label htmlFor="website">Website</label>
-                  <input
-                    id="website"
-                    name="website"
-                    type="text"
-                    tabIndex={-1}
-                    autoComplete="off"
-                    value={form.website}
-                    onChange={(e) => setForm({ ...form, website: e.target.value })}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-5">
-                  <div>
-                    <label htmlFor="contact-name" className="block text-sm font-semibold text-scale-ink mb-1.5">
-                      Full name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      id="contact-name"
-                      type="text"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      aria-invalid={!!errors.name}
-                      aria-describedby={errors.name ? "contact-name-error" : undefined}
-                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-hidden focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200"
-                      placeholder="Jane Doe"
-                    />
-                    {errors.name && (
-                      <p id="contact-name-error" className="text-red-500 text-xs mt-1.5" role="alert">
-                        {errors.name}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="contact-email" className="block text-sm font-semibold text-scale-ink mb-1.5">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      id="contact-email"
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      aria-invalid={!!errors.email}
-                      aria-describedby={errors.email ? "contact-email-error" : undefined}
-                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-hidden focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200"
-                      placeholder="jane@college.edu"
-                    />
-                    {errors.email && (
-                      <p id="contact-email-error" className="text-red-500 text-xs mt-1.5" role="alert">
-                        {errors.email}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="contact-institution" className="block text-sm font-semibold text-scale-ink mb-1.5">
-                      Institution / Company <span className="text-scale-ink-faint font-normal">(optional)</span>
-                    </label>
-                    <input
-                      id="contact-institution"
-                      type="text"
-                      value={form.institution}
-                      onChange={(e) => setForm({ ...form, institution: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-hidden focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200"
-                      placeholder="e.g. Nirmala College for Women"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="contact-message" className="block text-sm font-semibold text-scale-ink mb-1.5">
-                      Message <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      id="contact-message"
-                      value={form.message}
-                      onChange={(e) => setForm({ ...form, message: e.target.value })}
-                      aria-invalid={!!errors.message}
-                      aria-describedby={errors.message ? "contact-message-error" : undefined}
-                      rows={4}
-                      className="w-full px-4 py-2.5 rounded-xl border border-scale-300/60 bg-white text-scale-ink text-sm focus:outline-hidden focus:border-scale-500 focus:ring-2 focus:ring-scale-100 transition-all duration-200 resize-none"
-                      placeholder="Tell us about your institution or what you'd like to know..."
-                    />
-                    {errors.message && (
-                      <p id="contact-message-error" className="text-red-500 text-xs mt-1.5" role="alert">
-                        {errors.message}
-                      </p>
-                    )}
-                  </div>
-
-                  {status === "error" && (
-                    <p className="text-red-500 text-sm" role="alert">
-                      Something went wrong. Please try again or email us directly.
+            {/* Double-bezel: outer shell (tray) + inner core (form), concentric radii */}
+            <div className="rounded-[1.75rem] bg-ink/[0.04] ring-1 ring-ink/5 p-2">
+              <Card className="p-6 lg:p-8 rounded-[calc(1.75rem-0.5rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                {status === "success" ? (
+                  <div className="text-center py-6" role="status">
+                    <div className="w-12 h-12 rounded-full bg-[color-mix(in_srgb,var(--color-success)_12%,white)] text-primary flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle className="size-6" weight="fill" />
+                    </div>
+                    <h3 className="font-bold text-ink text-lg mb-2">Your email client should be opening</h3>
+                    <p className="text-ink-muted text-sm mb-6">
+                      If nothing happened, email us directly at{" "}
+                      <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary font-semibold hover:underline">
+                        {CONTACT_EMAIL}
+                      </a>
+                      .
                     </p>
-                  )}
+                    <Button type="button" variant="secondary" shape="pill" onClick={() => setStatus("idle")}>
+                      Send another message
+                    </Button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} noValidate>
+                    {/* Honeypot — visually hidden, kept out of the tab order, never seen by real users */}
+                    <div className="absolute w-px h-px overflow-hidden opacity-0 pointer-events-none" aria-hidden="true">
+                      <label htmlFor="website">Website</label>
+                      <input
+                        id="website"
+                        name="website"
+                        type="text"
+                        tabIndex={-1}
+                        autoComplete="off"
+                        value={form.website}
+                        onChange={(e) => setForm({ ...form, website: e.target.value })}
+                      />
+                    </div>
 
-                  <button type="submit" className="scale-btn-primary w-full justify-center" disabled={status === "submitting"}>
-                    {status === "submitting" ? (
-                      <>
-                        <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
-                          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                        </svg>
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        Send Message
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
+                    <div className="flex flex-col gap-5">
+                      <Field>
+                        <Label htmlFor="contact-name" required>
+                          Full name
+                        </Label>
+                        <Input
+                          id="contact-name"
+                          type="text"
+                          value={form.name}
+                          onChange={(e) => setForm({ ...form, name: e.target.value })}
+                          error={errors.name}
+                          aria-describedby={errors.name ? "contact-name-error" : undefined}
+                          placeholder="Jane Doe"
+                        />
+                        {errors.name && <FieldError><span id="contact-name-error">{errors.name}</span></FieldError>}
+                      </Field>
+
+                      <Field>
+                        <Label htmlFor="contact-email" required>
+                          Email
+                        </Label>
+                        <Input
+                          id="contact-email"
+                          type="email"
+                          value={form.email}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          error={errors.email}
+                          aria-describedby={errors.email ? "contact-email-error" : undefined}
+                          placeholder="jane@college.edu"
+                        />
+                        {errors.email && <FieldError><span id="contact-email-error">{errors.email}</span></FieldError>}
+                      </Field>
+
+                      <Field>
+                        <Label htmlFor="contact-institution">
+                          Institution / Company <span className="text-ink-faint font-normal">(optional)</span>
+                        </Label>
+                        <Input
+                          id="contact-institution"
+                          type="text"
+                          value={form.institution}
+                          onChange={(e) => setForm({ ...form, institution: e.target.value })}
+                          placeholder="e.g. Nirmala College for Women"
+                        />
+                      </Field>
+
+                      <Field>
+                        <Label htmlFor="contact-message" required>
+                          Message
+                        </Label>
+                        <textarea
+                          id="contact-message"
+                          value={form.message}
+                          onChange={(e) => setForm({ ...form, message: e.target.value })}
+                          aria-invalid={!!errors.message}
+                          aria-describedby={errors.message ? "contact-message-error" : undefined}
+                          rows={4}
+                          className="h-auto w-full rounded-md border bg-white px-3.5 py-2.5 text-base text-ink placeholder:text-ink-faint transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none disabled:cursor-not-allowed disabled:opacity-60 border-line focus:border-primary"
+                          placeholder="Tell us about your institution or what you'd like to know..."
+                        />
+                        {errors.message && <FieldError><span id="contact-message-error">{errors.message}</span></FieldError>}
+                      </Field>
+
+                      {status === "error" && (
+                        <p className="text-danger text-sm" role="alert">
+                          Something went wrong. Please try again or email us directly.
+                        </p>
+                      )}
+
+                      <Button type="submit" shape="pill" className="w-full justify-center" loading={status === "submitting"}>
+                        {status === "submitting" ? (
+                          "Sending..."
+                        ) : (
+                          <>
+                            Send Message
+                            <PaperPlaneRight className="size-4" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </Card>
+            </div>
           </motion.div>
         </div>
       </div>

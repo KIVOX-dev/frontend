@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { LandingIconProvider } from "@/components/landing/LandingIconProvider";
 import { SmoothScroll } from "@/components/landing/SmoothScroll";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingHero from "@/components/landing/LandingHero";
@@ -28,27 +29,29 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <main className="bg-paper min-h-screen font-jakarta antialiased">
+    <main className="landing-typeset bg-paper min-h-screen font-jakarta antialiased">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-100 focus:px-4 focus:py-2.5 focus:rounded-lg focus:bg-ink focus:text-white focus:text-sm focus:font-semibold"
       >
         Skip to content
       </a>
-      <SmoothScroll>
-        <LandingNav />
-        <LandingHero />
-        <PlatformStats />
-        <SolutionsByRole />
-        <ProductShowcase />
-        <FeatureGrid />
-        <ProcessSection />
-        <BenefitsSection />
-        <FAQSection />
-        <ContactSection />
-        <LandingCta />
-        <LandingFooter />
-      </SmoothScroll>
+      <LandingIconProvider>
+        <SmoothScroll>
+          <LandingNav />
+          <LandingHero />
+          <PlatformStats />
+          <SolutionsByRole />
+          <ProductShowcase />
+          <FeatureGrid />
+          <ProcessSection />
+          <BenefitsSection />
+          <FAQSection />
+          <ContactSection />
+          <LandingCta />
+          <LandingFooter />
+        </SmoothScroll>
+      </LandingIconProvider>
     </main>
   );
 }

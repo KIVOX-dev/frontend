@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { Target, Mic, FileText, Briefcase, ClipboardList, BarChart3, MessageSquare } from "lucide-react";
+import { Target, Microphone, FileText, Briefcase, ClipboardText, ChartBar, ChatCircle } from "@phosphor-icons/react";
 import { TiltCard } from "./TiltCard";
 import { RevealHeading } from "./RevealHeading";
 import { Badge } from "@/components/ui/Badge";
@@ -15,7 +15,7 @@ const features = [
     desc: "Adaptive Quantitative, Logical Reasoning, Data Interpretation, and Verbal tests, with streaks and a national leaderboard rank.",
   },
   {
-    icon: Mic,
+    icon: Microphone,
     badge: "Interviews",
     title: "AI Mock Interviews",
     desc: "Students rehearse real interview scenarios with AI-driven feedback before they ever face a recruiter.",
@@ -27,7 +27,7 @@ const features = [
     desc: "Parse, analyze, and auto-improve a resume, matched directly against a target job description.",
   },
   {
-    icon: ClipboardList,
+    icon: ClipboardText,
     badge: "Assessments",
     title: "Assessment Management",
     desc: "Create a test once, auto-draw questions from the bank, and assign it to whole departments and batches in one action.",
@@ -39,13 +39,13 @@ const features = [
     desc: "HR teams post vacancies and hire straight from an AI-scored applicant leaderboard — no separate ATS needed.",
   },
   {
-    icon: BarChart3,
+    icon: ChartBar,
     badge: "Insights",
     title: "Analytics Dashboard",
     desc: "Live, role-aware dashboards that turn placement, assessment, and user data into decisions — no spreadsheets required.",
   },
   {
-    icon: MessageSquare,
+    icon: ChatCircle,
     badge: "Messaging",
     title: "Communication",
     desc: "Direct messaging keeps students, faculty, HR, and administrators aligned without leaving the platform.",

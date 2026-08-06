@@ -2,9 +2,8 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { Clock, Smile, Gauge, TrendingUp } from "lucide-react";
+import { Clock, Smiley, Gauge, TrendUp } from "@phosphor-icons/react";
 import { RevealHeading } from "./RevealHeading";
-import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 
 const benefits = [
@@ -15,7 +14,7 @@ const benefits = [
     desc: "Bulk student onboarding and department-wide assessment assignment remove hours of manual, repetitive admin work every week.",
   },
   {
-    icon: Smile,
+    icon: Smiley,
     metric: "+40%",
     title: "Improve student experience",
     desc: "One portal for practice tests, mock interviews, and results means students spend less time hunting for prep resources.",
@@ -27,7 +26,7 @@ const benefits = [
     desc: "Every department works from the same live data, so nothing gets duplicated, delayed, or lost between teams.",
   },
   {
-    icon: TrendingUp,
+    icon: TrendUp,
     metric: "99%",
     title: "Make data-driven decisions",
     desc: "Real-time dashboards give administrators the visibility to act on trends instead of end-of-term reports.",
@@ -47,9 +46,6 @@ export default function BenefitsSection() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="text-center max-w-2xl mx-auto mb-14"
         >
-          <Badge tone="success" className="mb-5">
-            Why Institutions Choose Us
-          </Badge>
           <RevealHeading className="text-heading-l mb-4">
             Built for outcomes, not just features.
           </RevealHeading>

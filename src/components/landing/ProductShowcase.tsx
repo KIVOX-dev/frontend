@@ -49,9 +49,8 @@ function ShowcaseRow({
   title,
   description,
   Component,
-  reversed,
   index,
-}: (typeof showcases)[number] & { reversed: boolean; index: number }) {
+}: (typeof showcases)[number] & { index: number }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
@@ -61,7 +60,6 @@ function ShowcaseRow({
         initial={{ opacity: 0, y: 20 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        className={reversed ? "lg:order-2" : ""}
       >
         <Badge tone="success" className="mb-4">
           {eyebrow}
@@ -74,7 +72,7 @@ function ShowcaseRow({
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
         animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
         transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-        className={`overflow-x-auto -mx-5 px-5 lg:mx-0 lg:px-0 ${reversed ? "lg:order-1" : ""}`}
+        className="overflow-x-auto -mx-5 px-5 lg:mx-0 lg:px-0"
       >
         <Component />
       </motion.div>
@@ -95,20 +93,17 @@ export default function ProductShowcase() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="text-center max-w-2xl mx-auto mb-16"
         >
-          <Badge tone="success" className="mb-5">
-            See It In Action
-          </Badge>
           <RevealHeading className="text-heading-l mb-4">
             One platform. Four real workspaces.
           </RevealHeading>
           <p className="text-body text-ink-muted">
-            Every role gets an interface built for how they actually work — not a generic dashboard
+            Every role gets an interface built for how they actually work, not a generic dashboard
             with their name on it.
           </p>
         </motion.div>
 
         {showcases.map((s, i) => (
-          <ShowcaseRow key={s.id} {...s} reversed={i % 2 === 1} index={i} />
+          <ShowcaseRow key={s.id} {...s} index={i} />
         ))}
       </div>
     </section>
