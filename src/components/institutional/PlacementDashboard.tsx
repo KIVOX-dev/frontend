@@ -13,7 +13,7 @@ import { toast } from "@/lib/toast";
 import {
   type User, type Placement, type Drive, type Department, type StudentRecord, type PlacementApplication,
   BASE_CHART_OPTIONS, ChartEmptyState, CompanyLogo, monthKey, monthLabel,
-} from "./CollegeAdminDashboard";
+} from "./collegeAdminShared";
 
 // ApexCharts touches `window` at import time — never during SSR (matches the
 // same guard CollegeAdminDashboard.tsx uses for its own charts).

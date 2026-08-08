@@ -225,7 +225,16 @@ export function SuperAdminDashboard() {
         // instead of firing a second identical GET /users/pending here.
         const allRes = await api.get("/users/", { cache: false } as ApiRequestConfig);
         setStats((prev) => ({ ...prev, total: allRes.data.length }));
+      } else if (activeTab === "all") {
+        // Same idea in the other direction — fetchUsers() already requests
+        // GET /users/ for this tab, so stats.total is derived from it
+        // reactively below instead of a second identical concurrent request
+        // here. See PROJECT_AUDIT_REPORT.md P2-13.
+        const pendingRes = await api.get("/users/pending", { cache: false } as ApiRequestConfig);
+        setStats((prev) => ({ ...prev, pending: pendingRes.data.length }));
       } else {
+        // "assessments"/"institutions" tabs never call fetchUsers() at all
+        // (see the effect below), so both counts still need a real fetch here.
         const [allRes, pendingRes] = await Promise.all([
           api.get("/users/", { cache: false } as ApiRequestConfig),
           api.get("/users/pending", { cache: false } as ApiRequestConfig)
@@ -243,11 +252,16 @@ export function SuperAdminDashboard() {
     }
   }, [activeTab]);
 
-  // Keeps stats.pending in sync with the pending list fetchUsers() already
-  // loaded, without a duplicate GET /users/pending (see fetchStats above).
+  // Keeps stats in sync with whichever list fetchUsers() already loaded for
+  // the current tab, without a duplicate GET /users/(pending) — see
+  // fetchStats above. "pending" tab: `users` holds the pending list, so its
+  // length is stats.pending. "all" tab: `users` holds every user, so its
+  // length is stats.total.
   useEffect(() => {
     if (activeTab === "pending") {
       setStats((prev) => ({ ...prev, pending: users.length }));
+    } else if (activeTab === "all") {
+      setStats((prev) => ({ ...prev, total: users.length }));
     }
   }, [activeTab, users]);
 

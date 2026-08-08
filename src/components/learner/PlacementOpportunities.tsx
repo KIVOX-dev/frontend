@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { api, getApiUrl } from "@/lib/api";
+import { api } from "@/lib/api";
+import { openPlacementProofDocument } from "@/lib/placementProof";
 
 type Drive = {
   id: string;
@@ -61,10 +62,6 @@ const REPORT_FORM_DEFAULT = {
   mode: "campus",
   location: "",
 };
-
-// proof_url comes back as a backend-relative path (/uploads/placement-proof/…),
-// served by node-api's own static mount, not this app's origin.
-const uploadsOrigin = () => getApiUrl().replace(/\/api\/v1\/?$/, "");
 
 export function PlacementOpportunities() {
   const [drives, setDrives] = useState<Drive[]>([]);
@@ -396,9 +393,13 @@ export function PlacementOpportunities() {
                   </td>
                   <td style={{ padding: "12px 8px" }}>
                     {r.proof_url ? (
-                      <a href={`${uploadsOrigin()}${r.proof_url}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", fontSize: "13px", fontWeight: 600 }}>
+                      <button
+                        type="button"
+                        onClick={() => openPlacementProofDocument(r.id)}
+                        style={{ color: "var(--accent)", fontSize: "13px", fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}
+                      >
                         View
-                      </a>
+                      </button>
                     ) : (
                       <span style={{ color: "var(--muted)", fontSize: "13px" }}>—</span>
                     )}

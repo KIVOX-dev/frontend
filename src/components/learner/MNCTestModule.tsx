@@ -388,13 +388,14 @@ export function MNCTestModule() {
           const totalMins = Math.ceil(totalQs * 1.5);
 
           return (
-            <div
+            <button
+              type="button"
               key={track.id}
               className="card"
-              style={{ padding: "28px", cursor: "pointer", transition: "all 0.25s", overflow: "hidden", position: "relative" }}
+              style={{ display: "block", width: "100%", textAlign: "left", padding: "28px", cursor: "pointer", transition: "all 0.25s", overflow: "hidden", position: "relative" }}
               onClick={() => startTrack(track)}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 12px 24px rgba(0,0,0,0.08)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 12px 24px rgba(0,0,0,0.08)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
                 <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: track.colorLight, color: track.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", fontWeight: 900 }}>
@@ -414,7 +415,7 @@ export function MNCTestModule() {
                 ))}
               </div>
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "3px", background: track.color, opacity: 0.4 }}></div>
-            </div>
+            </button>
           );
         })}
       </div>

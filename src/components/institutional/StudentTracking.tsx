@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { api, type ApiRequestConfig } from "@/lib/api";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
+import { useModalA11y } from "@/hooks/useModalA11y";
 
 type Student = {
   id: number;
@@ -47,6 +48,16 @@ export function StudentTracking() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [studentData, setStudentData] = useState<DashboardData | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
+
+  const closeInsights = useCallback(() => {
+    setSelectedStudent(null);
+    setStudentData(null);
+  }, []);
+  const { panelRef: insightsPanelRef, dialogProps: insightsDialogProps } = useModalA11y(
+    !!selectedStudent,
+    closeInsights,
+    "student-insights-title"
+  );
 
   // Live search-as-you-type: fires 400ms after typing pauses rather than
   // waiting for an explicit submit, and cancels stale requests — see
@@ -143,14 +154,20 @@ export function StudentTracking() {
 
       {selectedStudent && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}>
-          <div className="card" style={{ width: "100%", maxWidth: "800px", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+          <div
+            ref={insightsPanelRef}
+            {...insightsDialogProps}
+            className="card"
+            style={{ width: "100%", maxWidth: "800px", maxHeight: "90vh", overflowY: "auto", position: "relative" }}
+          >
             <div style={{ position: "sticky", top: 0, background: "var(--card-bg)", padding: "24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
               <div>
-                <h3 style={{ fontSize: "20px", fontWeight: 700 }}>{selectedStudent.name}&apos;s Profile Insights</h3>
+                <h3 id="student-insights-title" style={{ fontSize: "20px", fontWeight: 700 }}>{selectedStudent.name}&apos;s Profile Insights</h3>
                 <p style={{ color: "var(--muted)", fontSize: "14px", marginTop: "4px" }}>{selectedStudent.email}</p>
               </div>
-              <button 
-                onClick={() => { setSelectedStudent(null); setStudentData(null); }}
+              <button
+                onClick={closeInsights}
+                aria-label="Close"
                 style={{ width: "32px", height: "32px", borderRadius: "50%", border: "none", background: "var(--bg)", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
               >
                 ✕

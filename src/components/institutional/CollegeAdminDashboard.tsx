@@ -1,252 +1,25 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import Image from "next/image";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
-import type { ApexOptions } from "apexcharts";
 import { LayoutList, LayoutGrid, FileSpreadsheet, FileDown } from "lucide-react";
-import { api, getApiUrl } from "@/lib/api";
+import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { extractErrorMessage as apiErrorMessage } from "@/lib/errors";
+import { openPlacementProofDocument } from "@/lib/placementProof";
+import { useModalA11y } from "@/hooks/useModalA11y";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { getDepartmentOptions } from "@/lib/departmentCatalog";
 import { PlacementDashboard } from "./PlacementDashboard";
+import {
+  type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
+  type StudentInsights, type Placement, type Drive, type PlacementApplication,
+  BASE_CHART_OPTIONS, ChartEmptyState, CompanyLogo, colorForKey, monthKey, monthLabel,
+} from "./collegeAdminShared";
 
 // ApexCharts touches `window` at import time, so it must never run during SSR.
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
-
-export type User = {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-  department?: string;
-  roll_number?: string;
-  created_at?: string;
-};
-
-type Assessment = {
-  id: string;
-  title: string;
-  description?: string;
-  status: string;
-  difficulty: string;
-  duration_minutes: number;
-  total_marks: number;
-  created_at: string;
-  // Set only on the 4 open practice-bank tests (see
-  // scripts/seedPracticeTests.js) — null/absent on a regular test this
-  // dashboard creates, which is what an "Assign" action targets.
-  category?: string | null;
-  // Which question-bank category this test auto-draws random questions
-  // from, and how many — set on every admin-authored test going forward.
-  source_category?: string | null;
-  question_count?: number | null;
-  start_at?: string | null;
-  end_at?: string | null;
-};
-
-type AttemptResult = {
-  id: string;
-  test_id: string;
-  test_title: string;
-  student_id: string;
-  student_name: string;
-  roll_number: string;
-  score: number;
-  max_score: number;
-  percentage: number;
-  passed: boolean;
-  completed_at?: string;
-};
-
-export type Department = {
-  id: string;
-  name: string;
-  code?: string;
-};
-
-// The students collection's own row id — what placements/test-assignments
-// actually key on — is distinct from the linked user's id (see student.id
-// vs student.user_id in student.model.js). Fetched separately from `users`
-// so the Add Placement picker can resolve a chosen user to the right id.
-export type StudentRecord = {
-  id: string;
-  user_id: string;
-  department_id?: string;
-};
-
-type InsightAttempt = {
-  id: string;
-  score: number;
-  max_score: number;
-  percentage: number;
-  passed: boolean;
-  created_at: string;
-};
-
-type StudentInsights = {
-  tests_completed: number;
-  avg_accuracy: number;
-  interviews_completed: number;
-  history: InsightAttempt[];
-};
-
-export type Placement = {
-  id: string;
-  student_id: string;
-  company_name: string;
-  role: string;
-  salary_lpa: number;
-  work_type: string;
-  mode: string;
-  location?: string;
-  status: string;
-  verification_status: "pending" | "verified" | "rejected";
-  proof_url?: string;
-  created_at?: string;
-};
-
-export type Drive = {
-  id: number;
-  title: string;
-  company_name: string;
-  location?: string;
-  job_type: string;
-  status: string;
-  application_deadline?: string;
-  created_at?: string;
-  applicant_count: number;
-};
-
-export type PlacementApplication = {
-  id: string;
-  placement_id: string;
-  student_id: string;
-  status: "applied" | "shortlisted" | "interview" | "selected" | "rejected" | "withdrawn";
-  round?: number;
-  created_at?: string;
-};
-
-// Single accent hue for the trend line — it's genuinely one series over time,
-// so sequential/single-hue is the correct color job there (not a simplification).
-const CHART_COLOR = "#0145F2";
-
-// Categorical palette for the Company/Drive bar charts, where each bar IS a
-// distinct named entity — identity is the job, so per-bar color is correct
-// there, unlike the single-series trend line above. Deeper/richer "corporate"
-// tones rather than the bright default — order and hexes re-validated for this
-// app (node scripts/validate_palette.js in the dataviz skill, --mode light):
-// lightness band, chroma floor, contrast all PASS; one adjacent CVD pair
-// (olive↔berry) sits in the legal 6–8 WARN band, which requires direct labels
-// as the secondary encoding — already on via dataLabels below.
-const CATEGORICAL = ["#1f5c8f", "#b8632f", "#0d8c76", "#b98a2e", "#a13d5c", "#6b7a2e", "#6a4a94", "#a83a30"];
-
-export function colorForKey(key: string) {
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-  return CATEGORICAL[hash % CATEGORICAL.length];
-}
-
-// Shared look for every chart on this dashboard — thin bars/lines, recessive
-// grid, hover tooltip. Merge chart-specific bits (xaxis categories, chart.type,
-// colors) into this per instance rather than duplicating the whole spec.
-export const BASE_CHART_OPTIONS: ApexOptions = {
-  chart: { toolbar: { show: false }, fontFamily: "inherit", foreColor: "#5A6560" },
-  grid: { borderColor: "#E7EBE9", strokeDashArray: 3 },
-  dataLabels: { enabled: false },
-  tooltip: { theme: "light" },
-  legend: { show: false },
-};
-
-// No official domain/logo field exists on a placement or drive — company is
-// free text a college admin typed in. So a "real" logo means: guess a domain,
-// ask a third-party logo service for it, and fall back to a colored initials
-// badge when the guess is wrong or the service has nothing. This is
-// best-effort, not authoritative — see the caveat where it's wired in.
-const KNOWN_DOMAINS: Record<string, string> = {
-  tcs: "tcs.com",
-  "tata consultancy services": "tcs.com",
-  infosys: "infosys.com",
-  wipro: "wipro.com",
-  zoho: "zoho.com",
-  accenture: "accenture.com",
-  cognizant: "cognizant.com",
-  capgemini: "capgemini.com",
-  ibm: "ibm.com",
-  microsoft: "microsoft.com",
-  google: "google.com",
-  amazon: "amazon.com",
-  deloitte: "deloitte.com",
-  hcl: "hcltech.com",
-  "hcl technologies": "hcltech.com",
-  "tech mahindra": "techmahindra.com",
-  mindtree: "mindtree.com",
-  flipkart: "flipkart.com",
-};
-
-function guessDomain(companyName: string): string | null {
-  const key = companyName.trim().toLowerCase();
-  if (!key) return null;
-  if (KNOWN_DOMAINS[key]) return KNOWN_DOMAINS[key];
-  const slug = key.replace(/[^a-z0-9]+/g, "");
-  return slug ? `${slug}.com` : null;
-}
-
-export function CompanyLogo({ name, size = 28 }: { name: string; size?: number }) {
-  const [failed, setFailed] = useState(false);
-  const domain = guessDomain(name);
-  const color = colorForKey(name);
-  const initials = name.trim().slice(0, 2).toUpperCase() || "?";
-
-  if (!domain || failed) {
-    return (
-      <div
-        title={name}
-        style={{ width: size, height: size, borderRadius: "50%", background: color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.4, fontWeight: 700, flexShrink: 0 }}
-      >
-        {initials}
-      </div>
-    );
-  }
-
-  return (
-    <Image
-      src={`https://unavatar.io/${domain}`}
-      alt={`${name} logo`}
-      width={size}
-      height={size}
-      style={{ borderRadius: "50%", objectFit: "contain", background: "#fff", border: "1px solid var(--border)", flexShrink: 0 }}
-      onError={() => setFailed(true)}
-    />
-  );
-}
-
-export function monthKey(iso?: string) {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-export function monthLabel(key: string) {
-  const [y, m] = key.split("-").map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-}
-
-export function ChartEmptyState({ message }: { message: string }) {
-  return (
-    <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: "14px", textAlign: "center", padding: "0 24px" }}>
-      {message}
-    </div>
-  );
-}
-
-// proof_url comes back as a backend-relative path (/uploads/placement-proof/…),
-// served by node-api's own static mount, not this app's origin.
-const uploadsOrigin = () => getApiUrl().replace(/\/api\/v1\/?$/, "");
 
 export function CollegeAdminDashboard() {
   const { user: currentUser } = useAuthStore();
@@ -527,6 +300,9 @@ export function CollegeAdminDashboard() {
   }, []);
 
   const studentsById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
+  // Shared by the Shortlist and Add Placement modals below, which used to
+  // each run this same filter independently on every render (PROJECT_AUDIT_REPORT.md P2/component-audit).
+  const studentUsers = useMemo(() => users.filter(u => u.role === "student"), [users]);
   const studentRecordIdByUserId = useMemo(
     () => new Map(studentRecords.map(s => [String(s.user_id), s.id])),
     [studentRecords]
@@ -785,12 +561,12 @@ export function CollegeAdminDashboard() {
     }
   };
 
-  const closeShortlistForm = () => {
+  const closeShortlistForm = useCallback(() => {
     setShowShortlistForm(false);
     setShortlistForm({ placement_id: "", student_id: "", round: "" });
     setShortlistFile(null);
     setShortlistFilePreview(null);
-  };
+  }, []);
 
   const handleCreateShortlist = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -971,6 +747,60 @@ export function CollegeAdminDashboard() {
     }
   };
 
+  // Dialog semantics (role/aria-modal/focus-trap/Escape/focus-restore) for
+  // this file's 7 hand-rolled modals — see hooks/useModalA11y.ts and
+  // PROJECT_AUDIT_REPORT.md P2-17. Each hook call is a no-op while its modal
+  // is closed; called unconditionally (not inside the JSX below) because
+  // hooks can't be called conditionally.
+  const closeCreateUser = useCallback(() => setShowCreateUser(false), []);
+  const closeCreateAssessment = useCallback(() => setShowCreateAssessment(false), []);
+  const closeAssigningTest = useCallback(() => setAssigningTest(null), []);
+  const closeInsights = useCallback(() => {
+    setViewingInsightsFor(null);
+    setInsightsData(null);
+  }, []);
+  const closeAddPlacement = useCallback(() => setShowAddPlacement(false), []);
+  const closePostDrive = useCallback(() => {
+    setShowPostDrive(false);
+    setDriveMsg("");
+  }, []);
+
+  const { panelRef: createUserPanelRef, dialogProps: createUserDialogProps } = useModalA11y(
+    showCreateUser,
+    closeCreateUser,
+    "create-user-title"
+  );
+  const { panelRef: createAssessmentPanelRef, dialogProps: createAssessmentDialogProps } = useModalA11y(
+    showCreateAssessment,
+    closeCreateAssessment,
+    "create-assessment-title"
+  );
+  const { panelRef: assignTestPanelRef, dialogProps: assignTestDialogProps } = useModalA11y(
+    !!assigningTest,
+    closeAssigningTest,
+    "assign-test-title"
+  );
+  const { panelRef: insightsPanelRef, dialogProps: insightsDialogProps } = useModalA11y(
+    !!viewingInsightsFor,
+    closeInsights,
+    "insights-title"
+  );
+  const { panelRef: shortlistPanelRef, dialogProps: shortlistDialogProps } = useModalA11y(
+    showShortlistForm,
+    closeShortlistForm,
+    "shortlist-title"
+  );
+  const { panelRef: addPlacementPanelRef, dialogProps: addPlacementDialogProps } = useModalA11y(
+    showAddPlacement,
+    closeAddPlacement,
+    "add-placement-title"
+  );
+  const { panelRef: postDrivePanelRef, dialogProps: postDriveDialogProps } = useModalA11y(
+    showPostDrive,
+    closePostDrive,
+    "post-drive-title"
+  );
+
   return (
     <div className="screen active" style={{ padding: "40px" }}>
       <div style={{ marginBottom: "30px" }}>
@@ -1045,9 +875,13 @@ export function CollegeAdminDashboard() {
                     </td>
                     <td style={{ padding: "12px 8px" }}>
                       {p.proof_url ? (
-                        <a href={`${uploadsOrigin()}${p.proof_url}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", fontSize: "13px", fontWeight: 600 }}>
+                        <button
+                          type="button"
+                          onClick={() => openPlacementProofDocument(p.id)}
+                          style={{ color: "var(--accent)", fontSize: "13px", fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}
+                        >
                           View
-                        </a>
+                        </button>
                       ) : (
                         <span style={{ color: "var(--muted)", fontSize: "13px" }}>—</span>
                       )}
@@ -1551,8 +1385,8 @@ export function CollegeAdminDashboard() {
       {/* Create User Modal */}
       {showCreateUser && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
-            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "20px", color: "var(--text)" }}>Add New User</h3>
+          <div ref={createUserPanelRef} {...createUserDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
+            <h3 id="create-user-title" style={{ fontSize: "20px", fontWeight: 700, marginBottom: "20px", color: "var(--text)" }}>Add New User</h3>
             <form onSubmit={handleCreateUser}>
               <div style={{ marginBottom: "14px" }}>
                 <label className="lbl">Name</label>
@@ -1594,8 +1428,8 @@ export function CollegeAdminDashboard() {
       {/* Create Assessment Modal */}
       {showCreateAssessment && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
-            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "20px", color: "var(--text)" }}>Create Assessment</h3>
+          <div ref={createAssessmentPanelRef} {...createAssessmentDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
+            <h3 id="create-assessment-title" style={{ fontSize: "20px", fontWeight: 700, marginBottom: "20px", color: "var(--text)" }}>Create Assessment</h3>
             <form onSubmit={handleCreateAssessment}>
               <div style={{ marginBottom: "14px" }}>
                 <label className="lbl">Title</label>
@@ -1684,8 +1518,8 @@ export function CollegeAdminDashboard() {
       {/* Assign Test Modal */}
       {assigningTest && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px", maxHeight: "85vh", overflowY: "auto" }}>
-            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Assign Test</h3>
+          <div ref={assignTestPanelRef} {...assignTestDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px", maxHeight: "85vh", overflowY: "auto" }}>
+            <h3 id="assign-test-title" style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Assign Test</h3>
             <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>{assigningTest.title}</p>
             <form onSubmit={handleAssignTest}>
               <div style={{ marginBottom: "14px" }}>
@@ -1806,14 +1640,20 @@ export function CollegeAdminDashboard() {
       {/* Student Insights Modal */}
       {viewingInsightsFor && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}>
-          <div className="card" style={{ width: "100%", maxWidth: "800px", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+          <div
+            ref={insightsPanelRef}
+            {...insightsDialogProps}
+            className="card"
+            style={{ width: "100%", maxWidth: "800px", maxHeight: "90vh", overflowY: "auto", position: "relative" }}
+          >
             <div style={{ position: "sticky", top: 0, background: "var(--card-bg, var(--surface))", padding: "24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
               <div>
-                <h3 style={{ fontSize: "20px", fontWeight: 700, color: "var(--text)" }}>{viewingInsightsFor.name}&apos;s Profile Insights</h3>
+                <h3 id="insights-title" style={{ fontSize: "20px", fontWeight: 700, color: "var(--text)" }}>{viewingInsightsFor.name}&apos;s Profile Insights</h3>
                 <p style={{ color: "var(--muted)", fontSize: "14px", marginTop: "4px" }}>{viewingInsightsFor.email}</p>
               </div>
               <button
-                onClick={() => { setViewingInsightsFor(null); setInsightsData(null); }}
+                onClick={closeInsights}
+                aria-label="Close"
                 style={{ width: "32px", height: "32px", borderRadius: "50%", border: "none", background: "var(--bg)", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
               >
                 ✕
@@ -1896,8 +1736,8 @@ export function CollegeAdminDashboard() {
       {/* Shortlist Candidate Modal */}
       {showShortlistForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}>
-          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px", maxHeight: "90vh", overflowY: "auto" }}>
-            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Shortlist a Candidate</h3>
+          <div ref={shortlistPanelRef} {...shortlistDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px", maxHeight: "90vh", overflowY: "auto" }}>
+            <h3 id="shortlist-title" style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Shortlist a Candidate</h3>
             <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>Adds a student straight to the drive&apos;s shortlist — they don&apos;t need to have applied first.</p>
             <form onSubmit={handleCreateShortlist}>
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "10px", marginBottom: "14px" }}>
@@ -1931,7 +1771,7 @@ export function CollegeAdminDashboard() {
                   disabled={!!shortlistFile}
                 >
                   <option value="">Select a student</option>
-                  {users.filter(u => u.role === "student").map(s => {
+                  {studentUsers.map(s => {
                     const studentRecordId = studentRecordIdByUserId.get(String(s.id));
                     if (!studentRecordId) return null;
                     return (
@@ -1976,14 +1816,14 @@ export function CollegeAdminDashboard() {
       {/* Add Placement Modal */}
       {showAddPlacement && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-          <div className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
-            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "20px", color: "var(--text)" }}>Add Placement</h3>
+          <div ref={addPlacementPanelRef} {...addPlacementDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
+            <h3 id="add-placement-title" style={{ fontSize: "20px", fontWeight: 700, marginBottom: "20px", color: "var(--text)" }}>Add Placement</h3>
             <form onSubmit={handleCreatePlacement}>
               <div style={{ marginBottom: "14px" }}>
                 <label className="lbl">Student</label>
                 <select className="fi" value={placementForm.student_id} onChange={e => setPlacementForm({ ...placementForm, student_id: e.target.value })} required>
                   <option value="">Select a student</option>
-                  {users.filter(u => u.role === "student").map(s => {
+                  {studentUsers.map(s => {
                     // The dropdown must submit the students collection's row
                     // id, not this user's own id — see student_id comment in
                     // handleCreatePlacement. Skip anyone whose student
@@ -2035,8 +1875,8 @@ export function CollegeAdminDashboard() {
       {/* Post Drive Modal */}
       {showPostDrive && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "24px" }}>
-          <div className="card" style={{ padding: "24px", width: "100%", maxWidth: "480px", maxHeight: "90vh", overflowY: "auto" }}>
-            <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "14px", color: "var(--text)" }}>Post Placement Drive</h3>
+          <div ref={postDrivePanelRef} {...postDriveDialogProps} className="card" style={{ padding: "24px", width: "100%", maxWidth: "480px", maxHeight: "90vh", overflowY: "auto" }}>
+            <h3 id="post-drive-title" style={{ fontSize: "18px", fontWeight: 700, marginBottom: "14px", color: "var(--text)" }}>Post Placement Drive</h3>
             {driveMsg && <div style={{ padding: "10px", marginBottom: "10px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", color: "#DC2626", fontSize: "13px" }}>{driveMsg}</div>}
             <form onSubmit={handleCreateDrive}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>

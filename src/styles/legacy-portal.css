@@ -92,6 +92,21 @@ textarea {
   outline: none
 }
 
+/* Restores a visible focus indicator for keyboard navigation — the blanket
+   `outline: none` above otherwise leaves every button/input/link with no
+   focus indication at all (WCAG 2.4.7). :focus-visible (not :focus) means
+   this only shows for keyboard/programmatic focus, not mouse clicks, so it
+   doesn't change the look of any existing pointer interaction. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

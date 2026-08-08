@@ -1,0 +1,248 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same branch/PR to save CI minutes — same
+# reasoning as backend/.github/workflows/ci.yml, which this pipeline mirrors
+# the structure of for consistency across the two repos.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24"
+
+jobs:
+  # Lint, typecheck, and build run as independent jobs so a failure in one is
+  # reported on its own instead of stacking wall-clock time in a single job —
+  # same split the backend pipeline uses for node-api.
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  # No unit/integration test suite exists in this repo yet (see
+  # PROJECT_AUDIT_REPORT.md Phase 11) — this job is a placeholder that fails
+  # loudly with a clear message rather than silently reporting green for a
+  # test run that never happened. Replace the `echo`/`exit` below with the
+  # real test command (e.g. `npm test`) once a framework is wired up; do not
+  # delete the job, since removing it would silently drop the CI gate.
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No test suite configured yet
+        run: |
+          echo "::warning::No frontend test suite is configured yet (see PROJECT_AUDIT_REPORT.md Phase 11)."
+          echo "This job is a placeholder — replace this step with the real test command once one exists."
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      # Fails only on High/Critical advisories, matching the backend
+      # pipeline's threshold — Moderate/Low still surface in the log but
+      # don't block the build.
+      - name: npm audit (fail on high/critical)
+        run: npm audit --audit-level=high
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Production build
+        run: npm run build
+        env:
+          # Build-time only (see Dockerfile's own note on this) — a dummy
+          # same-shape value is enough to prove the build succeeds; the real
+          # value is supplied per-environment when the Docker image is built.
+          NEXT_PUBLIC_API_URL: https://ci-build-placeholder.invalid/api/v1
+      # Route/bundle-size summary, kept for a short window so a failed or
+      # suspicious build can be inspected without re-running it locally.
+      - name: Upload build output summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next/build-manifest.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  docker-build:
+    name: Docker build
+    needs: [lint, typecheck, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true # image must land in the local Docker daemon — the smoke-test step below runs it
+          tags: upscaler-ai-frontend:ci
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://ci-build-placeholder.invalid/api/v1
+
+      # Scan the built image for known CVEs before it ever reaches a
+      # registry — pinned to a commit SHA, matching backend/.github/workflows/ci.yml.
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: upscaler-ai-frontend:ci
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+
+      # A clean build and scan say nothing about whether the container
+      # actually starts — same reasoning as the backend pipeline's smoke
+      # test, which caught a real permissions bug that both a green build
+      # and a clean Trivy scan missed.
+      - name: Smoke test — container actually starts
+        run: |
+          docker run -d --rm --name frontend-smoke -p 3000:3000 upscaler-ai-frontend:ci
+          for i in $(seq 1 15); do
+            if curl -sf http://127.0.0.1:3000/ -o /dev/null; then echo "container is healthy"; exit 0; fi
+            sleep 1
+          done
+          echo "Container never became healthy:"
+          docker logs frontend-smoke
+          exit 1
+
+  # ── Deploy ───────────────────────────────────────────────────────────────
+  # Mirrors backend/.github/workflows/ci.yml's deploy job exactly — same
+  # gating pattern (skipped, not failing, until GCP secrets exist), same
+  # Workload Identity Federation auth, same no-traffic → smoke-test → promote
+  # rollout. Rollback is Cloud Run's own revision model: every previous
+  # revision stays deployed and reachable, so reverting a bad release is
+  # `gcloud run services update-traffic upscaler-ai-frontend --to-revisions
+  # <previous-revision>=100 --region <region>` — no separate rollback
+  # pipeline to build or maintain.
+  #
+  # Required repository secrets (unset today — job no-ops until they exist):
+  #   WIF_PROVIDER         projects/<n>/locations/global/workloadIdentityPools/<pool>/providers/<provider>
+  #   WIF_SERVICE_ACCOUNT  deployer@<project>.iam.gserviceaccount.com
+  #   AR_REPO              <region>-docker.pkg.dev/<project>/<repo>
+  #   GCP_REGION           e.g. asia-south1
+  #   NEXT_PUBLIC_API_URL_PROD  the real, public API origin for this environment
+  deploy:
+    name: Deploy to Cloud Run
+    needs: [docker-build, audit]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Workload Identity Federation — no long-lived JSON keys
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Skip if GCP is not configured
+        id: gate
+        run: |
+          if [ -z "${{ secrets.WIF_PROVIDER }}" ]; then
+            echo "GCP secrets not set — skipping deploy (this is expected until GCP is wired up)."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: google-github-actions/auth@v2
+        if: steps.gate.outputs.configured == 'true'
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+        if: steps.gate.outputs.configured == 'true'
+
+      - name: Configure Artifact Registry auth
+        if: steps.gate.outputs.configured == 'true'
+        run: gcloud auth configure-docker "${{ secrets.GCP_REGION }}-docker.pkg.dev" --quiet
+
+      - name: Build & push image
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL_PROD }}" \
+            -t "${{ secrets.AR_REPO }}/upscaler-ai-frontend:${{ github.sha }}" .
+          docker push "${{ secrets.AR_REPO }}/upscaler-ai-frontend:${{ github.sha }}"
+
+      # Deployed with --no-traffic so the new revision receives nothing until
+      # the smoke test below passes against its dedicated tag URL — the same
+      # pattern node-api's deploy job uses, for the same reason: a bad
+      # revision becomes a non-event instead of an outage.
+      - name: Deploy (no traffic yet)
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          gcloud run deploy upscaler-ai-frontend \
+            --image "${{ secrets.AR_REPO }}/upscaler-ai-frontend:${{ github.sha }}" \
+            --region "${{ secrets.GCP_REGION }}" \
+            --no-traffic --tag "sha-${GITHUB_SHA::7}" \
+            --quiet
+
+      - name: Smoke test the new revision
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          URL=$(gcloud run services describe upscaler-ai-frontend \
+            --region "${{ secrets.GCP_REGION }}" \
+            --format="value(status.traffic.filter(tag:sha-${GITHUB_SHA::7}).extract(url))" | tr -d '[]')
+          echo "Probing $URL/"
+          for i in $(seq 1 20); do
+            if curl -sf "$URL/" -o /dev/null; then
+              echo "new revision is healthy"; exit 0
+            fi
+            sleep 5
+          done
+          echo "New revision never became healthy — traffic NOT promoted."
+          exit 1
+
+      # Only reached if the smoke test passed. Until this runs, 100% of
+      # traffic is still on the previous (known-good) revision.
+      - name: Promote traffic
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          gcloud run services update-traffic upscaler-ai-frontend \
+            --region "${{ secrets.GCP_REGION }}" \
+            --to-latest --quiet

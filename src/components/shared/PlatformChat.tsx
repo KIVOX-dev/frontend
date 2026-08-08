@@ -230,10 +230,15 @@ export function PlatformChat() {
               const badge = getRoleBadgeColor(c.role);
               const isSelected = selectedContact?.id === c.id;
               return (
-                <div
+                <button
+                  type="button"
                   key={c.id}
                   onClick={() => setSelectedContact(c)}
+                  aria-current={isSelected ? "true" : undefined}
                   style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
                     padding: "12px 14px",
                     cursor: "pointer",
                     borderBottom: "1px solid var(--border)",
@@ -254,7 +259,7 @@ export function PlatformChat() {
                   <span style={{ display: "inline-block", marginTop: "4px", padding: "2px 8px", background: badge.bg, color: badge.color, borderRadius: "4px", fontSize: "10px", fontWeight: 600, textTransform: "capitalize" }}>
                     {c.role.replace("_", " ")}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>

@@ -59,14 +59,16 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
           {navItems.map((item) => (
             <React.Fragment key={item.id}>
               {item.section && <div className="nav-sec">{item.section}</div>}
-              <div
+              <button
+                type="button"
                 className={`nav-item ${activeNav === `nav-${item.id}` ? "active" : ""}`}
                 id={`nav-${item.id}`}
                 onClick={() => setActiveScreen(item.id)}
+                aria-current={activeNav === `nav-${item.id}` ? "page" : undefined}
               >
                 {item.icon}
                 <span className="nav-lbl">{item.label}</span>
-              </div>
+              </button>
             </React.Fragment>
           ))}
         </div>
@@ -85,13 +87,13 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
       {/* Main */}
       <div id="main">
         <div id="topbar">
-          <div id="mob-menu-btn" onClick={() => toggleMobileSidebar()}>
+          <button type="button" id="mob-menu-btn" onClick={() => toggleMobileSidebar()} aria-label="Toggle menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="3" y1="12" x2="21" y2="12" />
               <line x1="3" y1="6" x2="21" y2="6" />
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
-          </div>
+          </button>
           <div className="sw">
             <span className="si">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -120,13 +122,13 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
                 <span className="ur">Institution Admin</span>
               </div>
             </div>
-            <div className="ib" onClick={logout}>
+            <button type="button" className="ib" onClick={logout} aria-label="Log out">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
-            </div>
+            </button>
           </div>
         </div>
 
