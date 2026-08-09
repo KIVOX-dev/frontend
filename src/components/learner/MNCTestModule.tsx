@@ -104,6 +104,57 @@ const COMPANY_TRACKS: CompanyTrack[] = [
   },
 ];
 
+// The shared question banks (e.g. logical_mcq_500.json) store the same
+// question text many times over under different ids (logical_mcq_500.json
+// is only 124 unique questions padded out to 500 rows), and several company
+// tracks draw from the very same file. Sampling each section independently
+// at random meant different companies — and even different sections in one
+// test — routinely landed on the same underlying questions.
+//
+// Fix: dedupe each file's pool by question text once, then give every
+// (company, file) pairing a disjoint slice of it, in COMPANY_TRACKS order.
+// That guarantees no question repeats within a test or across companies, as
+// long as each file's unique-question count covers the total drawn from it
+// (true for all current tracks/pools with room to spare).
+function dedupeByQuestionText(pool: Question[]): Question[] {
+  const seen = new Set<string>();
+  const unique: Question[] = [];
+  for (const q of pool) {
+    const key = q.question.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(q);
+  }
+  return unique;
+}
+
+const SECTION_OFFSETS: Record<string, number> = (() => {
+  const offsets: Record<string, number> = {};
+  const runningByFile: Record<string, number> = {};
+  for (const track of COMPANY_TRACKS) {
+    for (const section of track.sections) {
+      const used = runningByFile[section.file] || 0;
+      offsets[`${track.id}:${section.file}`] = used;
+      runningByFile[section.file] = used + section.count;
+    }
+  }
+  return offsets;
+})();
+
+// Shuffled+deduped pool per file, cached for the session so every company's
+// offset into it stays stable and non-overlapping regardless of fetch order.
+const poolCache: Record<string, Question[]> = {};
+
+async function getDedupedPool(file: string): Promise<Question[]> {
+  if (poolCache[file]) return poolCache[file];
+  const res = await fetch(file);
+  const data = await res.json();
+  const rawPool: Question[] = Array.isArray(data) ? data : (data.questions || []);
+  const shuffled = dedupeByQuestionText(rawPool).sort(() => Math.random() - 0.5);
+  poolCache[file] = shuffled;
+  return shuffled;
+}
+
 function resolveAnswer(q: Question): string {
   const raw = q.correct_answer || q.answer || "";
   if (/^[A-D]$/i.test(raw.trim())) {
@@ -154,11 +205,10 @@ export function MNCTestModule() {
     try {
       let allQs: Question[] = [];
       for (const section of track.sections) {
-        const res = await fetch(section.file);
-        const data = await res.json();
-        const pool: Question[] = Array.isArray(data) ? data : (data.questions || []);
-        const shuffled = [...pool].sort(() => Math.random() - 0.5);
-        allQs = [...allQs, ...shuffled.slice(0, section.count)];
+        const pool = await getDedupedPool(section.file);
+        const offset = SECTION_OFFSETS[`${track.id}:${section.file}`] ?? 0;
+        const picked = pool.slice(offset, offset + section.count);
+        allQs = [...allQs, ...picked];
       }
       setQuestions(allQs);
       setCurrentIdx(0);
