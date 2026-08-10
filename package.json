@@ -35,10 +35,12 @@
     "zustand": "^4.5.2"
   },
   "//xlsx": "The `xlsx` dependency points at SheetJS's own CDN, not npm, deliberately. The npm-published `xlsx` is abandoned at 0.18.5 and carries two high-severity advisories npm reports as `No fix available` (prototype pollution GHSA-4r6h-8v6p-xvw6, ReDoS GHSA-5pgg-2g8v-p4x9); SheetJS moved distribution off npm as of 0.19 and this tarball is their supported channel, with both patched. Requires network access to cdn.sheetjs.com at install time, including in CI.",
-  "//overrides": "postcss and sharp are transitive deps Next.js pins internally at versions with published high-severity advisories (postcss 8.4.31, sharp 0.34.5). Both bumps are within-major and API-compatible; forcing them here patches the advisories without the major-version churn `npm audit fix --force` would inflict on next itself. Re-check on each Next.js upgrade and drop these once Next ships the patched versions itself.",
+  "//overrides": "postcss and sharp are transitive deps Next.js pins internally at versions with published high-severity advisories (postcss 8.4.31, sharp 0.34.5). Both bumps are within-major and API-compatible; forcing them here patches the advisories without the major-version churn `npm audit fix --force` would inflict on next itself. Re-check on each Next.js upgrade and drop these once Next ships the patched versions itself. nanoid (pulled in by postcss) and dompurify (pulled in by html2pdf.js/jspdf) are the same situation: within-major patch releases fixing published advisories (nanoid infinite-loop on size=0, dompurify detached-subtree XSS).",
   "overrides": {
     "postcss": "$postcss",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.3",
+    "nanoid": "^3.3.18",
+    "dompurify": "^3.4.13"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

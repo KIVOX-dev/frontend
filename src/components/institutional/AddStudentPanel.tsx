@@ -68,6 +68,12 @@ export function AddStudentPanel() {
             <input type="email" className="fi" placeholder="student@college.edu" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
           </div>
 
+          <div style={{ marginBottom: "18px" }}>
+            <label className="lbl">Temporary Password <span style={{ color: "var(--red)" }}>*</span></label>
+            <input type="text" className="fi" minLength={8} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
+            <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>Shared with the student to log in for the first time. Defaults to &quot;student123&quot; if left unchanged — pick something less guessable for real accounts.</p>
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "18px" }}>
             <div>
               <label className="lbl">Department</label>
