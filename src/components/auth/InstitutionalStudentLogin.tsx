@@ -1,64 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
-import { GoogleLoginButton, isGoogleLoginConfigured } from "@/components/auth/GoogleLoginButton";
-import { useAuthStore } from "@/stores/authStore";
-import { api } from "@/lib/api";
-import { extractErrorMessage } from "@/lib/errors";
+import { LoginFields } from "@/components/auth/LoginFields";
+import { useLoginForm } from "@/hooks/useLoginForm";
 
 export function InstitutionalStudentLogin({ onBack }: { onBack: () => void }) {
-  const [email, setEmail] = useState("");
-  const [dobPassword, setDobPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  
-  const login = useAuthStore((state) => state.login);
-
-  const handleLogin = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      if (!email || !dobPassword) {
-        setError("Enter email and DOB password");
-        setLoading(false);
-        return;
-      }
-      const payload = { email, password: dobPassword };
-      const res = await api.post("/auth/login", payload);
-
-      const { user, access_token } = res.data;
-      login(
-        {
-          id: user._id || user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          college_id: user.college_id || user.collegeId,
-          college_name: user.college_name,
-        },
-        access_token
-      );
-    } catch (err: unknown) {
-      let errMsg = extractErrorMessage(err, "Invalid password or email");
-      if (errMsg === "Incorrect email or password") errMsg = "Invalid password or email";
-      setError(errMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { email, setEmail, password, setPassword, error, setError, loading, login } = useLoginForm({
+    fallbackErrorMessage: "Invalid password or email",
+  });
 
   return (
     <AuthSplitLayout>
       <div className="lp-card">
         <div style={{ display: "flex", width: "100%", marginBottom: "16px" }}>
-          <button 
+          <button
             onClick={onBack}
             style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "14px", padding: 0 }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
+              <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
             Back
           </button>
@@ -75,45 +37,22 @@ export function InstitutionalStudentLogin({ onBack }: { onBack: () => void }) {
           </p>
         </div>
 
-        {error && (
-          <div className="auth-warn" style={{ display: "block", marginBottom: "12px" }}>
-            {error}
-          </div>
-        )}
-
         <div className="l-panel active">
-          <label className="lbl">College Email</label>
-          <input
-            type="email"
-            className="fi"
-            placeholder="student@college.edu"
-            style={{ marginBottom: "12px" }}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+          <LoginFields
+            email={email}
+            onEmailChange={setEmail}
+            emailLabel="College Email"
+            emailPlaceholder="student@college.edu"
+            password={password}
+            onPasswordChange={setPassword}
+            error={error}
+            loading={loading}
+            onSubmit={() => login()}
+            submitLabel="Sign In to Portal"
+            loadingLabel="Signing in..."
+            showGoogleLogin
+            onGoogleError={setError}
           />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <label className="lbl" style={{ marginBottom: 0 }}>Password</label>
-          </div>
-          <input
-            type="password"
-            className="fi"
-            placeholder="••••••••"
-            style={{ marginBottom: "14px" }}
-            value={dobPassword}
-            onChange={(e) => setDobPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-          />
-          <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={handleLogin} disabled={loading}>
-            {loading ? "Signing in..." : "Sign In to Portal"}
-          </button>
-          {isGoogleLoginConfigured && (
-            <>
-              <div className="or-div" style={{ marginTop: "16px" }}>
-                OR
-              </div>
-              <GoogleLoginButton onError={setError} />
-            </>
-          )}
         </div>
       </div>
     </AuthSplitLayout>

@@ -3,61 +3,37 @@
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
-import { GoogleLoginButton, isGoogleLoginConfigured } from "@/components/auth/GoogleLoginButton";
-import { useAuthStore } from "@/stores/authStore";
-import { api } from "@/lib/api";
+import { LoginFields } from "@/components/auth/LoginFields";
+import { useLoginForm } from "@/hooks/useLoginForm";
 import { toast } from "@/lib/toast";
+import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 
 export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  
-  const login = useAuthStore((state) => state.login);
 
-  const handleLogin = async () => {
+  // Shared with the sign-in panel below — switching tabs deliberately keeps
+  // whatever email/password was already typed, matching this form's
+  // original behavior.
+  const { email, setEmail, password, setPassword, error, setError, loading, setLoading, login } = useLoginForm();
+
+  const handleRegister = async () => {
     setError("");
+    if (!email || !password || !name) {
+      setError("Please fill in all fields.");
+      return;
+    }
     setLoading(true);
     try {
-      if (!email || !password || (isSignUp && !name)) {
-        setError("Please fill in all fields.");
-        setLoading(false);
-        return;
-      }
-
-      if (isSignUp) {
-        const payload: Record<string, unknown> = { name, email, password, role: "college_admin" };
-        if (phone.trim()) payload.phone = phone.trim();
-        await api.post("/auth/register", payload);
-        toast.success("Registration request submitted!", "Please wait for super admin approval.");
-        setIsSignUp(false);
-      } else {
-        const payload = { email, password };
-        const res = await api.post("/auth/login", payload);
-
-        const { user, access_token } = res.data;
-        login(
-          {
-            id: user._id || user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            college_id: user.college_id || user.collegeId,
-            college_name: user.college_name,
-          },
-          access_token
-        );
-      }
+      const payload: Record<string, unknown> = { name, email, password, role: "college_admin" };
+      if (phone.trim()) payload.phone = phone.trim();
+      await api.post("/auth/register", payload);
+      toast.success("Registration request submitted!", "Please wait for super admin approval.");
+      setIsSignUp(false);
     } catch (err: unknown) {
-      let errMsg = extractErrorMessage(err, "An error occurred.");
-      // Backend's generic auth-failure wording, reworded for this specific form.
-      if (errMsg === "Incorrect email or password") errMsg = "Invalid password or email";
-      setError(errMsg);
+      setError(extractErrorMessage(err, "An error occurred."));
     } finally {
       setLoading(false);
     }
@@ -68,12 +44,12 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
       <div className="lp-card">
         {onBack && (
           <div style={{ display: "flex", width: "100%", marginBottom: "16px" }}>
-            <button 
+            <button
               onClick={onBack}
               style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "14px", padding: 0 }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
+                <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
               Back
             </button>
@@ -98,13 +74,13 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
         )}
 
         <div className="l-tabs" style={{ display: "flex", marginBottom: "20px", borderBottom: "1px solid var(--border)" }}>
-          <button 
+          <button
             onClick={() => setIsSignUp(false)}
             style={{ flex: 1, background: "none", border: "none", padding: "10px", fontWeight: !isSignUp ? 700 : 500, color: !isSignUp ? "var(--accent)" : "var(--muted)", borderBottom: !isSignUp ? "2px solid var(--accent)" : "2px solid transparent", cursor: "pointer" }}
           >
             Sign In
           </button>
-          <button 
+          <button
             onClick={() => setIsSignUp(true)}
             style={{ flex: 1, background: "none", border: "none", padding: "10px", fontWeight: isSignUp ? 700 : 500, color: isSignUp ? "var(--accent)" : "var(--muted)", borderBottom: isSignUp ? "2px solid var(--accent)" : "2px solid transparent", cursor: "pointer" }}
           >
@@ -149,49 +125,30 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
               style={{ marginBottom: "14px" }}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
             />
-            <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={handleLogin} disabled={loading}>
+            <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={handleRegister} disabled={loading}>
               {loading ? "Registering..." : "Submit Registration Request"}
             </button>
           </div>
         ) : (
           <div className="l-panel active">
-            <label className="lbl">Admin Email</label>
-            <input
-              type="email"
-              className="fi"
-              placeholder="admin@college.edu"
-              style={{ marginBottom: "12px" }}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+            <LoginFields
+              email={email}
+              onEmailChange={setEmail}
+              emailLabel="Admin Email"
+              emailPlaceholder="admin@college.edu"
+              password={password}
+              onPasswordChange={setPassword}
+              error=""
+              loading={loading}
+              onSubmit={() => login()}
+              submitLabel="Sign In to Portal"
+              loadingLabel="Signing in..."
+              forgotPasswordHref="/forgot-password"
+              showGoogleLogin
+              onGoogleError={setError}
             />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-              <label className="lbl" style={{ marginBottom: 0 }}>Password</label>
-              <a href="/forgot-password" style={{ fontSize: "12px", color: "var(--accent)", textDecoration: "none", fontWeight: 500, marginBottom: "8px" }}>
-                Forgot password?
-              </a>
-            </div>
-            <input
-              type="password"
-              className="fi"
-              placeholder="••••••••"
-              style={{ marginBottom: "14px" }}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-            />
-            <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={handleLogin} disabled={loading}>
-              {loading ? "Signing in..." : "Sign In to Portal"}
-            </button>
-            {isGoogleLoginConfigured && (
-              <>
-                <div className="or-div" style={{ marginTop: "16px" }}>
-                  OR
-                </div>
-                <GoogleLoginButton onError={setError} />
-              </>
-            )}
           </div>
         )}
       </div>

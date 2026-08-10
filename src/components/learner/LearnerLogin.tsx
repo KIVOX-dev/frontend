@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
-import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
+import { LoginFields } from "@/components/auth/LoginFields";
+import { useLoginForm } from "@/hooks/useLoginForm";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
@@ -13,58 +14,25 @@ interface LearnerLoginProps {
 
 export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
   const [tab, setTab] = useState<"login" | "signup">(initialMode);
-  const [loading, setLoading] = useState(false);
 
-  // Login state
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
+  const { email, setEmail, password, setPassword, error: loginError, setError: setLoginError, loading: loginLoading, login } = useLoginForm();
+  const authStoreLogin = useAuthStore((state) => state.login);
 
-  // Signup state
-  const [signupRole, setSignupRole] = useState<"student" | "recruiter">("student");
+  // Signup state — a different field set (role, college) to what login
+  // needs, so it stays independent of useLoginForm rather than sharing it.
+  const [signupRole] = useState<"student" | "recruiter">("student");
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
-  const [signupCollege, setSignupCollege] = useState("");
   const [signupError, setSignupError] = useState("");
-
-  const { login } = useAuthStore();
-
-  const handleLogin = async () => {
-    setLoginError("");
-    if (!email.trim() || !password.trim()) {
-      return setLoginError("Please enter your email and password.");
-    }
-    setLoading(true);
-    try {
-      const res = await api.post("/auth/login", { email, password });
-      const { access_token, user } = res.data;
-      login(
-        {
-          _id: user._id || user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          college_id: user.college_id || user.collegeId,
-          college_name: user.college_name,
-        },
-        access_token
-      );
-    } catch (err: unknown) {
-      let message = extractErrorMessage(err, "Invalid password or email");
-      if (message === "Incorrect email or password") message = "Invalid password or email";
-      setLoginError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [signupLoading, setSignupLoading] = useState(false);
 
   const handleSignup = async () => {
     setSignupError("");
     if (!signupName.trim()) return setSignupError("Please enter your name.");
     if (!signupEmail.trim()) return setSignupError("Please enter your email.");
     if (!signupPassword.trim()) return setSignupError("Please choose a password.");
-    setLoading(true);
+    setSignupLoading(true);
     try {
       const res = await api.post("/auth/register", {
         name: signupName,
@@ -78,11 +46,11 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
       const access_token = payload.access_token || payload.data?.token || payload.token;
 
       if (access_token && user) {
-        login(
+        authStoreLogin(
           {
-            _id: user._id || user.id,
-            email: user.email,
+            id: user._id || user.id,
             name: user.name,
+            email: user.email,
             role: user.role,
             college_id: user.college_id || user.collegeId,
             college_name: user.college_name,
@@ -96,7 +64,7 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
     } catch (err: unknown) {
       setSignupError(extractErrorMessage(err, "Registration failed. Please try again."));
     } finally {
-      setLoading(false);
+      setSignupLoading(false);
     }
   };
 
@@ -126,58 +94,37 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
               <h2>Learner Login</h2>
               <p>Sign in to continue your aptitude journey</p>
             </div>
-            <label className="lbl">Gmail Address</label>
-            <input
-              type="email"
-              className="fi"
-              placeholder="name@gmail.com"
-              style={{ marginBottom: "12px" }}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+            <LoginFields
+              email={email}
+              onEmailChange={setEmail}
+              emailLabel="Gmail Address"
+              emailPlaceholder="name@gmail.com"
+              password={password}
+              onPasswordChange={setPassword}
+              error={loginError}
+              loading={loginLoading}
+              onSubmit={() => login()}
+              submitLabel={
+                <>
+                  Sign In to Learner Portal
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
+                    <polyline points="9,18 15,12 9,6" />
+                  </svg>
+                </>
+              }
+              loadingLabel="Signing in…"
+              forgotPasswordHref="/forgot-password"
+              showGoogleLogin
+              onGoogleError={setLoginError}
+              footer={
+                <div className="l-footer" style={{ marginTop: "16px" }}>
+                  No account?{" "}
+                  <a href="#" onClick={(e) => { e.preventDefault(); setTab("signup"); }}>
+                    Sign up free
+                  </a>
+                </div>
+              }
             />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-              <label className="lbl">Password</label>
-              <a href="#" style={{ fontSize: "12px", marginBottom: "6px", color: "var(--accent)" }}>
-                -?
-              </a>
-            </div>
-            <input
-              type="password"
-              className="fi"
-              placeholder="••••••••"
-              style={{ marginBottom: "14px" }}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-            />
-            {loginError && (
-              <div className="auth-warn" style={{ display: "block", marginBottom: "12px" }}>
-                {loginError}
-              </div>
-            )}
-            <button
-              className="l-submit l-submit-blue"
-              onClick={handleLogin}
-              disabled={loading}
-              style={{ opacity: loading ? 0.7 : 1 }}
-            >
-              {loading ? "Signing in…" : "Sign In to Learner Portal"}
-              {!loading && (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
-                  <polyline points="9,18 15,12 9,6" />
-                </svg>
-              )}
-            </button>
-            <div className="or-div" style={{ marginTop: "16px" }}>
-              OR
-            </div>
-            <GoogleLoginButton onError={setLoginError} />
-            <div className="l-footer" style={{ marginTop: "16px" }}>
-              No account?{" "}
-              <a href="#" onClick={(e) => { e.preventDefault(); setTab("signup"); }}>
-                Sign up free
-              </a>
-            </div>
           </div>
         )}
 
@@ -228,11 +175,11 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
             <button
               className="l-submit l-submit-blue"
               onClick={handleSignup}
-              disabled={loading}
-              style={{ opacity: loading ? 0.7 : 1 }}
+              disabled={signupLoading}
+              style={{ opacity: signupLoading ? 0.7 : 1 }}
             >
-              {loading ? "Creating account…" : "Get Started Now"}
-              {!loading && (
+              {signupLoading ? "Creating account…" : "Get Started Now"}
+              {!signupLoading && (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
                   <polyline points="9,18 15,12 9,6" />
                 </svg>

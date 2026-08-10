@@ -2,19 +2,21 @@
 
 import React, { useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
-import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
+import { LoginFields } from "@/components/auth/LoginFields";
+import { useLoginForm } from "@/hooks/useLoginForm";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
+import { extractErrorMessage } from "@/lib/errors";
 
 export function HrLogin() {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuthStore();
+
+  const { email, setEmail, password, setPassword, error, setError, loading, setLoading, login } = useLoginForm({
+    fallbackErrorMessage: "Invalid credentials. Please try again.",
+  });
+  const authStoreLogin = useAuthStore((state) => state.login);
 
   const handleRegister = async () => {
     setError("");
@@ -32,63 +34,21 @@ export function HrLogin() {
         role: "hr",
       });
 
+      // Same {user, access_token} envelope and field mapping as
+      // useLoginForm's login() — reused directly rather than duplicated.
       const { user, access_token } = res.data;
-      login(
+      authStoreLogin(
         {
-          _id: user._id || user.id,
-          email: user.email,
+          id: user._id || user.id,
           name: user.name || user.full_name,
+          email: user.email,
           role: user.role,
           company_name: user.company_name,
         },
         access_token
       );
     } catch (err: unknown) {
-      const error = err as any;
-      const data = error?.response?.data;
-      const detail = data?.detail;
-      if (Array.isArray(detail)) {
-        setError(detail.map((e: any) => e.msg).join(", "));
-      } else {
-        setError(data?.message || detail || "Registration failed. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogin = async () => {
-    setError("");
-    if (!email || !password) {
-      setError("Please enter your email and password.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await api.post("/auth/login", {
-        email,
-        password,
-      });
-
-      const { user, access_token } = res.data;
-      login(
-        {
-          _id: user._id || user.id,
-          email: user.email,
-          name: user.name || user.full_name,
-          role: user.role,
-        },
-        access_token
-      );
-    } catch (err: unknown) {
-      const error = err as any;
-      const data = error?.response?.data;
-      const detail = data?.detail;
-      if (Array.isArray(detail)) {
-        setError(detail.map((e: any) => e.msg).join(", "));
-      } else {
-        setError(data?.message || detail || "Invalid credentials. Please try again.");
-      }
+      setError(extractErrorMessage(err, "Registration failed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -151,48 +111,34 @@ export function HrLogin() {
               <p>Sign in to access your talent sourcing dashboard</p>
             </div>
 
-            <label className="lbl">Work Email</label>
-            <input
-              type="email"
-              className="fi"
-              placeholder="hr@company.com"
-              style={{ marginBottom: "12px" }}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+            <LoginFields
+              email={email}
+              onEmailChange={setEmail}
+              emailLabel="Work Email"
+              emailPlaceholder="hr@company.com"
+              password={password}
+              onPasswordChange={setPassword}
+              error={error}
+              loading={loading}
+              onSubmit={() => login()}
+              submitLabel={
+                <>
+                  Access HR Dashboard
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
+                    <polyline points="9,18 15,12 9,6" />
+                  </svg>
+                </>
+              }
+              loadingLabel="Logging in..."
+              forgotPasswordHref="/forgot-password"
+              showGoogleLogin
+              onGoogleError={setError}
+              footer={
+                <div className="l-footer">
+                  New company? <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(false); setError(""); }}>Create Account</a>
+                </div>
+              }
             />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-              <label className="lbl">Password</label>
-              <a href="#" style={{ fontSize: "12px", marginBottom: "6px", color: "var(--accent)" }}>
-                -?
-              </a>
-            </div>
-            <input
-              type="password"
-              className="fi"
-              placeholder="••••••••"
-              style={{ marginBottom: "14px" }}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-            />
-            {error && (
-              <div className="auth-warn" style={{ display: "block", marginBottom: "12px" }}>
-                {error}
-              </div>
-            )}
-            <button className="l-submit l-submit-blue" onClick={handleLogin} disabled={loading}>
-              {loading ? "Logging in..." : "Access HR Dashboard"}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
-                <polyline points="9,18 15,12 9,6" />
-              </svg>
-            </button>
-            <div className="or-div" style={{ marginTop: "16px" }}>
-              OR
-            </div>
-            <GoogleLoginButton onError={setError} />
-            <div className="l-footer">
-              New company? <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(false); setError(""); }}>Create Account</a>
-            </div>
           </>
         ) : (
           <>

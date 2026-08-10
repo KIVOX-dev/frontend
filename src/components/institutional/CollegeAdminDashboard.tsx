@@ -30,6 +30,7 @@ export function CollegeAdminDashboard() {
   const [viewingInsightsFor, setViewingInsightsFor] = useState<User | null>(null);
   const [insightsData, setInsightsData] = useState<StudentInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   // Applicants panel — toggled from the Placement Drives header (next to
   // + Post Drive), same pattern as the Assessments screen's Results toggle.
@@ -67,6 +68,18 @@ export function CollegeAdminDashboard() {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // A failed loader must never look identical to "the list came back empty"
+  // (see FULL_STACK_AUDIT_REPORT.md FE-001) — each of this screen's
+  // independent fetches records its own error message here (or clears it on
+  // the next successful fetch) instead of only logging to the console and
+  // leaving the previous/empty array in place. Keyed by resource name so
+  // each screen/section can show its own error + retry without one failure
+  // blanking the whole dashboard.
+  const [loadErrors, setLoadErrors] = useState<Record<string, string | null>>({});
+  const setLoadError = useCallback((key: string, message: string | null) => {
+    setLoadErrors(prev => (prev[key] === message ? prev : { ...prev, [key]: message }));
+  }, []);
 
   // Create user form
   const [showCreateUser, setShowCreateUser] = useState(false);
@@ -130,9 +143,10 @@ export function CollegeAdminDashboard() {
     try {
       const res = await api.get<AttemptResult[]>("/tests/college/results");
       setResults(res.data);
+      setLoadError("results", null);
     } catch (err) {
       console.error(err);
-      setResults([]);
+      setLoadError("results", apiErrorMessage(err, "Failed to load results"));
     } finally {
       setResultsLoading(false);
     }
@@ -231,14 +245,22 @@ export function CollegeAdminDashboard() {
       const students = mapped.filter(u => u.role === "student").length;
       const faculty = mapped.filter(u => u.role === "faculty").length;
       setStats(prev => ({ ...prev, totalUsers: res.data.length, totalStudents: students, totalFaculty: faculty }));
-    } catch (err) { console.error(err); }
+      setLoadError("users", null);
+    } catch (err) {
+      console.error(err);
+      setLoadError("users", apiErrorMessage(err, "Failed to load users"));
+    }
   };
 
   const fetchStudentRecords = async () => {
     try {
       const res = await api.get("/students?limit=1000");
       setStudentRecords(res.data);
-    } catch (err) { console.error(err); }
+      setLoadError("studentRecords", null);
+    } catch (err) {
+      console.error(err);
+      setLoadError("studentRecords", apiErrorMessage(err, "Failed to load student records"));
+    }
   };
 
   const fetchAssessments = async () => {
@@ -246,14 +268,22 @@ export function CollegeAdminDashboard() {
       const res = await api.get("/tests");
       setAssessments(res.data);
       setStats(prev => ({ ...prev, totalAssessments: res.data.length }));
-    } catch (err) { console.error(err); }
+      setLoadError("assessments", null);
+    } catch (err) {
+      console.error(err);
+      setLoadError("assessments", apiErrorMessage(err, "Failed to load assessments"));
+    }
   };
 
   const fetchDepartments = async () => {
     try {
       const res = await api.get("/departments");
       setDepartments(res.data);
-    } catch (err) { console.error(err); }
+      setLoadError("departments", null);
+    } catch (err) {
+      console.error(err);
+      setLoadError("departments", apiErrorMessage(err, "Failed to load departments"));
+    }
   };
 
   const fetchPlacements = async () => {
@@ -264,14 +294,22 @@ export function CollegeAdminDashboard() {
       // placement-records instead.
       const res = await api.get<Placement[]>("/placement-records?limit=1000");
       setPlacements(res.data);
-    } catch (err) { console.error(err); }
+      setLoadError("placements", null);
+    } catch (err) {
+      console.error(err);
+      setLoadError("placements", apiErrorMessage(err, "Failed to load placements"));
+    }
   };
 
   const fetchDrives = async () => {
     try {
       const res = await api.get("/placements/drives");
       setDrives(res.data);
-    } catch (err) { console.error(err); }
+      setLoadError("drives", null);
+    } catch (err) {
+      console.error(err);
+      setLoadError("drives", apiErrorMessage(err, "Failed to load placement drives"));
+    }
   };
 
   // Drives every fetch this component needs — not just on mount, but also
@@ -468,8 +506,9 @@ export function CollegeAdminDashboard() {
   const handleViewInsights = async (u: User) => {
     setViewingInsightsFor(u);
     setInsightsData(null);
+    setInsightsError(null);
     const studentRecordId = studentRecordIdByUserId.get(String(u.id));
-    if (!studentRecordId) return;
+    if (!studentRecordId) return; // Genuinely no student record — the final fallback below already covers this.
     setInsightsLoading(true);
     try {
       // This endpoint is intentionally double-wrapped server-side (see
@@ -478,8 +517,10 @@ export function CollegeAdminDashboard() {
       // layer here, matching what StudentTracking.tsx already reads.
       const res = await api.get<{ success: boolean; data: StudentInsights }>(`/dashboard/student/${studentRecordId}`);
       if (res.data?.success) setInsightsData(res.data.data);
+      else setInsightsError("Failed to load student insights");
     } catch (err) {
       console.error(err);
+      setInsightsError(apiErrorMessage(err, "Failed to load student insights"));
     } finally {
       setInsightsLoading(false);
     }
@@ -490,8 +531,10 @@ export function CollegeAdminDashboard() {
     try {
       const res = await api.get<PlacementApplication[]>("/placement-applications?limit=1000");
       setApplicants(res.data);
+      setLoadError("applicants", null);
     } catch (err) {
       console.error(err);
+      setLoadError("applicants", apiErrorMessage(err, "Failed to load applicants"));
     } finally {
       setApplicantsLoading(false);
     }
@@ -825,6 +868,7 @@ export function CollegeAdminDashboard() {
           studentRecords={studentRecords}
           applications={applicants}
           loading={dashboardLoading}
+          errors={loadErrors}
           lastUpdated={lastUpdated}
           onRefresh={refreshDashboard}
           onCreateDrive={() => { setDriveMsg(""); setDriveDeptSearch(""); setShowPostDrive(true); }}
@@ -840,6 +884,11 @@ export function CollegeAdminDashboard() {
             <button className="btn btn-p" onClick={() => setShowAddPlacement(true)}>+ Add Placement</button>
           </div>
           {placementMsg && <div style={{ padding: "10px", marginBottom: "12px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>{placementMsg}</div>}
+          {dashboardLoading ? (
+            <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>Loading placements...</div>
+          ) : loadErrors.placements ? (
+            <SectionError message={loadErrors.placements} onRetry={fetchPlacements} />
+          ) : (
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -917,6 +966,7 @@ export function CollegeAdminDashboard() {
               )}
             </tbody>
           </table>
+          )}
         </div>
       )}
 
@@ -948,6 +998,11 @@ export function CollegeAdminDashboard() {
           </div>
 
           {!showApplicantsPanel ? (
+            dashboardLoading ? (
+              <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>Loading drives...</div>
+            ) : loadErrors.drives ? (
+              <SectionError message={loadErrors.drives} onRetry={fetchDrives} />
+            ) : (
             <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -980,6 +1035,7 @@ export function CollegeAdminDashboard() {
                 )}
               </tbody>
             </table>
+            )
           ) : (
             <div>
               {/* Applicants / Shortlist toggle switch */}
@@ -1012,6 +1068,8 @@ export function CollegeAdminDashboard() {
 
               {applicantsLoading ? (
                 <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>Loading applicants...</div>
+              ) : loadErrors.applicants ? (
+                <SectionError message={loadErrors.applicants} onRetry={fetchApplicants} />
               ) : (() => {
                 const filteredApplicants = applicantsView === "shortlist" ? applicants.filter(a => a.status === "shortlisted") : applicants;
                 if (filteredApplicants.length === 0) {
@@ -1115,6 +1173,11 @@ export function CollegeAdminDashboard() {
             )}
           </div>
           {createMsg && <div style={{ padding: "10px", marginBottom: "12px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>{createMsg}</div>}
+          {dashboardLoading ? (
+            <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>Loading users...</div>
+          ) : loadErrors.users ? (
+            <SectionError message={loadErrors.users} onRetry={fetchUsers} />
+          ) : (
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -1153,6 +1216,7 @@ export function CollegeAdminDashboard() {
               )}
             </tbody>
           </table>
+          )}
         </div>
       )}
 
@@ -1178,7 +1242,11 @@ export function CollegeAdminDashboard() {
             <button type="submit" className="btn btn-p" disabled={isCreatingDept}>{isCreatingDept ? "Adding..." : "+ Add Department"}</button>
           </form>
           {deptMsg && <div style={{ padding: "10px", marginBottom: "12px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>{deptMsg}</div>}
-          {departments.length === 0 ? (
+          {dashboardLoading ? (
+            <span style={{ fontSize: "13px", color: "var(--muted)" }}>Loading departments...</span>
+          ) : loadErrors.departments ? (
+            <SectionError message={loadErrors.departments} onRetry={fetchDepartments} />
+          ) : departments.length === 0 ? (
             <span style={{ fontSize: "13px", color: "var(--muted)" }}>No departments added yet.</span>
           ) : (
             <select className="fi" defaultValue="" style={{ maxWidth: "320px" }}>
@@ -1211,6 +1279,11 @@ export function CollegeAdminDashboard() {
           </div>
 
           {!showResultsPanel ? (
+            dashboardLoading ? (
+              <div style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>Loading assessments...</div>
+            ) : loadErrors.assessments ? (
+              <SectionError message={loadErrors.assessments} onRetry={fetchAssessments} />
+            ) : (
             <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -1259,6 +1332,7 @@ export function CollegeAdminDashboard() {
                 )}
               </tbody>
             </table>
+            )
           ) : (
             <div>
               {results.length > 0 && (
@@ -1322,6 +1396,8 @@ export function CollegeAdminDashboard() {
 
               {resultsLoading ? (
                 <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>Loading...</div>
+              ) : loadErrors.results ? (
+                <SectionError message={loadErrors.results} onRetry={fetchAllResults} />
               ) : results.length === 0 ? (
                 <div style={{ padding: "20px", textAlign: "center", color: "var(--muted)" }}>No attempts yet.</div>
               ) : filteredResults.length === 0 ? (
@@ -1667,6 +1743,11 @@ export function CollegeAdminDashboard() {
             <div style={{ padding: "24px" }}>
               {insightsLoading ? (
                 <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>Loading insights...</div>
+              ) : insightsError ? (
+                <SectionError
+                  message={insightsError}
+                  onRetry={viewingInsightsFor ? () => handleViewInsights(viewingInsightsFor) : undefined}
+                />
               ) : insightsData ? (
                 <>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "32px" }}>

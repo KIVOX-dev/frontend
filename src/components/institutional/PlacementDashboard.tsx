@@ -12,7 +12,7 @@ import {
 import { toast } from "@/lib/toast";
 import {
   type User, type Placement, type Drive, type Department, type StudentRecord, type PlacementApplication,
-  BASE_CHART_OPTIONS, ChartEmptyState, CompanyLogo, monthKey, monthLabel,
+  BASE_CHART_OPTIONS, ChartEmptyState, SectionError, CompanyLogo, monthKey, monthLabel,
 } from "./collegeAdminShared";
 
 // ApexCharts touches `window` at import time — never during SSR (matches the
@@ -215,6 +215,11 @@ export interface PlacementDashboardProps {
   studentRecords: StudentRecord[];
   applications: PlacementApplication[];
   loading: boolean;
+  /** Per-resource error message from the parent's loaders (see
+   * CollegeAdminDashboard.tsx's `loadErrors`) — keyed by resource name, null
+   * once a resource has loaded successfully. A failed fetch must never look
+   * identical to that resource genuinely having zero rows. */
+  errors: Record<string, string | null>;
   lastUpdated: Date | null;
   onRefresh: () => void;
   onCreateDrive: () => void;
@@ -223,8 +228,15 @@ export interface PlacementDashboardProps {
 
 export function PlacementDashboard({
   users, placements, drives, departments, studentRecords, applications,
-  loading, lastUpdated, onRefresh, onCreateDrive, onViewAllDrives,
+  loading, errors, lastUpdated, onRefresh, onCreateDrive, onViewAllDrives,
 }: PlacementDashboardProps) {
+  const failedResources = useMemo(
+    () =>
+      (Object.entries(errors) as [string, string | null][])
+        .filter(([, message]) => Boolean(message))
+        .filter(([key]) => ["users", "placements", "drives", "departments", "studentRecords", "applicants"].includes(key)),
+    [errors]
+  );
   const [deptSort, setDeptSort] = useState<"rate" | "count" | "package">("rate");
   const [isExporting, setIsExporting] = useState<"excel" | "pdf" | null>(null);
   const dashboardRef = useRef<HTMLDivElement>(null);
@@ -528,6 +540,21 @@ export function PlacementDashboard({
           </button>
         </div>
       </div>
+
+      {/* ── Load errors ──
+          KPIs/charts below are computed from whatever data each resource
+          last successfully loaded (possibly stale, possibly empty) — this
+          banner is what tells the admin some of that data failed to
+          refresh, so the numbers below aren't silently misrepresented as
+          "there's genuinely nothing here". */}
+      {failedResources.length > 0 && (
+        <div style={{ marginBottom: "20px" }}>
+          <SectionError
+            message={`Some dashboard data failed to load: ${failedResources.map(([, message]) => message).join(" ")}`}
+            onRetry={onRefresh}
+          />
+        </div>
+      )}
 
       {/* ── KPI cards ── */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4" style={{ gap: "14px", marginBottom: "20px" }}>
