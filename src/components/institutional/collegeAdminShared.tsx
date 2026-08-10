@@ -117,6 +117,20 @@ export type Drive = {
   applicant_count: number;
 };
 
+// GET /users and GET /tests are backed by node-api's BaseService.list(),
+// which hard-caps `limit` at 100 server-side regardless of what's
+// requested — there is no larger page size or "everything" option without
+// backend pagination work, out of scope for this pass. Requesting exactly
+// that ceiling (rather than omitting `limit`, which silently falls back to
+// a default of 20) is the most complete list available today; formatCount
+// at least signals when a count has likely been clipped there, instead of
+// presenting a truncated fetch as if it were an exact total.
+export const LIST_FETCH_CAP = 100;
+
+export function formatCount(count: number): string {
+  return count >= LIST_FETCH_CAP ? `${LIST_FETCH_CAP}+` : String(count);
+}
+
 export type PlacementApplication = {
   id: string;
   placement_id: string;

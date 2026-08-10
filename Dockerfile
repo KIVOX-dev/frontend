@@ -39,6 +39,14 @@ ENV HOSTNAME=0.0.0.0
 # to /app at all — unlike node-api, which creates uploads/ on boot.
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
+# The base image bundles npm/npx/yarn/corepack, but the runtime CMD only
+# ever calls `node server.js` — removing them drops the CVEs Trivy flags in
+# npm's own vendored deps (brace-expansion, ip-address, tar, undici), which
+# never execute here anyway.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+  /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg /usr/local/bin/corepack \
+  /opt/yarn-v*
+
 # `standalone` omits static assets and public/ by design — both have to be
 # copied alongside it or every CSS/JS chunk and image 404s at runtime.
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./

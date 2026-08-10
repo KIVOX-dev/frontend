@@ -16,6 +16,7 @@ import {
   type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
   type StudentInsights, type Placement, type Drive, type PlacementApplication,
   BASE_CHART_OPTIONS, ChartEmptyState, SectionError, CompanyLogo, colorForKey, monthKey, monthLabel,
+  LIST_FETCH_CAP, formatCount,
 } from "./collegeAdminShared";
 
 // ApexCharts touches `window` at import time, so it must never run during SSR.
@@ -225,7 +226,7 @@ export function CollegeAdminDashboard() {
 
   const fetchUsers = async () => {
     try {
-      const res = await api.get("/users/");
+      const res = await api.get("/users/", { params: { limit: LIST_FETCH_CAP } });
       // The API returns full_name/roll_number (roll_number only resolved for
       // student rows) — mapped to this component's User shape here so every
       // other reader of `users` can just use u.name/u.roll_number.
@@ -265,7 +266,7 @@ export function CollegeAdminDashboard() {
 
   const fetchAssessments = async () => {
     try {
-      const res = await api.get("/tests");
+      const res = await api.get("/tests", { params: { limit: LIST_FETCH_CAP } });
       setAssessments(res.data);
       setStats(prev => ({ ...prev, totalAssessments: res.data.length }));
       setLoadError("assessments", null);

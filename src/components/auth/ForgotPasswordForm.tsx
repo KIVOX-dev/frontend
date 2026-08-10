@@ -102,7 +102,7 @@ export function ForgotPasswordForm() {
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="l-panel active">
+          <form onSubmit={handleSubmit} noValidate className="l-panel active">
             {submitError && (
               <div className="auth-warn" role="alert">
                 {submitError}

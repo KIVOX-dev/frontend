@@ -16,6 +16,21 @@ type User = {
   preferences?: { plan?: "base" | "pro" } | null;
 };
 
+// GET /users, /users/pending and /tests are all backed by node-api's
+// BaseService.list(), which hard-caps `limit` at 100 server-side (see
+// BaseService.js) regardless of what's requested — there is no larger page
+// size or "everything" option available without backend pagination, which
+// is out of scope for this pass. Requesting exactly that ceiling (rather
+// than omitting `limit` and silently getting its much smaller default of
+// 20) is the most complete list this dashboard can show today; formatCount
+// below at least tells the admin when a count has likely been clipped at it,
+// rather than presenting a truncated fetch as an exact platform-wide total.
+const LIST_FETCH_CAP = 100;
+
+function formatCount(count: number): string {
+  return count >= LIST_FETCH_CAP ? `${LIST_FETCH_CAP}+` : String(count);
+}
+
 // The dashboard's role dropdowns use the friendlier labels the rest of the
 // app already uses ("College Admin", "Recruiter"); the Node API's actual
 // role enum is student|faculty|hr|institution_admin|super_admin. Map at the
@@ -199,7 +214,7 @@ export function SuperAdminDashboard() {
       // Admin views must always reflect the live approval state, not a
       // cached read from moments before someone else's action (e.g. a
       // faculty batch upload creating new pending students).
-      const res = await api.get(endpoint, { cache: false } as ApiRequestConfig);
+      const res = await api.get(endpoint, { params: { limit: LIST_FETCH_CAP }, cache: false } as ApiRequestConfig);
       setUsers(res.data);
     } catch (err) {
       console.error("Failed to fetch users", err);
@@ -223,21 +238,21 @@ export function SuperAdminDashboard() {
         // fetchUsers() already requested this exact list when the pending
         // tab is active — stats.pending is derived from it reactively below
         // instead of firing a second identical GET /users/pending here.
-        const allRes = await api.get("/users/", { cache: false } as ApiRequestConfig);
+        const allRes = await api.get("/users/", { params: { limit: LIST_FETCH_CAP }, cache: false } as ApiRequestConfig);
         setStats((prev) => ({ ...prev, total: allRes.data.length }));
       } else if (activeTab === "all") {
         // Same idea in the other direction — fetchUsers() already requests
         // GET /users/ for this tab, so stats.total is derived from it
         // reactively below instead of a second identical concurrent request
         // here. See PROJECT_AUDIT_REPORT.md P2-13.
-        const pendingRes = await api.get("/users/pending", { cache: false } as ApiRequestConfig);
+        const pendingRes = await api.get("/users/pending", { params: { limit: LIST_FETCH_CAP }, cache: false } as ApiRequestConfig);
         setStats((prev) => ({ ...prev, pending: pendingRes.data.length }));
       } else {
         // "assessments"/"institutions" tabs never call fetchUsers() at all
         // (see the effect below), so both counts still need a real fetch here.
         const [allRes, pendingRes] = await Promise.all([
-          api.get("/users/", { cache: false } as ApiRequestConfig),
-          api.get("/users/pending", { cache: false } as ApiRequestConfig)
+          api.get("/users/", { params: { limit: LIST_FETCH_CAP }, cache: false } as ApiRequestConfig),
+          api.get("/users/pending", { params: { limit: LIST_FETCH_CAP }, cache: false } as ApiRequestConfig)
         ]);
         setStats({ total: allRes.data.length, pending: pendingRes.data.length });
       }
@@ -245,7 +260,7 @@ export function SuperAdminDashboard() {
       console.error("Failed to fetch stats", err);
     }
     try {
-      const assessRes = await api.get("/tests");
+      const assessRes = await api.get("/tests", { params: { limit: LIST_FETCH_CAP } } as ApiRequestConfig);
       setAssessments(assessRes.data);
     } catch (err) {
       console.error("Failed to fetch assessments", err);
@@ -486,7 +501,7 @@ export function SuperAdminDashboard() {
           </div>
           <div>
             <p className="text-sm text-gray-500 font-medium">Platform Users</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatCount(stats.total)}</p>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
@@ -497,7 +512,7 @@ export function SuperAdminDashboard() {
           </div>
           <div>
             <p className="text-sm text-gray-500 font-medium">Pending Approvals</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatCount(stats.pending)}</p>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
@@ -690,7 +705,7 @@ export function SuperAdminDashboard() {
       ) : activeTab === "assessments" ? (
       <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-          <h2 className="font-semibold text-gray-700">All Assessments ({assessments.length})</h2>
+          <h2 className="font-semibold text-gray-700">All Assessments ({formatCount(assessments.length)})</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
