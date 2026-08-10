@@ -166,6 +166,7 @@ export function CollegeAdminDashboard() {
         Test: r.test_title,
         "Roll No": r.roll_number,
         Student: r.student_name,
+        Department: r.department_name || "—",
         Score: r.score,
         "Max Score": r.max_score,
         Percentage: `${r.percentage}%`,
@@ -1333,6 +1334,7 @@ export function CollegeAdminDashboard() {
                         <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
                           <th style={{ padding: "8px" }}>Roll No</th>
                           <th style={{ padding: "8px" }}>Student</th>
+                          <th style={{ padding: "8px" }}>Department</th>
                           <th style={{ padding: "8px" }}>Score</th>
                           <th style={{ padding: "8px" }}>%</th>
                           <th style={{ padding: "8px" }}>Result</th>
@@ -1344,6 +1346,7 @@ export function CollegeAdminDashboard() {
                           <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
                             <td style={{ padding: "8px", fontWeight: 500 }}>{r.roll_number}</td>
                             <td style={{ padding: "8px" }}>{r.student_name}</td>
+                            <td style={{ padding: "8px", color: "var(--muted)", fontSize: "14px" }}>{r.department_name || "—"}</td>
                             <td style={{ padding: "8px" }}>{r.score} / {r.max_score}</td>
                             <td style={{ padding: "8px" }}>{r.percentage}%</td>
                             <td style={{ padding: "8px" }}>
@@ -1361,7 +1364,8 @@ export function CollegeAdminDashboard() {
                       {filteredResults.map((r) => (
                         <div key={r.id} className="card-sm" style={{ padding: "16px", borderRadius: "12px" }}>
                           <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: "2px" }}>{r.student_name}</p>
-                          <p style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "8px" }}>{r.test_title}</p>
+                          <p style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "2px" }}>{r.test_title}</p>
+                          <p style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "8px" }}>{r.department_name || "—"}</p>
                           <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "10px" }}>
                             {r.score} / {r.max_score} · {r.percentage}%
                           </p>

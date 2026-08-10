@@ -55,6 +55,7 @@ export type AttemptResult = {
   percentage: number;
   passed: boolean;
   completed_at?: string;
+  department_name?: string;
 };
 
 export type Department = {
