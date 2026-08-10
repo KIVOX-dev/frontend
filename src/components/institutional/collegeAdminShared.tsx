@@ -239,3 +239,46 @@ export function ChartEmptyState({ message }: { message: string }) {
     </div>
   );
 }
+
+// A failed fetch is never allowed to render identically to "the list is
+// genuinely empty" (see FULL_STACK_AUDIT_REPORT.md FE-001) — this is the
+// distinct visual/semantic state a screen shows instead once a loader's
+// catch block records an error message. `onRetry` re-runs just that one
+// loader, not a full-page reload.
+export function SectionError({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div
+      role="alert"
+      style={{ padding: "24px", textAlign: "center", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "10px" }}
+    >
+      <p style={{ fontSize: "14px", fontWeight: 700, color: "#B91C1C", marginBottom: "4px" }}>Unable to load this data.</p>
+      <p style={{ fontSize: "13px", color: "#991B1B", marginBottom: onRetry ? "12px" : 0 }}>{message}</p>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="btn"
+          style={{ borderColor: "#FCA5A5", color: "#B91C1C", background: "#fff" }}
+        >
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Same failed-vs-empty distinction as {@link SectionError}, sized to sit
+ * inside a chart's plot area instead of a full table section. */
+export function ChartErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div style={{ height: 220, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", padding: "0 24px", textAlign: "center" }}>
+      <span style={{ color: "#B91C1C", fontSize: "14px", fontWeight: 600 }}>Unable to load this data.</span>
+      <span style={{ color: "#991B1B", fontSize: "13px" }}>{message}</span>
+      {onRetry && (
+        <button type="button" onClick={onRetry} className="btn" style={{ borderColor: "#FCA5A5", color: "#B91C1C", background: "#fff", fontSize: "13px" }}>
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}

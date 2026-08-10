@@ -15,7 +15,7 @@ import { PlacementDashboard } from "./PlacementDashboard";
 import {
   type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
   type StudentInsights, type Placement, type Drive, type PlacementApplication,
-  BASE_CHART_OPTIONS, ChartEmptyState, CompanyLogo, colorForKey, monthKey, monthLabel,
+  BASE_CHART_OPTIONS, ChartEmptyState, SectionError, CompanyLogo, colorForKey, monthKey, monthLabel,
 } from "./collegeAdminShared";
 
 // ApexCharts touches `window` at import time, so it must never run during SSR.
