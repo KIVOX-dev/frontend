@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { List, X, ArrowRight } from "@phosphor-icons/react";
+import { List, X, ArrowRight, CaretDown, GraduationCap, Briefcase, Buildings, ShieldCheck } from "@phosphor-icons/react";
 import { ResponsiveLogo } from "@/components/shared/Logo";
 import { Button, ButtonIconChip } from "@/components/ui/Button";
 
@@ -15,10 +15,30 @@ const navLinks = [
   { label: "Contact", href: "#contact" },
 ];
 
+// The 4 real top-level login audiences — Faculty isn't a separate one, it
+// logs in through the Institution hub alongside Admin and Student.
+const loginRoles = [
+  { label: "Student", href: "/learner", icon: GraduationCap },
+  { label: "HR Team", href: "/hr", icon: Briefcase },
+  { label: "Institution (Admin & Faculty)", href: "/institutional", icon: Buildings },
+  { label: "Super Admin", href: "/superadmin", icon: ShieldCheck },
+];
+
 export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const [activeHref, setActiveHref] = useState<string | null>(null);
+  const loginRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!loginOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (loginRef.current && !loginRef.current.contains(e.target as Node)) setLoginOpen(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [loginOpen]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);

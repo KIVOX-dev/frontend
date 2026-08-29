@@ -4,6 +4,7 @@ import { LandingIconProvider } from "@/components/landing/LandingIconProvider";
 import { SmoothScroll } from "@/components/landing/SmoothScroll";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingHero from "@/components/landing/LandingHero";
+import TrustedByColleges from "@/components/landing/TrustedByColleges";
 import PlatformStats from "@/components/landing/PlatformStats";
 import SolutionsByRole from "@/components/landing/SolutionsByRole";
 import ProductShowcase from "@/components/landing/ProductShowcase";
@@ -40,6 +41,7 @@ export default function Home() {
         <SmoothScroll>
           <LandingNav />
           <LandingHero />
+          <TrustedByColleges />
           <PlatformStats />
           <SolutionsByRole />
           <ProductShowcase />
