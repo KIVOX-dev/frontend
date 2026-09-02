@@ -65,8 +65,14 @@ export default function LandingHero({ audience: audienceKey }: { audience: Audie
 
           {/* Right: real photo for this audience */}
           <div className="relative hidden lg:block">
-            <div className="rounded-[2rem] bg-ink/[0.04] ring-1 ring-ink/5 p-2">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[calc(2rem-0.5rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+            {/* Blue backdrop card, offset behind the photo for a stacked/layered look */}
+            <div
+              className="absolute inset-0 translate-x-8 translate-y-8 rounded-[2rem] bg-primary xl:translate-x-12 xl:translate-y-12"
+              aria-hidden="true"
+            />
+
+            <div className="relative rounded-[2rem] bg-white p-2 shadow-xl ring-1 ring-ink/5">
+              <div className="relative aspect-video overflow-hidden rounded-[calc(2rem-0.5rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
                 <Image
                   src={audience.photo.src}
                   alt={audience.photo.alt}
@@ -77,6 +83,29 @@ export default function LandingHero({ audience: audienceKey }: { audience: Audie
                 />
               </div>
             </div>
+
+            {audience.photo.badges.map((badge, i) => (
+              <motion.div
+                key={badge.label}
+                initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: i === 0 ? -8 : 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ ...entrance, delay: 0.25 + i * 0.1 }}
+                className={`absolute z-10 flex items-center gap-2.5 rounded-2xl border border-line bg-white px-3.5 py-2.5 shadow-dropdown ${
+                  i === 0 ? "-top-4 -right-4 xl:-right-8" : "-bottom-4 -left-4 xl:-left-8"
+                }`}
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <badge.icon className="size-4" weight="bold" />
+                </span>
+                <span className="flex flex-col leading-tight">
+                  <span className="text-sm font-semibold text-ink whitespace-nowrap">{badge.label}</span>
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-success">
+                    <span className="size-1.5 rounded-full bg-success" aria-hidden="true" />
+                    {badge.caption}
+                  </span>
+                </span>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
       </div>

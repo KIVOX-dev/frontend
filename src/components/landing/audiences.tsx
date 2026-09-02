@@ -1,6 +1,13 @@
 import type { ReactNode } from "react";
+import { ChartLineUp, Trophy, MagnifyingGlass, ChartBar, ClipboardText, UsersThree } from "@phosphor-icons/react";
 
 export type AudienceKey = "learner" | "hr" | "institutional";
+
+export type PhotoBadge = {
+  icon: typeof ChartLineUp;
+  label: string;
+  caption: string;
+};
 
 export type AudienceConfig = {
   key: AudienceKey;
@@ -18,7 +25,7 @@ export type AudienceConfig = {
   ctaLabel: string;
   /** Real app route this audience logs into / explores. */
   href: string;
-  photo: { src: string; alt: string };
+  photo: { src: string; alt: string; badges: [PhotoBadge, PhotoBadge] };
 };
 
 // Single source of truth for the 3 audience-specific marketing pages
@@ -47,7 +54,14 @@ export const AUDIENCES: Record<AudienceKey, AudienceConfig> = {
     ],
     ctaLabel: "Explore Learner Platform",
     href: "/learner",
-    photo: { src: "/images/audience/learner.jpg", alt: "Three students laughing together over laptops" },
+    photo: {
+      src: "/images/audience/learner.jpg",
+      alt: "Three students laughing together over laptops",
+      badges: [
+        { icon: ChartLineUp, label: "AI Aptitude Practice", caption: "Instant scoring" },
+        { icon: Trophy, label: "National Leaderboard", caption: "Live ranking" },
+      ],
+    },
   },
   hr: {
     key: "hr",
@@ -69,7 +83,14 @@ export const AUDIENCES: Record<AudienceKey, AudienceConfig> = {
     ],
     ctaLabel: "Explore HR Platform",
     href: "/hr",
-    photo: { src: "/images/audience/hr.jpg", alt: "A happy, diverse team of company staff celebrating together in an office" },
+    photo: {
+      src: "/images/audience/hr.jpg",
+      alt: "A happy, diverse team of company staff celebrating together in an office",
+      badges: [
+        { icon: MagnifyingGlass, label: "AI-Scored Review", caption: "Automated" },
+        { icon: ChartBar, label: "Global Leaderboard", caption: "Live" },
+      ],
+    },
   },
   institutional: {
     key: "institutional",
@@ -91,7 +112,14 @@ export const AUDIENCES: Record<AudienceKey, AudienceConfig> = {
     ],
     ctaLabel: "Explore Institution Platform",
     href: "/institutional",
-    photo: { src: "/images/audience/institutional.jpg", alt: "A college administrator in her office" },
+    photo: {
+      src: "/images/audience/institutional.jpg",
+      alt: "A college administrator in her office",
+      badges: [
+        { icon: ClipboardText, label: "Assessment Suite", caption: "Built-in" },
+        { icon: UsersThree, label: "Department Analytics", caption: "Real-time" },
+      ],
+    },
   },
 };
 
