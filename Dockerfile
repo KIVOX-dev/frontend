@@ -29,6 +29,13 @@ RUN npm run build
 
 # ---- runtime: standalone server only ----
 FROM node:24-alpine AS runtime
+
+# node:24-alpine's Alpine 3.24 package snapshot lags Alpine's security repo —
+# libssl3/libcrypto3 here predate the fix for CVE-2026-14456 (OpenSSL QUIC
+# server unbounded memory growth). Explicit upgrade, same pattern as the
+# within-major pinned overrides in package.json (postcss/sharp/nanoid/dompurify).
+RUN apk update && apk upgrade --no-cache libssl3 libcrypto3
+
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
