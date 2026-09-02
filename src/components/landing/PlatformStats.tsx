@@ -2,7 +2,6 @@
 
 import { useRef, useEffect, useState } from "react";
 import { motion, useInView } from "framer-motion";
-import { Card } from "@/components/ui/Card";
 
 const stats = [
   { value: "50,000+", label: "Students Managed" },
@@ -40,27 +39,30 @@ function AnimatedCounter({ value, inView }: { value: string; inView: boolean }) 
   return <>{display}</>;
 }
 
+// Dark full-bleed stat bar — matches Coursera's own treatment (see
+// coursera.org/campus: a near-black bar with big white numbers, thin
+// vertical dividers, and small muted-gray captions) rather than the
+// light card-grid style used elsewhere on this page.
 export default function PlatformStats() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="bg-[var(--color-bg-secondary)] ui-section border-t border-line">
+    <section ref={ref} className="bg-[#0d0f12] py-14 lg:py-16">
       <div className="ui-container">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4">
           {stats.map((s, i) => (
             <motion.div
               key={s.label}
               initial={{ opacity: 0, y: 16 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.06 * i, ease: [0.16, 1, 0.3, 1] }}
+              className={`px-6 py-2 first:pl-0 ${i > 0 ? "lg:border-l lg:border-white/10" : ""}`}
             >
-              <Card className="text-center py-8">
-                <p className="text-heading-l tabular-nums mb-1">
-                  <AnimatedCounter value={s.value} inView={inView} />
-                </p>
-                <p className="text-small">{s.label}</p>
-              </Card>
+              <p className="text-heading-l text-white tabular-nums mb-1">
+                <AnimatedCounter value={s.value} inView={inView} />
+              </p>
+              <p className="text-small text-white/50">{s.label}</p>
             </motion.div>
           ))}
         </div>

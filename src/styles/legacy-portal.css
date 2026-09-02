@@ -13,13 +13,13 @@
   --ink: #111827;
   --ink-hover: #1F2937;
 
-  /* ── Accent: spec primary green, used for buttons, state & data ink ── */
-  --accent: #2DAA1F;
-  --accent2: #239117;
-  --accent-l: rgba(45, 170, 31, .08);
+  /* ── Accent: Coursera-parity primary blue, used for buttons, state & data ink ── */
+  --accent: #0056D2;
+  --accent2: #0B408B;
+  --accent-l: rgba(0, 86, 210, .08);
 
-  --green: #2DAA1F;
-  --green-l: rgba(45, 170, 31, .08);
+  --green: #0056D2;
+  --green-l: rgba(0, 86, 210, .08);
   --purple: #4B5563;
   --purple-l: rgba(75, 85, 99, .07);
   --amber: #F59E0B;
@@ -201,7 +201,7 @@ a:focus-visible,
 .lp-left {
   width: 420px;
   flex-shrink: 0;
-  background: linear-gradient(150deg, #0E3D09 0%, #1B7212 45%, #2DAA1F 80%, #4FB840 100%);
+  background: linear-gradient(150deg, #002457 0%, #0B408B 45%, #0056D2 80%, #5B9DFC 100%);
   display: flex;
   flex-direction: column;
   padding: 40px 38px;
@@ -469,7 +469,7 @@ a:focus-visible,
 
 .fi:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(45, 170, 31, .1)
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, .1)
 }
 
 .fi::placeholder {
@@ -550,7 +550,7 @@ a:focus-visible,
 .l-submit-red {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: white;
-  box-shadow: 0 4px 18px rgba(45, 170, 31, 0.2);
+  box-shadow: 0 4px 18px rgba(0, 86, 210, 0.2);
   border: none;
   border-radius: 14px;
   font-weight: 600;
@@ -568,7 +568,7 @@ a:focus-visible,
 .l-submit-teal:hover,
 .l-submit-red:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(45, 170, 31, 0.35);
+  box-shadow: 0 8px 25px rgba(0, 86, 210, 0.35);
   filter: brightness(1.05);
 }
 
@@ -600,7 +600,7 @@ a:focus-visible,
 .fi-select:hover {
   border-color: var(--accent);
   background: white;
-  box-shadow: 0 8px 24px rgba(45, 170, 31, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 86, 210, 0.08);
   transform: translateY(-1px);
 }
 
@@ -630,7 +630,7 @@ a:focus-visible,
 .sk-dropdown-trigger:hover {
   border-color: var(--accent);
   background: white;
-  box-shadow: 0 8px 24px rgba(45, 170, 31, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 86, 210, 0.08);
   transform: translateY(-1px);
 }
 
@@ -638,7 +638,7 @@ a:focus-visible,
   border-color: var(--accent);
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 4px 12px rgba(45, 170, 31, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 86, 210, 0.1);
 }
 
 .sk-dropdown-trigger svg {
@@ -883,7 +883,7 @@ a:focus-visible,
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 3px 10px rgba(45, 170, 31, .22)
+  box-shadow: 0 3px 10px rgba(0, 86, 210, .22)
 }
 
 .logo-mark svg {
@@ -941,7 +941,7 @@ a:focus-visible,
 .nav-item.active {
   background: var(--accent-l);
   color: var(--accent);
-  border-color: rgba(45, 170, 31, .14)
+  border-color: rgba(0, 86, 210, .14)
 }
 
 .nav-item svg {
@@ -983,8 +983,8 @@ a:focus-visible,
 }
 
 .plan-strip {
-  background: linear-gradient(135deg, rgba(45, 170, 31, .08), rgba(7, 26, 77, .07));
-  border: 1px solid rgba(45, 170, 31, .15);
+  background: linear-gradient(135deg, rgba(0, 86, 210, .08), rgba(7, 26, 77, .07));
+  border: 1px solid rgba(0, 86, 210, .15);
   border-radius: var(--r2);
   padding: 10px 12px;
   margin-bottom: 8px;
@@ -1075,7 +1075,7 @@ a:focus-visible,
 
 .sw input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(45, 170, 31, .08)
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, .08)
 }
 
 .sw input::placeholder {
@@ -1229,12 +1229,12 @@ a:focus-visible,
 .btn-p {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: white;
-  box-shadow: 0 3px 12px rgba(45, 170, 31, .24)
+  box-shadow: 0 3px 12px rgba(0, 86, 210, .24)
 }
 
 .btn-p:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 18px rgba(45, 170, 31, .34)
+  box-shadow: 0 5px 18px rgba(0, 86, 210, .34)
 }
 
 .btn-o {
@@ -1324,13 +1324,13 @@ a:focus-visible,
 
 /* Hero */
 .hero {
-  background: linear-gradient(135deg, #0E3D09 0%, var(--accent) 50%, var(--teal) 100%);
+  background: linear-gradient(135deg, #002457 0%, var(--accent) 50%, var(--teal) 100%);
   border-radius: var(--r);
   padding: 26px 28px;
   margin-bottom: 20px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 28px rgba(45, 170, 31, .22)
+  box-shadow: 0 8px 28px rgba(0, 86, 210, .22)
 }
 
 .hero::before {
@@ -1482,7 +1482,7 @@ a:focus-visible,
 }
 
 .sc:hover {
-  border-color: rgba(45, 170, 31, .2);
+  border-color: rgba(0, 86, 210, .2);
   box-shadow: var(--sh2);
   transform: translateY(-1px)
 }
@@ -1623,7 +1623,7 @@ tbody tr:hover td {
 .bb {
   background: var(--accent-l);
   color: var(--accent);
-  border: 1px solid rgba(45, 170, 31, .2)
+  border: 1px solid rgba(0, 86, 210, .2)
 }
 
 .bp {
@@ -1647,7 +1647,7 @@ tbody tr:hover td {
 .bpk {
   background: var(--pink-l);
   color: var(--pink);
-  border: 1px solid rgba(45, 170, 31, .2)
+  border: 1px solid rgba(0, 86, 210, .2)
 }
 
 /* Progress */
@@ -1865,7 +1865,7 @@ tbody tr:hover td {
 .lb-item.active {
   background: linear-gradient(90deg, var(--accent-l), var(--surface));
   border-color: var(--accent);
-  box-shadow: 0 4px 16px rgba(45, 170, 31, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 86, 210, 0.1);
 }
 
 .lb-rank {
@@ -1940,12 +1940,12 @@ tbody tr:hover td {
 .qopt:hover {
   background: var(--surface);
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(45, 170, 31, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 86, 210, 0.08);
   transform: translateX(4px);
 }
 
 .qopt.active {
-  background: rgba(45, 170, 31, 0.08);
+  background: rgba(0, 86, 210, 0.08);
   border-color: var(--accent);
 }
 
@@ -2009,7 +2009,7 @@ tbody tr:hover td {
 }
 
 .qopt.active {
-  background: rgba(45, 170, 31, 0.08);
+  background: rgba(0, 86, 210, 0.08);
   border-color: var(--accent);
 }
 
@@ -2062,7 +2062,7 @@ tbody tr:hover td {
 }
 
 .boxplot-box {
-  fill: rgba(45, 170, 31, 0.1);
+  fill: rgba(0, 86, 210, 0.1);
   stroke: var(--accent);
   stroke-width: 2;
 }
@@ -2418,7 +2418,7 @@ tbody tr:hover td {
 
 .aip {
   background: var(--surface);
-  border: 1.5px solid rgba(45, 170, 31, .16);
+  border: 1.5px solid rgba(0, 86, 210, .16);
   border-radius: var(--r);
   padding: 16px;
   overflow-y: auto;
@@ -2442,7 +2442,7 @@ tbody tr:hover td {
 
 .exp-card {
   background: var(--accent-l);
-  border: 1px solid rgba(45, 170, 31, .14);
+  border: 1px solid rgba(0, 86, 210, .14);
   border-radius: var(--r2);
   padding: 12px 14px;
   display: none;
@@ -2477,7 +2477,7 @@ tbody tr:hover td {
 
 /* Profile */
 .prh {
-  background: linear-gradient(135deg, #0E3D09, var(--accent));
+  background: linear-gradient(135deg, #002457, var(--accent));
   border-radius: var(--r);
   padding: 22px 24px;
   margin-bottom: 16px;
@@ -2486,7 +2486,7 @@ tbody tr:hover td {
   gap: 16px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 6px 24px rgba(45, 170, 31, .2)
+  box-shadow: 0 6px 24px rgba(0, 86, 210, .2)
 }
 
 .prh::after {
@@ -2663,7 +2663,7 @@ tbody tr:hover td {
 }
 
 .mncc:hover {
-  border-color: rgba(45, 170, 31, .25);
+  border-color: rgba(0, 86, 210, .25);
   transform: translateY(-2px);
   box-shadow: var(--sh2)
 }
@@ -2728,7 +2728,7 @@ tbody tr:hover td {
 }
 
 .vcard:hover {
-  border-color: rgba(45, 170, 31, .22);
+  border-color: rgba(0, 86, 210, .22);
   box-shadow: var(--sh2)
 }
 
@@ -2763,7 +2763,7 @@ tbody tr:hover td {
 }
 
 .rcard:hover {
-  border-color: rgba(45, 170, 31, .2);
+  border-color: rgba(0, 86, 210, .2);
   box-shadow: var(--sh2)
 }
 
@@ -2785,7 +2785,7 @@ tbody tr:hover td {
   border-radius: var(--r2);
   padding: 10px;
   margin: 0 -6px;
-  border-color: rgba(45, 170, 31, .14)
+  border-color: rgba(0, 86, 210, .14)
 }
 
 .lbrk {
@@ -2917,9 +2917,9 @@ tbody tr:hover td {
 }
 
 .pcard.pro {
-  background: linear-gradient(145deg, rgba(45, 170, 31, .05), rgba(7, 26, 77, .04));
-  border-color: rgba(45, 170, 31, .2);
-  box-shadow: 0 0 0 3px rgba(45, 170, 31, .06), var(--sh2)
+  background: linear-gradient(145deg, rgba(0, 86, 210, .05), rgba(7, 26, 77, .04));
+  border-color: rgba(0, 86, 210, .2);
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, .06), var(--sh2)
 }
 
 .pcard.pro::before {
@@ -3042,7 +3042,7 @@ tbody tr:hover td {
 
 /* Admin */
 .adm-hdr {
-  background: linear-gradient(135deg, rgba(45, 170, 31, .07), rgba(239, 68, 68, .05));
+  background: linear-gradient(135deg, rgba(0, 86, 210, .07), rgba(239, 68, 68, .05));
   border: 1px solid rgba(239, 68, 68, .18);
   border-radius: var(--r);
   padding: 16px 18px;
@@ -3370,7 +3370,7 @@ tbody tr:hover td {
 }
 
 .iv-topbar {
-  background: linear-gradient(135deg, rgba(7, 26, 77, .12), rgba(45, 170, 31, .07));
+  background: linear-gradient(135deg, rgba(7, 26, 77, .12), rgba(0, 86, 210, .07));
   border-bottom: 1px solid var(--border);
   padding: 12px 16px;
   display: flex;
@@ -3436,7 +3436,7 @@ tbody tr:hover td {
 }
 
 .pmodal-hero {
-  background: linear-gradient(135deg, #0E3D09, var(--accent));
+  background: linear-gradient(135deg, #002457, var(--accent));
   padding: 20px 22px;
   display: flex;
   align-items: center;
@@ -3687,7 +3687,7 @@ tbody tr:hover td {
 }
 
 .fp-hero {
-  background: linear-gradient(135deg, #0E3D09, var(--teal));
+  background: linear-gradient(135deg, #002457, var(--teal));
   border-radius: var(--r);
   padding: 22px 26px;
   margin-bottom: 22px;
@@ -3885,7 +3885,7 @@ tbody tr:hover td {
   gap: 4px;
   background: var(--accent-l);
   color: var(--accent);
-  border: 1px solid rgba(45, 170, 31, .16);
+  border: 1px solid rgba(0, 86, 210, .16);
   border-radius: 12px;
   padding: 2px 8px;
   font-size: 10px;
@@ -3964,7 +3964,7 @@ tbody tr:hover td {
 
 /* ════════ COLLEGE ADMIN MODULE ════════ */
 .cadm-hero {
-  background: linear-gradient(135deg, #0E3D09 0%, #2DAA1F 55%, #1B7212 100%);
+  background: linear-gradient(135deg, #002457 0%, #0056D2 55%, #0B408B 100%);
   border-radius: var(--r);
   padding: 22px 26px;
   margin-bottom: 22px;
@@ -4039,7 +4039,7 @@ tbody tr:hover td {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: white;
   border-color: transparent;
-  box-shadow: 0 3px 10px rgba(45, 170, 31, .25)
+  box-shadow: 0 3px 10px rgba(0, 86, 210, .25)
 }
 
 .score-cell {
@@ -4139,7 +4139,7 @@ tbody tr:hover td {
 }
 
 .cadm-sc:hover {
-  border-color: rgba(45, 170, 31, .2);
+  border-color: rgba(0, 86, 210, .2);
   transform: translateY(-1px);
   box-shadow: var(--sh2)
 }
@@ -4234,7 +4234,7 @@ tbody tr:hover td {
 .cpill-blue {
   background: var(--accent-l);
   color: var(--accent);
-  border: 1px solid rgba(45, 170, 31, .2)
+  border: 1px solid rgba(0, 86, 210, .2)
 }
 
 .cpill-amber {
@@ -4379,7 +4379,7 @@ tbody tr:hover td {
 }
 
 .job-card-c:hover {
-  border-color: rgba(45, 170, 31, .22);
+  border-color: rgba(0, 86, 210, .22);
   box-shadow: var(--sh2)
 }
 
@@ -4436,7 +4436,7 @@ tbody tr:hover td {
 }
 
 .ev-card:hover {
-  border-color: rgba(45, 170, 31, .22);
+  border-color: rgba(0, 86, 210, .22);
   box-shadow: var(--sh2)
 }
 
@@ -4498,7 +4498,7 @@ tbody tr:hover td {
 }
 
 .imp-res:hover {
-  border-color: rgba(45, 170, 31, .22)
+  border-color: rgba(0, 86, 210, .22)
 }
 
 .imp-tag {
@@ -4640,7 +4640,7 @@ tbody tr:hover td {
 }
 
 .appr-avatar.cadm {
-  background: linear-gradient(135deg, #2DAA1F, #1B7212)
+  background: linear-gradient(135deg, #0056D2, #0B408B)
 }
 
 .appr-name {
@@ -5267,7 +5267,7 @@ body.mobile-view #frole-cadmin {
 }
 
 .mncc:hover {
-  border-color: rgba(45, 170, 31, .25);
+  border-color: rgba(0, 86, 210, .25);
   transform: translateY(-2px);
   box-shadow: var(--sh2);
 }
@@ -5516,7 +5516,7 @@ body.mobile-view #frole-cadmin {
 .sk-stu-card:hover {
   transform: translateY(-4px);
   border-color: var(--accent);
-  box-shadow: 0 8px 24px rgba(45, 170, 31, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 86, 210, 0.12);
 }
 
 .sk-avatar-mini {
@@ -5623,7 +5623,7 @@ body.mobile-view #frole-cadmin {
 }
 
 .sk-glass-table tr:hover td {
-  background: rgba(45, 170, 31, 0.04);
+  background: rgba(0, 86, 210, 0.04);
 }
 
 .sk-table-avatar {
@@ -5721,7 +5721,7 @@ body.mobile-view #frole-cadmin {
 .id-toggle-btn.active {
   background: var(--accent);
   color: white;
-  box-shadow: 0 4px 12px rgba(45, 170, 31, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 86, 210, 0.3);
 }
 
 /* AI Status Pulse */
@@ -5829,7 +5829,7 @@ body.mobile-view #frole-cadmin {
   transform: translateY(-4px) scale(1.05);
   color: white;
   border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 12px 40px rgba(45, 170, 31, 0.3),
+  box-shadow: 0 12px 40px rgba(0, 86, 210, 0.3),
     0 0 20px rgba(7, 26, 77, 0.2);
 }
 
@@ -5849,15 +5849,15 @@ body.mobile-view #frole-cadmin {
 
 @keyframes sk-pulse-admin {
   0% {
-    box-shadow: 0 0 0 0 rgba(45, 170, 31, 0.4);
+    box-shadow: 0 0 0 0 rgba(0, 86, 210, 0.4);
   }
 
   70% {
-    box-shadow: 0 0 0 15px rgba(45, 170, 31, 0);
+    box-shadow: 0 0 0 15px rgba(0, 86, 210, 0);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(45, 170, 31, 0);
+    box-shadow: 0 0 0 0 rgba(0, 86, 210, 0);
   }
 }
 
@@ -5980,7 +5980,7 @@ body.mobile-view #frole-cadmin {
   font-weight: 600;
   cursor: pointer;
   transition: all .18s;
-  border: 1.5px solid rgba(45, 170, 31, .15);
+  border: 1.5px solid rgba(0, 86, 210, .15);
 }
 
 .settings-avatar-actions label:hover {
@@ -6035,7 +6035,7 @@ body.mobile-view #frole-cadmin {
 .settings-field input:focus,
 .settings-field textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(45, 170, 31, .1);
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, .1);
   outline: none;
   background: var(--surface);
 }
@@ -6096,7 +6096,7 @@ body.mobile-view #frole-cadmin {
 
 .badge-chip-expert {
   background: rgba(7, 26, 77, .1);
-  color: #1B7212;
+  color: #0B408B;
   border-color: rgba(7, 26, 77, .25);
 }
 
@@ -6107,9 +6107,9 @@ body.mobile-view #frole-cadmin {
 }
 
 .badge-chip-proficient {
-  background: rgba(45, 170, 31, .1);
+  background: rgba(0, 86, 210, .1);
   color: var(--accent);
-  border-color: rgba(45, 170, 31, .25);
+  border-color: rgba(0, 86, 210, .25);
 }
 
 .badge-chip-beginner {
@@ -6146,12 +6146,12 @@ body.mobile-view #frole-cadmin {
   font-weight: 700;
   cursor: pointer;
   transition: all .22s;
-  box-shadow: 0 4px 14px rgba(45, 170, 31, .22);
+  box-shadow: 0 4px 14px rgba(0, 86, 210, .22);
 }
 
 .settings-save-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(45, 170, 31, .32);
+  box-shadow: 0 8px 22px rgba(0, 86, 210, .32);
   filter: brightness(1.06);
 }
 
@@ -6417,12 +6417,12 @@ body.mobile-view #frole-cadmin {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 8px 24px rgba(45, 170, 31, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 86, 210, 0.2);
 }
 
 .settings-save-creative:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(45, 170, 31, 0.3);
+  box-shadow: 0 12px 32px rgba(0, 86, 210, 0.3);
 }
 
 .settings-avatar-row-creative {
@@ -6586,7 +6586,7 @@ body.mobile-view #frole-cadmin {
   left: 0;
   width: 100%;
   height: 50%;
-  background: linear-gradient(to bottom, transparent, rgba(45, 170, 31, 0.1), transparent);
+  background: linear-gradient(to bottom, transparent, rgba(0, 86, 210, 0.1), transparent);
   animation: vaultScan 4s infinite linear;
 }
 
@@ -6953,7 +6953,7 @@ body.mobile-view #frole-cadmin {
 
 .lb-badge-expert {
   background: #F5F3FF;
-  color: #2DAA1F;
+  color: #0056D2;
 }
 
 .lb-badge-adv {

@@ -972,7 +972,7 @@ export function SuperAdminDashboard() {
               </button>
               <button
                 onClick={handleCreateSave}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-xs transition-colors"
+                className="px-4 py-2 bg-primary hover:bg-[var(--color-primary-hover)] text-white rounded-lg font-medium shadow-xs transition-colors"
               >
                 Create User
               </button>
@@ -1060,7 +1060,7 @@ export function SuperAdminDashboard() {
               </button>
               <button
                 onClick={handleCreateInstitution}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-xs transition-colors"
+                className="px-4 py-2 bg-primary hover:bg-[var(--color-primary-hover)] text-white rounded-lg font-medium shadow-xs transition-colors"
               >
                 Create Institution
               </button>

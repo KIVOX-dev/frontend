@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { List, X, ArrowRight, CaretDown, GraduationCap, Briefcase, Buildings, ShieldCheck } from "@phosphor-icons/react";
+import { List, X, ArrowRight, CaretDown, GraduationCap, Briefcase, Buildings, ShieldCheck, MagnifyingGlass, Sparkle } from "@phosphor-icons/react";
 import { ResponsiveLogo } from "@/components/shared/Logo";
 import { Button, ButtonIconChip } from "@/components/ui/Button";
+import { AUDIENCES, type AudienceKey } from "./audiences";
 
 const navLinks = [
   { label: "Platform", href: "#platform" },
@@ -24,7 +25,8 @@ const loginRoles = [
   { label: "Super Admin", href: "/superadmin", icon: ShieldCheck },
 ];
 
-export default function LandingNav() {
+export default function LandingNav({ audience: audienceKey }: { audience: AudienceKey }) {
+  const audience = AUDIENCES[audienceKey];
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -70,48 +72,116 @@ export default function LandingNav() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
+      className={`sticky top-0 z-50 bg-white transition-colors duration-300 ${
         scrolled
           ? "bg-white/90 backdrop-blur-md border-b border-line shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-          : "bg-transparent border-b border-transparent"
+          : "border-b border-line-soft"
       }`}
     >
       <div className="ui-container">
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
-          <Link href="/" className="flex items-center shrink-0">
+          <Link href={audience.path} className="flex items-center gap-2 shrink-0">
             <ResponsiveLogo height={40} priority />
+            {audience.navSuffix && (
+              <span className="hidden sm:inline text-lg text-ink-muted font-medium">{audience.navSuffix}</span>
+            )}
           </Link>
 
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const isActive = activeHref === link.href;
-              return (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  aria-current={isActive ? "true" : undefined}
-                  className={`relative px-3.5 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
-                    isActive ? "text-ink" : "text-ink-muted hover:text-ink"
-                  }`}
-                >
-                  {link.label}
-                  {isActive && (
-                    <span className="absolute bottom-1 left-3.5 right-3.5 h-[2px] rounded-full bg-primary" />
-                  )}
-                </a>
-              );
-            })}
-          </div>
+          {audienceKey === "learner" ? (
+            // Root nav mirrors coursera.org's own homepage: "Explore" +
+            // a real search input, not the Platform/Solutions/... link row
+            // used on the /for-hr and /for-institutions pages (which mirror
+            // coursera.org/business and /campus instead).
+            <div className="hidden md:flex items-center gap-4 flex-1 max-w-xl mx-8">
+              <a href="#platform" className="flex items-center gap-1 text-sm font-medium text-ink-muted hover:text-ink shrink-0 transition-colors">
+                Explore
+                <CaretDown className="size-3" />
+              </a>
+              <label className="relative flex-1">
+                <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-faint" />
+                <input
+                  type="search"
+                  placeholder="What do you want to practice?"
+                  className="w-full h-10 rounded-full border border-line bg-[var(--color-sidebar)] pl-10 pr-4 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </label>
+            </div>
+          ) : (
+            <div className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => {
+                const isActive = activeHref === link.href;
+                return (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    aria-current={isActive ? "true" : undefined}
+                    className={`relative px-3.5 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+                      isActive ? "text-ink" : "text-ink-muted hover:text-ink"
+                    }`}
+                  >
+                    {link.label}
+                    {isActive && (
+                      <span className="absolute bottom-1 left-3.5 right-3.5 h-[2px] rounded-full bg-primary" />
+                    )}
+                  </a>
+                );
+              })}
+            </div>
+          )}
 
           <div className="hidden md:flex items-center gap-2">
-            <Link href="/learner">
-              <Button variant="ghost" size="sm" shape="pill">
-                Login
+            {audienceKey === "learner" && (
+              <button
+                type="button"
+                aria-label="Ask UpScaler AI"
+                className="flex items-center justify-center size-9 rounded-full text-[var(--color-accent-purple-600)] hover:bg-[var(--color-accent-purple-25)] transition-colors shrink-0"
+              >
+                <Sparkle className="size-[18px]" weight="fill" />
+              </button>
+            )}
+            <div className="relative" ref={loginRef}>
+              <Button
+                variant="ghost"
+                size="sm"
+                shape="pill"
+                onClick={() => setLoginOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={loginOpen}
+                className="group"
+              >
+                Log In
+                <CaretDown className={`size-3.5 transition-transform duration-200 ${loginOpen ? "rotate-180" : ""}`} />
               </Button>
-            </Link>
+
+              <AnimatePresence>
+                {loginOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                    role="menu"
+                    className="absolute right-0 top-[calc(100%+8px)] w-64 rounded-lg border border-line bg-white p-1.5 shadow-dropdown"
+                  >
+                    {loginRoles.map((role) => (
+                      <Link
+                        key={role.label}
+                        href={role.href}
+                        role="menuitem"
+                        onClick={() => setLoginOpen(false)}
+                        className="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium text-ink-muted hover:bg-paper-tint hover:text-ink transition-colors duration-150"
+                      >
+                        <role.icon className="size-4 text-primary shrink-0" />
+                        {role.label}
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <Link href="#contact">
               <Button size="sm" shape="pill" className="group pr-1.5">
-                Request Demo
+                {audience.navCtaLabel}
                 <ButtonIconChip className="size-5">
                   <ArrowRight className="size-3" />
                 </ButtonIconChip>
@@ -150,15 +220,26 @@ export default function LandingNav() {
                   {link.label}
                 </a>
               ))}
+              <div className="pt-4 mt-2 border-t border-line flex flex-col gap-1">
+                <p className="text-ink-faint text-[11px] font-extrabold uppercase tracking-looser px-1 mb-1">
+                  Log In
+                </p>
+                {loginRoles.map((role) => (
+                  <Link
+                    key={role.label}
+                    href={role.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2.5 rounded-md px-2 py-2.5 text-ink-muted hover:text-ink hover:bg-paper-tint font-medium transition-colors"
+                  >
+                    <role.icon className="size-4 text-primary shrink-0" />
+                    {role.label}
+                  </Link>
+                ))}
+              </div>
               <div className="pt-4 mt-2 border-t border-line flex flex-col gap-2">
-                <Link href="/learner" onClick={() => setMenuOpen(false)}>
-                  <Button variant="secondary" shape="pill" className="w-full justify-center">
-                    Login
-                  </Button>
-                </Link>
                 <Link href="#contact" onClick={() => setMenuOpen(false)}>
                   <Button shape="pill" className="w-full justify-center">
-                    Request Demo
+                    {audience.navCtaLabel}
                   </Button>
                 </Link>
               </div>

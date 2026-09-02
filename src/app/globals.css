@@ -49,6 +49,22 @@
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
 
+  /* Coursera doesn't run on blue alone — purple marks their AI-assistant
+     moments ("Ask Coursera") and pink/magenta marks promo badges/tags. Real
+     values pulled from their own purple and pink color tokens, used
+     sparingly (chips, small badges) — --primary blue stays the only color
+     driving buttons/links/nav. */
+  --color-accent-purple-25: #f9f5ff;
+  --color-accent-purple-50: #efe5ff;
+  --color-accent-purple-100: #e8d6ff;
+  --color-accent-purple-600: #804ee4;
+  --color-accent-purple-700: #793ae4;
+  --color-accent-pink-50: #ffe0f9;
+  --color-accent-pink-100: #ffccf5;
+  --color-accent-pink-500: #e33ac7;
+  --color-accent-pink-600: #df24c3;
+  --color-accent-pink-700: #c3229e;
+
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
 
@@ -82,21 +98,21 @@
   --color-line-soft: #edeef0;
   --color-line-strong: #d1d5db;
 
-  --color-forest-50: #eaf7e8;
-  --color-forest-100: #d3efcf;
-  --color-forest-200: #a8df9f;
-  --color-forest-300: #7ccb70;
-  --color-forest-400: #4fb840;
-  --color-forest-500: #2daa1f;
-  --color-forest-600: #239117;
-  --color-forest-700: #1b7212;
-  --color-forest-800: #14550d;
-  --color-forest-900: #0e3d09;
-  --color-forest: #2daa1f;
+  --color-forest-50: #e3eeff;
+  --color-forest-100: #cfe2ff;
+  --color-forest-200: #adcfff;
+  --color-forest-300: #87b8ff;
+  --color-forest-400: #5b9dfc;
+  --color-forest-500: #3587fc;
+  --color-forest-600: #227af9;
+  --color-forest-700: #136ef0;
+  --color-forest-800: #0056d2;
+  --color-forest-900: #0d2f60;
+  --color-forest: #0056d2;
 
-  --color-emerald-brand: #2daa1f;
-  --color-emerald-light: #d3efcf;
-  --color-emerald-glow: rgba(45, 170, 31, 0.18);
+  --color-emerald-brand: #0056d2;
+  --color-emerald-light: #cfe2ff;
+  --color-emerald-glow: rgba(0, 86, 210, 0.18);
 
   --color-jet-50: #1a1a1a;
   --color-jet-100: #111111;
@@ -106,15 +122,15 @@
   --color-off-white: #fafaf9;
   --color-gray-muted: #6b7280;
 
-  --color-scale-50: #eaf7e8;
-  --color-scale-100: #d3efcf;
-  --color-scale-300: #7ccb70;
-  --color-scale-400: #4fb840;
-  --color-scale-500: #2daa1f;
-  --color-scale-600: #239117;
-  --color-scale-900: #14300f;
-  --color-scale-950: #0e3d09;
-  --color-scale: #2daa1f;
+  --color-scale-50: #e3eeff;
+  --color-scale-100: #cfe2ff;
+  --color-scale-300: #87b8ff;
+  --color-scale-400: #5b9dfc;
+  --color-scale-500: #3587fc;
+  --color-scale-600: #227af9;
+  --color-scale-900: #0d2f60;
+  --color-scale-950: #002457;
+  --color-scale: #0056d2;
 
   --color-scale-ink: #111827;
   --color-scale-ink-muted: #6b7280;
@@ -126,8 +142,8 @@
   --color-scale-line: #e5e7eb;
 
   --color-nova-text: #f7f7f5;
-  --color-nova-text-muted: #d3efcf;
-  --color-nova-text-faint: #a8df9f;
+  --color-nova-text-muted: #cfe2ff;
+  --color-nova-text-faint: #adcfff;
 
   --color-nova-line: rgba(255, 255, 255, 0.1);
   --color-nova-line-strong: rgba(255, 255, 255, 0.18);
@@ -135,7 +151,7 @@
   /* ── Spec design system — clean semantic aliases the new ui/ primitives
      and the rebuilt landing page reach for directly, instead of the
      legacy forest/scale/nova ramp names above. ── */
-  --color-primary-hover: #239117;
+  --color-primary-hover: #0b408b;
   --color-bg-secondary: #fafaf9;
   --color-sidebar: #f7f7f5;
   --color-text-primary: #111827;
@@ -190,8 +206,8 @@
 
   --background-image-green-gradient: linear-gradient(
     135deg,
-    #1b7212 0%,
-    #2daa1f 100%
+    #0b408b 0%,
+    #0056d2 100%
   );
   --background-image-ink-gradient: linear-gradient(
     135deg,
@@ -200,68 +216,68 @@
   );
   --background-image-hero-mesh: radial-gradient(
     ellipse 70% 55% at 50% -10%,
-    rgba(45, 170, 31, 0.08) 0%,
+    rgba(0, 86, 210, 0.08) 0%,
     transparent 65%
   );
   --background-image-cta-glow: radial-gradient(
     ellipse 65% 60% at 50% 50%,
-    rgba(45, 170, 31, 0.1) 0%,
+    rgba(0, 86, 210, 0.1) 0%,
     transparent 72%
   );
   --background-image-card-shine: linear-gradient(
     135deg,
-    rgba(45, 170, 31, 0.03) 0%,
+    rgba(0, 86, 210, 0.03) 0%,
     rgba(255, 255, 255, 0) 58%
   );
   --background-image-grid-faint:
-    linear-gradient(rgba(45, 170, 31, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(45, 170, 31, 0.035) 1px, transparent 1px);
+    linear-gradient(rgba(0, 86, 210, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 86, 210, 0.035) 1px, transparent 1px);
   --background-image-scale-gradient: linear-gradient(
     135deg,
-    #1b7212 0%,
-    #2daa1f 100%
+    #0b408b 0%,
+    #0056d2 100%
   );
   --background-image-scale-glow: radial-gradient(
     ellipse 65% 60% at 50% 50%,
-    rgba(45, 170, 31, 0.14) 0%,
+    rgba(0, 86, 210, 0.14) 0%,
     transparent 72%
   );
   --background-image-nova-hero-gradient: linear-gradient(
     135deg,
-    #2daa1f 0%,
-    #4fb840 55%,
-    #7ccb70 100%
+    #0056d2 0%,
+    #5b9dfc 55%,
+    #87b8ff 100%
   );
   --background-image-nova-card-gradient: linear-gradient(
     180deg,
-    #14300f 0%,
-    #0e3d09 100%
+    #0d2f60 0%,
+    #002457 100%
   );
   --background-image-nova-btn-gradient: linear-gradient(
     90deg,
-    #2daa1f 0%,
-    #4fb840 100%
+    #0056d2 0%,
+    #5b9dfc 100%
   );
   --background-image-nova-aurora-1: radial-gradient(
     circle,
-    rgba(45, 170, 31, 0.3) 0%,
+    rgba(0, 86, 210, 0.3) 0%,
     transparent 70%
   );
   --background-image-nova-aurora-2: radial-gradient(
     circle,
-    rgba(45, 170, 31, 0.2) 0%,
+    rgba(0, 86, 210, 0.2) 0%,
     transparent 70%
   );
   --background-image-nova-aurora-3: radial-gradient(
     circle,
-    rgba(79, 184, 64, 0.18) 0%,
+    rgba(91, 157, 252, 0.18) 0%,
     transparent 70%
   );
   --background-image-nova-grid:
     linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
 
-  --shadow-hair: 0 0 0 1px rgba(45, 170, 31, 0.06);
+  --shadow-hair: 0 0 0 1px rgba(0, 86, 210, 0.06);
   /* Softer, more diffused two-layer "airy floating" shadow — a tight,
      barely-there near shadow plus a large soft far shadow, tinted
      toward ink rather than pure black. Replaces the previous flat
@@ -273,17 +289,17 @@
     0 1px 2px rgba(17, 24, 39, 0.14), 0 6px 18px rgba(17, 24, 39, 0.16);
   --shadow-ink-hover:
     0 2px 4px rgba(17, 24, 39, 0.18), 0 12px 28px rgba(17, 24, 39, 0.22);
-  --shadow-green-ring: 0 0 0 3px rgba(45, 170, 31, 0.16);
-  --shadow-green-glow: 0 6px 22px rgba(45, 170, 31, 0.18);
-  --shadow-green-glow-sm: 0 3px 12px rgba(45, 170, 31, 0.16);
+  --shadow-green-ring: 0 0 0 3px rgba(0, 86, 210, 0.16);
+  --shadow-green-glow: 0 6px 22px rgba(0, 86, 210, 0.18);
+  --shadow-green-glow-sm: 0 3px 12px rgba(0, 86, 210, 0.16);
   --shadow-dark-card: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-scale-card: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-scale-illustration: 0 10px 30px rgba(0, 0, 0, 0.12);
-  --shadow-scale-btn: 0 6px 20px rgba(45, 170, 31, 0.28);
+  --shadow-scale-btn: 0 6px 20px rgba(0, 86, 210, 0.28);
   --shadow-nova-glass: 0 10px 30px rgba(0, 0, 0, 0.12);
   --shadow-nova-glass-hover: 0 10px 30px rgba(0, 0, 0, 0.14);
-  --shadow-nova-btn-glow: 0 6px 20px rgba(45, 170, 31, 0.28);
-  --shadow-nova-btn-glow-lg: 0 8px 24px rgba(45, 170, 31, 0.34);
+  --shadow-nova-btn-glow: 0 6px 20px rgba(0, 86, 210, 0.28);
+  --shadow-nova-btn-glow-lg: 0 8px 24px rgba(0, 86, 210, 0.34);
 
   /* ── Spec shadow system — named exactly per spec, for the new ui/
      primitives (Card / Modal / Dropdown). Same soft, diffused, ink-
@@ -319,13 +335,13 @@
   }
   @keyframes pulse-ring {
     0% {
-      box-shadow: 0 0 0 0 rgba(45, 170, 31, 0.28);
+      box-shadow: 0 0 0 0 rgba(0, 86, 210, 0.28);
     }
     70% {
-      box-shadow: 0 0 0 10px rgba(45, 170, 31, 0);
+      box-shadow: 0 0 0 10px rgba(0, 86, 210, 0);
     }
     100% {
-      box-shadow: 0 0 0 0 rgba(45, 170, 31, 0);
+      box-shadow: 0 0 0 0 rgba(0, 86, 210, 0);
     }
   }
   @keyframes shimmer {
@@ -421,29 +437,17 @@
   }
 }
 
-/* ── Landing-page-only display typography ─────────────────────────
-   Dashboards/portal pages spec "use only Inter" (see --font-jakarta /
-   --font-grotesk in the @theme block above, still resolving to Inter
-   for e.g. ResumeBuilder.tsx). This rule is deliberately UNLAYERED so
-   it outranks that layered @theme default (see the cascade-layer note
-   at the top of this file) but ONLY within .landing-typeset's own
-   subtree — every other page keeps rendering Inter, unchanged. Applied
-   once on the landing page's root <main> in app/page.tsx.
-
-   The text-heading-*, text-body, text-small, etc. utilities all bake in
-   `font-inter` directly (see the "spec type scale" utilities below),
-   so overriding --font-inter itself (not just --font-jakarta) is what
-   actually retypesets landing body copy; heading-scale utilities are
-   additionally forced to the display font for a distinct headline
-   voice. */
+/* ── Landing-page typography ─────────────────────────
+   Previously swapped the landing page's headings to a separate display
+   font (Plus Jakarta Sans / Space Grotesk) for a distinct headline voice.
+   Coursera uses exactly one typeface everywhere, headings included — so
+   for real Coursera parity `.landing-typeset` no longer overrides
+   --font-inter/--font-jakarta/--font-grotesk; the landing page renders
+   the same sitewide Source Sans Pro (see layout.tsx) as every dashboard.
+   The class is kept (applied on the landing page's root <main> in
+   app/page.tsx) as a harmless no-op hook, in case a future landing-only
+   override is needed again. */
 .landing-typeset {
-  --font-inter: var(--font-display-jakarta), sans-serif;
-  --font-jakarta: var(--font-display-jakarta), sans-serif;
-  --font-grotesk: var(--font-display-grotesk), sans-serif;
-}
-
-.landing-typeset :where(.text-heading-xl, .text-heading-l, .text-heading-m, .ui-section-title, .ui-display) {
-  font-family: var(--font-display-grotesk), sans-serif;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -733,8 +737,9 @@
     --popover: 0 0% 100%;
     --popover-foreground: 221 39% 11%;
 
-    /* primary = spec green #2DAA1F. Every primary button/accent derives from this. */
-    --primary: 114 69% 39%;
+    /* primary = Coursera blue-800 #0056D2 (their actual --cds-color-interactive-primary
+       token). Every primary button/accent derives from this. */
+    --primary: 216 100% 41%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 60 9% 97%;
@@ -742,21 +747,24 @@
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
 
-    /* accent = light green wash, for highlights/active states only */
-    --accent: 114 55% 95%;
-    --accent-foreground: 114 69% 24%;
+    /* accent = light blue wash (Coursera blue-25), for highlights/active states only */
+    --accent: 216 100% 97%;
+    --accent-foreground: 215 76% 21%;
 
-    --destructive: 0 84% 60%;
+    /* Coursera red-700 / green-700 / yellow-700 respectively — kept as their
+       own hues, distinct from --primary, matching how Coursera itself keeps
+       brand-blue separate from status colors. */
+    --destructive: 351 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --success: 114 69% 39%;
+    --success: 115 61% 33%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 26 100% 44%;
     --warning-foreground: 0 0% 100%;
-    --info: 217 91% 60%;
+    --info: 215 95% 56%;
     --info-foreground: 0 0% 100%;
     --border: 220 13% 91%;
     --input: 220 13% 88%;
-    --ring: 114 69% 39%;
+    --ring: 216 100% 41%;
     --radius: 0.75rem;
 
     /* ── Semantic design tokens ── */
@@ -773,10 +781,10 @@
     --hairline: #e5e7eb;
     --hairline-soft: #edeef0;
 
-    --green: #2daa1f;
-    --green-deep: #1b7212;
-    --green-soft: #d3efcf;
-    --green-wash: #eaf7e8;
+    --green: #0056d2;
+    --green-deep: #0b408b;
+    --green-soft: #cfe2ff;
+    --green-wash: #e3eeff;
 
     --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
@@ -784,12 +792,12 @@
     /* Legacy compatibility for existing components */
     --lp-bg: #ffffff;
     --lp-text: #111827;
-    --lp-accent: #2daa1f;
-    --lp-accent-dark: #1b7212;
-    --lp-accent-light: rgba(45, 170, 31, 0.1);
-    --lp-accent-faint: rgba(45, 170, 31, 0.04);
+    --lp-accent: #0056d2;
+    --lp-accent-dark: #0b408b;
+    --lp-accent-light: rgba(0, 86, 210, 0.1);
+    --lp-accent-faint: rgba(0, 86, 210, 0.04);
     --lp-muted: #6b7280;
-    --lp-surface: #eaf7e8;
+    --lp-surface: #e3eeff;
     --lp-border: #e5e7eb;
   }
 }
@@ -818,8 +826,8 @@
   }
 
   ::selection {
-    background: rgba(45, 170, 31, 0.16);
-    color: #1b7212;
+    background: rgba(0, 86, 210, 0.16);
+    color: #0b408b;
   }
 
   /* Light, unobtrusive scrollbars */

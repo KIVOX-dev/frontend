@@ -19,16 +19,17 @@ import {
 // same guard CollegeAdminDashboard.tsx uses for its own charts).
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-// Single brand green, two shades — the whole point of this redesign's color
-// rule ("green for positive, avoid random colors"). Pulled from the actual
-// CSS custom properties every other screen already uses (legacy-portal.css:
-// --accent/--accent2/--accent-l), not invented, so this stays visually
-// consistent with the rest of the app rather than introducing a second theme.
-const GREEN = "#2DAA1F";
-const GREEN_DARK = "#239117";
-const GREEN_SOFT = "#7dd3a0";
-const GREEN_MED = "#4ec172";
-const GREEN_TINT = "rgba(45, 170, 31, .10)";
+// Single brand blue, two shades — the whole point of this redesign's color
+// rule ("brand color for positive, avoid random colors"). Matches the
+// Coursera-parity primary blue (#0056D2) every other screen now uses, so
+// this stays visually consistent with the rest of the app rather than
+// introducing a second theme. Names kept as GREEN_* to avoid touching every
+// call site below — they're brand-accent tokens, not literally green.
+const GREEN = "#0056D2";
+const GREEN_DARK = "#0B408B";
+const GREEN_SOFT = "#87B8FF";
+const GREEN_MED = "#5B9DFC";
+const GREEN_TINT = "rgba(0, 86, 210, .10)";
 const RED = "#dc2626";
 const SLATE = "#94a3b8";
 

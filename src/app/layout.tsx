@@ -1,21 +1,22 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Space_Grotesk, Inter } from "next/font/google";
+import { Plus_Jakarta_Sans, Space_Grotesk, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/Toaster";
 import { TooltipProvider } from "@/components/ui/Tooltip";
 
 // Plus Jakarta Sans / Space Grotesk are kept loaded so the pre-existing
 // font-jakarta/font-grotesk utility classes elsewhere in the app keep
-// resolving to a valid font (they're aliased to Inter in globals.css's
-// @theme block, per the "use only Inter" design spec for the dashboard/
-// portal surfaces — see the `--font-jakarta`/`--font-grotesk` definitions
-// there, still used by e.g. ResumeBuilder.tsx). Inter is the actual default
-// applied on <body> below.
+// resolving to a valid font (they're aliased to Source Sans Pro in
+// globals.css's @theme block, per the sitewide Coursera-parity font spec —
+// see the `--font-jakarta`/`--font-grotesk` definitions there, still used
+// by e.g. ResumeBuilder.tsx). Source Sans Pro is the actual default applied
+// on <body> below.
 //
 // These two get their own distinct variable names (`--font-display-*`)
-// rather than reusing `--font-jakarta`/`--font-grotesk`, so the landing
-// page can opt into the real fonts (see `.landing-typeset` in globals.css)
-// without touching that sitewide Inter alias or ResumeBuilder's rendering.
+// rather than reusing `--font-jakarta`/`--font-grotesk`, kept loaded for any
+// call site that still references them directly, though the landing page no
+// longer opts into a separate display font (see `.landing-typeset` in
+// globals.css) — Coursera itself uses one typeface everywhere.
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
@@ -39,7 +40,13 @@ const displayGrotesk = Space_Grotesk({
   weight: ["500", "600", "700"],
   variable: "--font-display-grotesk",
 });
-const inter = Inter({
+// Coursera's actual body/title/display typeface is "Source Sans Pro" — Google
+// renamed the family to "Source Sans 3" for its variable-font rebuild, which
+// is what next/font/google now serves under that name. Kept aliased to the
+// existing `--font-inter` variable name (not renamed) so every
+// font-jakarta/font-grotesk/font-inter call site across the app keeps
+// resolving without being touched individually.
+const sourceSansPro = Source_Sans_3({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-inter",
@@ -61,7 +68,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${inter.variable} ${displayJakarta.variable} ${displayGrotesk.variable} ${inter.className}`}
+        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${sourceSansPro.variable} ${displayJakarta.variable} ${displayGrotesk.variable} ${sourceSansPro.className}`}
         suppressHydrationWarning
       >
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>

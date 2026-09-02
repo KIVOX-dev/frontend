@@ -19,18 +19,19 @@ export default function TrustedByColleges() {
             <div
               key={`${college.code}-${i}`}
               title={college.name}
-              className="flex h-16 w-40 shrink-0 items-center justify-center rounded-lg border border-line bg-white px-5 grayscale opacity-70 transition-all duration-300 hover:grayscale-0 hover:opacity-100"
+              className="flex h-20 w-64 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-white px-6 grayscale opacity-70 transition-all duration-300 hover:grayscale-0 hover:opacity-100"
             >
-              {/* Logos are sourced from each college's own site/favicon at
-                  inconsistent aspect ratios — a plain <img> with
-                  object-contain scales all of them uniformly, which
-                  next/image's fixed width/height model fights. */}
+              {/* Logos are sourced from each college's own site at wildly
+                  inconsistent aspect ratios — from square crests to ~7:1
+                  full-name banners — so a plain <img> with object-contain
+                  scales all of them uniformly, which next/image's fixed
+                  width/height model fights. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={college.logo}
                 alt={college.name}
                 loading="lazy"
-                className="max-h-10 max-w-[110px] w-auto object-contain"
+                className="max-h-14 max-w-[200px] w-auto object-contain"
               />
             </div>
           ))}

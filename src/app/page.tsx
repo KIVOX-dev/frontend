@@ -1,20 +1,5 @@
 import type { Metadata } from "next";
-
-import { LandingIconProvider } from "@/components/landing/LandingIconProvider";
-import { SmoothScroll } from "@/components/landing/SmoothScroll";
-import LandingNav from "@/components/landing/LandingNav";
-import LandingHero from "@/components/landing/LandingHero";
-import TrustedByColleges from "@/components/landing/TrustedByColleges";
-import PlatformStats from "@/components/landing/PlatformStats";
-import SolutionsByRole from "@/components/landing/SolutionsByRole";
-import ProductShowcase from "@/components/landing/ProductShowcase";
-import FeatureGrid from "@/components/landing/FeatureGrid";
-import ProcessSection from "@/components/landing/ProcessSection";
-import BenefitsSection from "@/components/landing/BenefitsSection";
-import FAQSection from "@/components/landing/FAQSection";
-import ContactSection from "@/components/landing/ContactSection";
-import LandingCta from "@/components/landing/LandingCta";
-import LandingFooter from "@/components/landing/LandingFooter";
+import { LandingPageBody } from "@/components/landing/LandingPageBody";
 
 export const metadata: Metadata = {
   title: "UpScalerAI",
@@ -29,31 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  return (
-    <main className="landing-typeset bg-paper min-h-screen font-jakarta antialiased">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-100 focus:px-4 focus:py-2.5 focus:rounded-lg focus:bg-ink focus:text-white focus:text-sm focus:font-semibold"
-      >
-        Skip to content
-      </a>
-      <LandingIconProvider>
-        <SmoothScroll>
-          <LandingNav />
-          <LandingHero />
-          <TrustedByColleges />
-          <PlatformStats />
-          <SolutionsByRole />
-          <ProductShowcase />
-          <FeatureGrid />
-          <ProcessSection />
-          <BenefitsSection />
-          <FAQSection />
-          <ContactSection />
-          <LandingCta />
-          <LandingFooter />
-        </SmoothScroll>
-      </LandingIconProvider>
-    </main>
-  );
+  return <LandingPageBody audience="learner" />;
 }
