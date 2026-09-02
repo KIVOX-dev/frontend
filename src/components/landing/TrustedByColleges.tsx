@@ -30,7 +30,6 @@ export default function TrustedByColleges() {
               <img
                 src={college.logo}
                 alt={college.name}
-                loading="lazy"
                 className="max-h-14 max-w-[200px] w-auto object-contain"
               />
             </div>
