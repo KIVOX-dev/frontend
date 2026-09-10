@@ -355,6 +355,40 @@ export function CollegeAdminDashboard() {
   }, [studentRecords, users]);
   const driveById = useMemo(() => new Map(drives.map(d => [String(d.id), d])), [drives]);
 
+  // Assign Test's batch-year filter is an exact match against each student's
+  // batch_year (their graduation year, not the calendar year they enrolled
+  // in — see student.model.js's comment), so a hand-typed guess almost never
+  // lines up with real data. Ground the field in what's actually on the
+  // selected department(s) instead of a blind number input defaulting to
+  // "this calendar year" (which fails whenever a batch's real graduation
+  // year differs, e.g. every cohort admitted before this year).
+  const assignBatchYearCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    if (assignForm.department_ids.length === 0) return counts;
+    const deptSet = new Set(assignForm.department_ids);
+    for (const s of studentRecords) {
+      if (s.department_id && deptSet.has(s.department_id) && typeof s.batch_year === "number") {
+        counts.set(s.batch_year, (counts.get(s.batch_year) || 0) + 1);
+      }
+    }
+    return counts;
+  }, [studentRecords, assignForm.department_ids]);
+  const assignBatchYearOptions = useMemo(
+    () => Array.from(assignBatchYearCounts.entries()).sort((a, b) => b[0] - a[0]),
+    [assignBatchYearCounts]
+  );
+  // Keep the selected batch year pinned to an option that actually has
+  // students once the department selection changes it out from under the
+  // current value — picking a year with zero matches shouldn't be possible
+  // through the UI at all.
+  useEffect(() => {
+    if (assignBatchYearOptions.length === 0) return;
+    if (!assignBatchYearCounts.has(assignForm.batch_year)) {
+      setAssignForm(prev => ({ ...prev, batch_year: assignBatchYearOptions[0][0] }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignBatchYearOptions]);
+
   const userRoleOptions = useMemo(
     () => Array.from(new Set(users.map(u => u.role))).sort((a, b) => a.localeCompare(b)),
     [users]
@@ -760,12 +794,24 @@ export function CollegeAdminDashboard() {
 
     setIsAssigning(false);
     const deptCount = assignForm.department_ids.length - failures.length;
-    setAssignResult({
-      summary: deptCount > 0
-        ? `Assigned to ${totalAssigned} of ${totalMatched} matching student(s) across ${deptCount} department(s).`
-        : "",
-      failures,
-    });
+    // assigned_count only counts NEW assignments — re-running Assign against
+    // students who already have this test is a silent no-op on the backend
+    // (testAssignment.service.js#create, respecting the unique (test_id,
+    // student_id) index), so totalAssigned < totalMatched here means "already
+    // assigned", not "failed". Saying so explicitly avoids reading a
+    // successful re-run as a broken one.
+    const alreadyAssigned = totalMatched - totalAssigned;
+    let summary = "";
+    if (deptCount > 0) {
+      if (totalAssigned === totalMatched) {
+        summary = `Assigned to all ${totalMatched} matching student(s) across ${deptCount} department(s).`;
+      } else if (totalAssigned === 0) {
+        summary = `All ${totalMatched} matching student(s) already had this test assigned — nothing new to do.`;
+      } else {
+        summary = `Assigned to ${totalAssigned} new student(s); ${alreadyAssigned} of the ${totalMatched} matched already had this test.`;
+      }
+    }
+    setAssignResult({ summary, failures });
   };
 
   const handleCreateDepartment = async (e: React.FormEvent) => {
@@ -1678,13 +1724,33 @@ export function CollegeAdminDashboard() {
               </div>
               <div style={{ marginBottom: "20px" }}>
                 <label className="lbl">Graduation / Batch Year</label>
-                <input
-                  type="number"
-                  className="fi"
-                  value={assignForm.batch_year}
-                  onChange={e => setAssignForm({ ...assignForm, batch_year: parseInt(e.target.value) || new Date().getFullYear() })}
-                  required
-                />
+                {assignForm.department_ids.length === 0 ? (
+                  <p style={{ fontSize: "12px", color: "var(--muted)", margin: "4px 0 0" }}>
+                    Select a department above to see its available batch years.
+                  </p>
+                ) : assignBatchYearOptions.length === 0 ? (
+                  <p style={{ fontSize: "12px", color: "#DC2626", margin: "4px 0 0" }}>
+                    No students with a recorded batch year in the selected department(s) yet — nothing can be assigned.
+                  </p>
+                ) : (
+                  <>
+                    <select
+                      className="fi"
+                      value={assignForm.batch_year}
+                      onChange={e => setAssignForm({ ...assignForm, batch_year: parseInt(e.target.value, 10) })}
+                      required
+                    >
+                      {assignBatchYearOptions.map(([year, count]) => (
+                        <option key={year} value={year}>
+                          {year} ({count} student{count === 1 ? "" : "s"})
+                        </option>
+                      ))}
+                    </select>
+                    <p style={{ fontSize: "12px", color: "var(--muted)", margin: "4px 0 0" }}>
+                      Only years with matching students in the selected department(s) are listed.
+                    </p>
+                  </>
+                )}
               </div>
               {assignResult && (
                 <div style={{ marginBottom: "14px" }}>
@@ -1711,7 +1777,7 @@ export function CollegeAdminDashboard() {
               )}
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
                 <button type="button" className="btn" onClick={() => setAssigningTest(null)}>Close</button>
-                <button type="submit" className="btn btn-p" disabled={isAssigning}>{isAssigning ? "Assigning..." : "Assign"}</button>
+                <button type="submit" className="btn btn-p" disabled={isAssigning || assignBatchYearOptions.length === 0}>{isAssigning ? "Assigning..." : "Assign"}</button>
               </div>
             </form>
           </div>

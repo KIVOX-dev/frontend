@@ -41,6 +41,20 @@ type InstitutionalRole = "none" | "admin" | "faculty" | "student";
 // isAuthenticated, but has no business rendering this portal's dashboard.
 const INSTITUTIONAL_ROLES = ["college_admin", "institution_admin", "faculty", "student"];
 
+// Mirrors each shell's own nav item ids (CollegeAdminShell.tsx / LearnerShell.tsx)
+// so activeScreen can be validated against whatever the CURRENT user's role is
+// actually allowed to see. Needed because useUiStore's activeScreen lives
+// outside authStore and isn't reset on login/logout — switching accounts in
+// the same tab (e.g. an institution admin on "users" logs out, a student logs
+// in) otherwise leaves activeScreen pointed at the previous account's screen,
+// and renderScreen()'s switch below has no per-case role check of its own, so
+// it renders an admin-only component (CollegeAdminDashboard) for a student —
+// which then 403s fetching /users instead of showing anything sensible.
+const ADMIN_SCREENS = new Set(["dash", "placements", "drives", "users", "security", "assessments", "tracking", "chat", "settings"]);
+const FACULTY_SCREENS = new Set(["dash", "tracking", "add-student", "upload", "chat", "settings"]);
+const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "mnc", "iv", "chat", "settings"];
+const INSTITUTIONAL_STUDENT_EXTRA_SCREENS = ["placements", "profile", "resume", "lb"];
+
 export default function InstitutionalPage() {
   const { isAuthenticated, user } = useAuthStore();
   const { activeScreen, setActiveScreen } = useUiStore();
@@ -50,6 +64,26 @@ export default function InstitutionalPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Guard against a stale activeScreen left over from a different account's
+  // session (see ADMIN_SCREENS/FACULTY_SCREENS/BASE_STUDENT_SCREENS comment
+  // above) — bounce back to "dash" the moment the current role can't see
+  // whatever screen is currently selected, before renderScreen() ever runs.
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    let allowed: Set<string> | null = null;
+    if (user.role === "college_admin" || user.role === "institution_admin") {
+      allowed = ADMIN_SCREENS;
+    } else if (user.role === "faculty") {
+      allowed = FACULTY_SCREENS;
+    } else if (user.role === "student") {
+      allowed = new Set(BASE_STUDENT_SCREENS);
+      if (user.college_id) INSTITUTIONAL_STUDENT_EXTRA_SCREENS.forEach((s) => allowed!.add(s));
+    }
+    if (allowed && !allowed.has(activeScreen)) {
+      setActiveScreen("dash");
+    }
+  }, [isAuthenticated, user, activeScreen, setActiveScreen]);
 
   if (!mounted) return null;
 

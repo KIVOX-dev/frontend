@@ -72,6 +72,7 @@ export type StudentRecord = {
   id: string;
   user_id: string;
   department_id?: string;
+  batch_year?: number;
 };
 
 export type InsightAttempt = {
