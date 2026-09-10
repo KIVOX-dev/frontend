@@ -19,6 +19,7 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.2.16",
+    "@vercel/analytics": "^2.0.1",
     "apexcharts": "^6.5.0",
     "axios": "^1.6.7",
     "class-variance-authority": "^0.7.0",
@@ -28,7 +29,7 @@
     "html2pdf.js": "^0.14.0",
     "lenis": "^1.3.25",
     "lucide-react": "^1.28.0",
-    "next": "^15.5.18",
+    "next": "^15.5.25",
     "react": "^19.2.8",
     "react-apexcharts": "^2.1.1",
     "react-dom": "^19.2.8",
@@ -38,12 +39,13 @@
     "zustand": "^4.5.2"
   },
   "//xlsx": "The `xlsx` dependency points at SheetJS's own CDN, not npm, deliberately. The npm-published `xlsx` is abandoned at 0.18.5 and carries two high-severity advisories npm reports as `No fix available` (prototype pollution GHSA-4r6h-8v6p-xvw6, ReDoS GHSA-5pgg-2g8v-p4x9); SheetJS moved distribution off npm as of 0.19 and this tarball is their supported channel, with both patched. Requires network access to cdn.sheetjs.com at install time, including in CI.",
-  "//overrides": "postcss and sharp are transitive deps Next.js pins internally at versions with published high-severity advisories (postcss 8.4.31, sharp 0.34.5). Both bumps are within-major and API-compatible; forcing them here patches the advisories without the major-version churn `npm audit fix --force` would inflict on next itself. Re-check on each Next.js upgrade and drop these once Next ships the patched versions itself. nanoid (pulled in by postcss) and dompurify (pulled in by html2pdf.js/jspdf) are the same situation: within-major patch releases fixing published advisories (nanoid infinite-loop on size=0, dompurify detached-subtree XSS).",
+  "//overrides": "postcss and sharp are transitive deps Next.js pins internally at versions with published high-severity advisories (postcss 8.4.31, sharp 0.34.5). Both bumps are within-major and API-compatible; forcing them here patches the advisories without the major-version churn `npm audit fix --force` would inflict on next itself. Re-check on each Next.js upgrade and drop these once Next ships the patched versions itself. nanoid (pulled in by postcss) and dompurify (pulled in by html2pdf.js/jspdf) are the same situation: within-major patch releases fixing published advisories (nanoid infinite-loop on size=0, dompurify detached-subtree XSS). js-yaml is pulled in transitively by eslint@8's own @eslint/eslintrc dep chain (CPU-exhaustion advisory below 4.3.2); eslint 8 itself has no newer release pinning a patched js-yaml, so it's forced here too.",
   "overrides": {
     "postcss": "$postcss",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.4",
     "nanoid": "^3.3.18",
-    "dompurify": "^3.4.13"
+    "dompurify": "^3.4.13",
+    "js-yaml": "^4.3.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
@@ -54,13 +56,13 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^8",
     "eslint-config-next": "15.0.0",
     "jsdom": "^30.0.1",
     "postcss": "^8.5.25",
     "tailwindcss": "^4.3.3",
     "typescript": "^5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }
