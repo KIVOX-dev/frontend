@@ -42,7 +42,7 @@ function securityHeaders() {
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' https://accounts.google.com",
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: https://unavatar.io https://upscaler-ai.com https://via.placeholder.com",
+        "img-src 'self' data: https://unavatar.io https://upscaler-ai.com https://via.placeholder.com https://t3.gstatic.com",
         "font-src 'self' data:",
         `connect-src ${connectSrc}`,
         "frame-src https://accounts.google.com",
@@ -68,10 +68,15 @@ const nextConfig = {
     // every build otherwise) — same three hosts, just the current config
     // shape. unavatar.io added for CollegeAdminDashboard.tsx's company-logo
     // avatars (dynamic per-company hostname path, e.g. unavatar.io/stripe.com).
+    // t3.gstatic.com added because the Vercel Toolbar (shown to logged-in
+    // team members viewing their own deployment, not real visitors) fetches
+    // a favicon preview from Google's favicon service and routes it through
+    // this app's own /_next/image endpoint — without this it 404s.
     remotePatterns: [
       { protocol: "https", hostname: "upscaler-ai.com" },
       { protocol: "https", hostname: "via.placeholder.com" },
       { protocol: "https", hostname: "unavatar.io" },
+      { protocol: "https", hostname: "t3.gstatic.com" },
     ],
   },
   // Both re-enabled: the type error (ResumeBuilder.tsx's html2pdf margin
