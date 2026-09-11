@@ -753,8 +753,18 @@ export function CollegeAdminDashboard() {
         total_marks: assessmentForm.total_marks,
         pass_percentage: assessmentForm.pass_percentage,
         status: assessmentForm.status,
-        start_at: assessmentForm.start_at || null,
-        end_at: assessmentForm.end_at || null,
+        // <input type="datetime-local"> yields a bare "YYYY-MM-DDTHH:mm"
+        // with no timezone — a wall-clock time in the admin's own browser
+        // timezone, not UTC. Sending that string straight through used to
+        // get re-parsed as UTC wherever it landed (the backend, or even a
+        // student's browser in a different offset), silently shifting the
+        // actual start/end time by the admin's UTC offset — e.g. an IST
+        // admin picking 9:50 AM had students see 4:20 AM. new Date(...)
+        // here parses it in THIS browser's own timezone (exactly what the
+        // picker meant), and toISOString() makes that moment unambiguous
+        // regardless of what timezone the server or any viewer is in.
+        start_at: assessmentForm.start_at ? new Date(assessmentForm.start_at).toISOString() : null,
+        end_at: assessmentForm.end_at ? new Date(assessmentForm.end_at).toISOString() : null,
       });
 
       let assignNote = "";
