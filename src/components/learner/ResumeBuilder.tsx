@@ -379,9 +379,16 @@ export function ResumeBuilder() {
     if (!aiSuggestion) return;
     const { fieldPath, suggested } = aiSuggestion;
     
-    // Path structure: personal.objective OR experience.id.description
+    // Path structure: objective OR personal.role OR experience.id.description
     const parts = fieldPath.split(".");
-    if (parts.length === 2) {
+    if (parts.length === 1) {
+      // Top-level scalar field on ResumeData itself — e.g. "objective" from
+      // the Improve Summary button. Was previously unhandled: the 2- and
+      // 3-part branches below never matched a single-segment path, so
+      // clicking Accept & Apply silently closed the dialog with no update.
+      const [key] = parts;
+      setFormData(prev => ({ ...prev, [key]: suggested }));
+    } else if (parts.length === 2) {
       const [sec, key] = parts;
       setFormData(prev => ({
         ...prev,
