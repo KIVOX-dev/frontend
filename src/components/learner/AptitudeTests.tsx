@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/stores/authStore";
@@ -167,37 +167,7 @@ export function AptitudeTests() {
     }
   };
 
-  // Timer
-  useEffect(() => {
-    if (!timerActive || timeLeft <= 0) return;
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setTimerActive(false);
-          finishTest();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timerActive, timeLeft]);
-
-  const handleSelectOption = (opt: string) => {
-    const q = questions[currentQIndex];
-    setAnswers({ ...answers, [String(q.id)]: opt });
-  };
-
-  const handleNext = () => {
-    if (currentQIndex < questions.length - 1) setCurrentQIndex(currentQIndex + 1);
-  };
-
-  const handlePrev = () => {
-    if (currentQIndex > 0) setCurrentQIndex(currentQIndex - 1);
-  };
-
-  const finishTest = async () => {
+  const finishTest = useCallback(async () => {
     if (!activeTest) return;
     setTimerActive(false);
 
@@ -237,6 +207,36 @@ export function AptitudeTests() {
         percentage: Math.round((currentScore / questions.length) * 100),
       }).catch(() => {});
     }
+  }, [activeTest, questions, answers, user?.id]);
+
+  // Timer
+  useEffect(() => {
+    if (!timerActive || timeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setTimerActive(false);
+          finishTest();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timerActive, timeLeft, finishTest]);
+
+  const handleSelectOption = (opt: string) => {
+    const q = questions[currentQIndex];
+    setAnswers({ ...answers, [String(q.id)]: opt });
+  };
+
+  const handleNext = () => {
+    if (currentQIndex < questions.length - 1) setCurrentQIndex(currentQIndex + 1);
+  };
+
+  const handlePrev = () => {
+    if (currentQIndex > 0) setCurrentQIndex(currentQIndex - 1);
   };
 
   if (loading) return <div style={{ padding: "40px" }}>Loading tests...</div>;
