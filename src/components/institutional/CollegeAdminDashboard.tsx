@@ -16,7 +16,7 @@ import {
   type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
   type StudentInsights, type Placement, type Drive, type PlacementApplication,
   BASE_CHART_OPTIONS, ChartEmptyState, SectionError, CompanyLogo, colorForKey, monthKey, monthLabel,
-  LIST_FETCH_CAP, formatCount,
+  LIST_FETCH_CAP, formatCount, DepartmentMultiSelect,
 } from "./collegeAdminShared";
 
 // ApexCharts touches `window` at import time, so it must never run during SSR.
@@ -96,7 +96,6 @@ export function CollegeAdminDashboard() {
   // Post drive form
   const [showPostDrive, setShowPostDrive] = useState(false);
   const [driveForm, setDriveForm] = useState({ title: "", company_name: "", location: "", job_type: "full_time", salary_min_lpa: "", salary_max_lpa: "", application_deadline: "", eligible_departments: [] as string[] });
-  const [driveDeptSearch, setDriveDeptSearch] = useState("");
   const [driveMsg, setDriveMsg] = useState("");
   const [postingDrive, setPostingDrive] = useState(false);
 
@@ -115,7 +114,6 @@ export function CollegeAdminDashboard() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [assigningTest, setAssigningTest] = useState<Assessment | null>(null);
   const [assignForm, setAssignForm] = useState<{ department_ids: string[]; batch_year: number }>({ department_ids: [], batch_year: new Date().getFullYear() });
-  const [assignDeptSearch, setAssignDeptSearch] = useState("");
   const [assignResult, setAssignResult] = useState<{ summary: string; failures: { department: string; reason: string }[] } | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
 
@@ -501,7 +499,6 @@ export function CollegeAdminDashboard() {
       });
       setShowPostDrive(false);
       setDriveForm({ title: "", company_name: "", location: "", job_type: "full_time", salary_min_lpa: "", salary_max_lpa: "", application_deadline: "", eligible_departments: [] });
-      setDriveDeptSearch("");
       fetchDrives();
     } catch (err: unknown) {
       setDriveMsg(apiErrorMessage(err, "Failed to post drive"));
@@ -918,7 +915,7 @@ export function CollegeAdminDashboard() {
           errors={loadErrors}
           lastUpdated={lastUpdated}
           onRefresh={refreshDashboard}
-          onCreateDrive={() => { setDriveMsg(""); setDriveDeptSearch(""); setShowPostDrive(true); }}
+          onCreateDrive={() => { setDriveMsg(""); setShowPostDrive(true); }}
           onViewAllDrives={() => setActiveScreen("drives")}
         />
       )}
@@ -1023,7 +1020,7 @@ export function CollegeAdminDashboard() {
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
             <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>{showApplicantsPanel ? "Applicants" : "Placement Drives"}</h3>
             <div style={{ display: "flex", gap: "12px" }}>
-              <button className="btn btn-p" onClick={() => { setDriveMsg(""); setDriveDeptSearch(""); setShowPostDrive(true); }}>+ Post Drive</button>
+              <button className="btn btn-p" onClick={() => { setDriveMsg(""); setShowPostDrive(true); }}>+ Post Drive</button>
               {showApplicantsPanel && (
                 <button
                   className="btn btn-p"
@@ -1364,7 +1361,7 @@ export function CollegeAdminDashboard() {
                     <td style={{ padding: "12px 8px", textAlign: "right" }}>
                       {!a.category && (
                         <button
-                          onClick={() => { setAssigningTest(a); setAssignResult(null); setAssignDeptSearch(""); setAssignForm({ department_ids: [], batch_year: new Date().getFullYear() }); }}
+                          onClick={() => { setAssigningTest(a); setAssignResult(null); setAssignForm({ department_ids: [], batch_year: new Date().getFullYear() }); }}
                           style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}
                         >
                           Assign
@@ -1654,73 +1651,12 @@ export function CollegeAdminDashboard() {
                   <label className="lbl">Departments</label>
                   <span style={{ fontSize: "12px", color: "var(--muted)" }}>{assignForm.department_ids.length} selected</span>
                 </div>
-                <input
-                  type="text"
-                  className="fi"
-                  placeholder="Search departments…"
-                  value={assignDeptSearch}
-                  onChange={e => setAssignDeptSearch(e.target.value)}
-                  style={{ marginBottom: "8px" }}
+                <DepartmentMultiSelect
+                  options={departments.map(d => ({ id: d.id, label: d.code ? `${d.name} (${d.code})` : d.name }))}
+                  selected={assignForm.department_ids}
+                  onChange={department_ids => setAssignForm({ ...assignForm, department_ids })}
+                  placeholder="Select departments…"
                 />
-                {(() => {
-                  const filteredDepts = departments.filter(d =>
-                    d.name.toLowerCase().includes(assignDeptSearch.trim().toLowerCase())
-                  );
-                  const allFilteredSelected = filteredDepts.length > 0 && filteredDepts.every(d => assignForm.department_ids.includes(d.id));
-                  return (
-                    <>
-                      <div style={{ display: "flex", gap: "12px", marginBottom: "6px" }}>
-                        <button
-                          type="button"
-                          onClick={() => setAssignForm({
-                            ...assignForm,
-                            department_ids: allFilteredSelected
-                              ? assignForm.department_ids.filter(id => !filteredDepts.some(d => d.id === id))
-                              : Array.from(new Set([...assignForm.department_ids, ...filteredDepts.map(d => d.id)])),
-                          })}
-                          style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "12px", fontWeight: 600, padding: 0 }}
-                        >
-                          {allFilteredSelected ? "Deselect all" : "Select all"}{assignDeptSearch ? " (matching)" : ""}
-                        </button>
-                        {assignForm.department_ids.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setAssignForm({ ...assignForm, department_ids: [] })}
-                            style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "12px", fontWeight: 600, padding: 0 }}
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
-                      <div style={{ border: "1px solid var(--border)", borderRadius: "8px", maxHeight: "180px", overflowY: "auto" }}>
-                        {filteredDepts.length === 0 ? (
-                          <div style={{ padding: "12px", fontSize: "13px", color: "var(--muted)" }}>
-                            {departments.length === 0 ? "No departments found for this institution yet." : "No departments match your search."}
-                          </div>
-                        ) : (
-                          filteredDepts.map(d => (
-                            <label
-                              key={d.id}
-                              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", fontSize: "13px", cursor: "pointer", borderBottom: "1px solid var(--border)" }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={assignForm.department_ids.includes(d.id)}
-                                onChange={e => setAssignForm({
-                                  ...assignForm,
-                                  department_ids: e.target.checked
-                                    ? [...assignForm.department_ids, d.id]
-                                    : assignForm.department_ids.filter(id => id !== d.id),
-                                })}
-                              />
-                              {d.name}{d.code ? ` (${d.code})` : ""}
-                            </label>
-                          ))
-                        )}
-                      </div>
-                    </>
-                  );
-                })()}
               </div>
               <div style={{ marginBottom: "20px" }}>
                 <label className="lbl">Graduation / Batch Year</label>
@@ -2094,71 +2030,12 @@ export function CollegeAdminDashboard() {
                     ))}
                   </div>
                 )}
-                <input
-                  type="text"
-                  className="fi"
-                  placeholder="Search departments…"
-                  value={driveDeptSearch}
-                  onChange={e => setDriveDeptSearch(e.target.value)}
-                  style={{ marginBottom: "6px" }}
+                <DepartmentMultiSelect
+                  options={departmentOptions.map(d => ({ id: d, label: d }))}
+                  selected={driveForm.eligible_departments}
+                  onChange={eligible_departments => setDriveForm({ ...driveForm, eligible_departments })}
+                  placeholder="All departments"
                 />
-                {(() => {
-                  const filteredDepts = departmentOptions.filter(d =>
-                    d.toLowerCase().includes(driveDeptSearch.trim().toLowerCase())
-                  );
-                  const allFilteredSelected = filteredDepts.length > 0 && filteredDepts.every(d => driveForm.eligible_departments.includes(d));
-                  return (
-                    <>
-                      <div style={{ display: "flex", gap: "12px", marginBottom: "4px" }}>
-                        <button
-                          type="button"
-                          onClick={() => setDriveForm({
-                            ...driveForm,
-                            eligible_departments: allFilteredSelected
-                              ? driveForm.eligible_departments.filter(d => !filteredDepts.includes(d))
-                              : Array.from(new Set([...driveForm.eligible_departments, ...filteredDepts])),
-                          })}
-                          style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "12px", fontWeight: 600, padding: 0 }}
-                        >
-                          {allFilteredSelected ? "Deselect all" : "Select all"}{driveDeptSearch ? " (matching)" : ""}
-                        </button>
-                        {driveForm.eligible_departments.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setDriveForm({ ...driveForm, eligible_departments: [] })}
-                            style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "12px", fontWeight: 600, padding: 0 }}
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
-                      <div style={{ border: "1px solid var(--border)", borderRadius: "8px", maxHeight: "120px", overflowY: "auto" }}>
-                        {filteredDepts.length === 0 ? (
-                          <div style={{ padding: "12px", fontSize: "13px", color: "var(--muted)" }}>No departments match your search.</div>
-                        ) : (
-                          filteredDepts.map(dept => (
-                            <label
-                              key={dept}
-                              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 10px", fontSize: "13px", cursor: "pointer", borderBottom: "1px solid var(--border)", background: driveForm.eligible_departments.includes(dept) ? "var(--accent-l)" : "transparent" }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={driveForm.eligible_departments.includes(dept)}
-                                onChange={e => setDriveForm({
-                                  ...driveForm,
-                                  eligible_departments: e.target.checked
-                                    ? [...driveForm.eligible_departments, dept]
-                                    : driveForm.eligible_departments.filter(d => d !== dept),
-                                })}
-                              />
-                              {dept}
-                            </label>
-                          ))
-                        )}
-                      </div>
-                    </>
-                  );
-                })()}
               </div>
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
                 <button type="button" className="btn" disabled={postingDrive} onClick={() => { setShowPostDrive(false); setDriveMsg(""); }}>Cancel</button>
