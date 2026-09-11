@@ -434,6 +434,19 @@ export function DepartmentMultiSelect({
                 Clear
               </button>
             )}
+            {/* This panel is position:absolute, so opening it doesn't push
+                the rest of the form (Batch Year, Assign/Close) down — it
+                floats on top and hides them instead. A long department list
+                gave no obvious way back to those controls besides an
+                outside click most of the modal's own real estate is
+                covered for. This is the explicit way out. */}
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              style={{ marginLeft: "auto", background: "var(--accent)", border: "none", color: "#fff", cursor: "pointer", fontSize: "12px", fontWeight: 700, padding: "4px 12px", borderRadius: "999px" }}
+            >
+              Done
+            </button>
           </div>
           <div style={{ border: "1px solid var(--border)", borderRadius: "8px", maxHeight: "180px", overflowY: "auto" }}>
             {filtered.length === 0 ? (
