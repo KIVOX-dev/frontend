@@ -122,7 +122,18 @@ export function FacultyUpload() {
         students,
       };
 
-      const res = await api.post("/students/batch", payload);
+      // A large roster is real, non-trivial per-row work on the backend
+      // (a password hash plus DB writes per student) — the shared api
+      // client's default 30s timeout was cutting off any upload of real
+      // size before the server finished, even though the backend kept
+      // processing it. Overridden here rather than raised globally, since
+      // 30s staying tight everywhere else is what catches a genuinely hung
+      // request instead of masking one. Kept a little under Cloud Run's own
+      // 300s default request ceiling (node-api's deploy doesn't override
+      // it) so a truly huge file gets this timeout's clear "try again"
+      // message instead of an ambiguous connection drop at Cloud Run's own
+      // limit a few seconds later.
+      const res = await api.post("/students/batch", payload, { timeout: 4 * 60 * 1000 });
       setResult(res.data.message);
       setFile(null);
     } catch (err: unknown) {
