@@ -699,18 +699,18 @@ export function ResumeBuilder() {
                 <div>
                   <h3 className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-4">ATS Compatibility Score</h3>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-black text-slate-900">{atsReport?.score || 72}</span>
+                    <span className="text-5xl font-black text-slate-900">{atsReport ? atsReport.score : "—"}</span>
                     <span className="text-slate-400 text-lg font-bold">/ 100</span>
                   </div>
                   <div className="mt-4 h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-gradient" 
-                      style={{ width: `${atsReport?.score || 72}%` }}
+                    <div
+                      className="h-full bg-green-gradient"
+                      style={{ width: `${atsReport?.score ?? 0}%` }}
                     />
                   </div>
                 </div>
                 <div className="mt-6 border-t pt-4 border-slate-50 flex justify-between items-center">
-                  <span className="text-xs text-slate-400">Readability: <strong className="text-slate-700">{atsReport?.readability || 84}%</strong></span>
+                  <span className="text-xs text-slate-400">Readability: <strong className="text-slate-700">{atsReport ? `${atsReport.readability}%` : "Not scanned yet"}</strong></span>
                   <button 
                     onClick={runATSAnalysis}
                     disabled={analyzing}
