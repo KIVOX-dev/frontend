@@ -52,7 +52,7 @@ export function CollegeAdminDashboard() {
   // students with a recorded batch year" for that student's department,
   // with nothing in the UI pointing at why. This lets an admin fix it here.
   const [editingStudentUser, setEditingStudentUser] = useState<User | null>(null);
-  const [editStudentForm, setEditStudentForm] = useState({ department_id: "", batch_year: "" });
+  const [editStudentForm, setEditStudentForm] = useState({ department_id: "", batch_year: "", roll_number: "" });
   const [savingStudentEdit, setSavingStudentEdit] = useState(false);
   const [insightsError, setInsightsError] = useState<string | null>(null);
 
@@ -588,6 +588,7 @@ export function CollegeAdminDashboard() {
     setEditStudentForm({
       department_id: existing?.department_id || "",
       batch_year: existing?.batch_year ? String(existing.batch_year) : "",
+      roll_number: existing?.roll_number || "",
     });
   };
 
@@ -606,6 +607,7 @@ export function CollegeAdminDashboard() {
       await api.put(`/students/${studentRecordId}`, {
         department_id: editStudentForm.department_id || null,
         batch_year: editStudentForm.batch_year ? parseInt(editStudentForm.batch_year, 10) : undefined,
+        roll_number: editStudentForm.roll_number || undefined,
       });
       toast.success("Student updated.");
       closeEditStudent();
@@ -1888,16 +1890,30 @@ export function CollegeAdminDashboard() {
         </div>
       )}
 
-      {/* Edit Student Modal — sets department/batch year for students who
-          didn't get one at creation time (e.g. the super admin's plain
-          "Add New User" form, which collects neither), so Assign Test's
-          batch-year filter has something real to match against. */}
+      {/* Edit Student Modal — sets roll number/department/batch year for
+          students who didn't get them at creation time (e.g. the super
+          admin's plain "Add New User" form, which collects none of the
+          three), so Assign Test's batch-year filter has something real to
+          match against and the Manage Users table's Roll No column (joined
+          live from the students collection — see user.service.js#list)
+          has something to show. */}
       {editingStudentUser && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}>
           <div ref={editStudentPanelRef} {...editStudentDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "420px" }}>
             <h3 id="edit-student-title" style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Edit Student</h3>
             <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>{editingStudentUser.name} · {editingStudentUser.email}</p>
             <form onSubmit={handleSaveStudentEdit}>
+              <div style={{ marginBottom: "14px" }}>
+                <label className="lbl">Roll Number</label>
+                <input
+                  type="text"
+                  className="fi"
+                  placeholder="e.g. 25MSS104"
+                  value={editStudentForm.roll_number}
+                  onChange={e => setEditStudentForm({ ...editStudentForm, roll_number: e.target.value })}
+                  maxLength={50}
+                />
+              </div>
               <div style={{ marginBottom: "14px" }}>
                 <label className="lbl">Department</label>
                 <select
