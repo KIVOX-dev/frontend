@@ -78,6 +78,20 @@ export function AptitudeTests() {
   const [testCompleted, setTestCompleted] = useState(false);
   const [score, setScore] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [timerActive, setTimerActive] = useState(false);
+
+  // Practice-bank tests embed a fixed session size worth of questions per
+  // MNCTestModule.tsx's own convention — a whole seeded bank (500 for
+  // Verbal Ability) dumped into one sitting with no cap wasn't a usable
+  // session either way.
+  const PRACTICE_SESSION_SIZE = 20;
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
 
   useEffect(() => {
     fetchAssessments();
@@ -112,14 +126,17 @@ export function AptitudeTests() {
         setAnswers({});
         setTestCompleted(false);
         setScore(0);
+        setTimeLeft(test.duration_minutes * 60);
+        setTimerActive(true);
       } catch (err: any) {
         toast.error(err, "Unable to start this assessment right now.");
       }
       return;
     }
 
-    // Practice-bank test — unchanged, full content (with real answers) is
-    // already embedded in `description`.
+    // Practice-bank test — full content (with real answers) is already
+    // embedded in `description`; shuffled and capped to a real session size
+    // rather than dumping the whole seeded bank into one sitting.
     try {
       let qData: Question[] = [];
       if (test.description) {
@@ -136,16 +153,36 @@ export function AptitudeTests() {
         return;
       }
 
-      setQuestions(qData);
+      const shuffled = [...qData].sort(() => Math.random() - 0.5);
+      setQuestions(shuffled.slice(0, Math.min(PRACTICE_SESSION_SIZE, shuffled.length)));
       setActiveTest(test);
       setCurrentQIndex(0);
       setAnswers({});
       setTestCompleted(false);
       setScore(0);
+      setTimeLeft(test.duration_minutes * 60);
+      setTimerActive(true);
     } catch (e) {
       toast.error("Failed to load questions.", "The data might be corrupted.");
     }
   };
+
+  // Timer
+  useEffect(() => {
+    if (!timerActive || timeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setTimerActive(false);
+          finishTest();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timerActive, timeLeft]);
 
   const handleSelectOption = (opt: string) => {
     const q = questions[currentQIndex];
@@ -153,15 +190,16 @@ export function AptitudeTests() {
   };
 
   const handleNext = () => {
-    if (currentQIndex < questions.length - 1) {
-      setCurrentQIndex(currentQIndex + 1);
-    } else {
-      finishTest();
-    }
+    if (currentQIndex < questions.length - 1) setCurrentQIndex(currentQIndex + 1);
+  };
+
+  const handlePrev = () => {
+    if (currentQIndex > 0) setCurrentQIndex(currentQIndex - 1);
   };
 
   const finishTest = async () => {
     if (!activeTest) return;
+    setTimerActive(false);
 
     // Admin-authored assigned test — the client never saw the correct
     // answers (stripped server-side), so it can't score itself; the score
@@ -225,65 +263,119 @@ export function AptitudeTests() {
     }
 
     const q = questions[currentQIndex];
-    
+    const answeredCount = Object.keys(answers).length;
+    const progress = ((currentQIndex + 1) / questions.length) * 100;
+
     return (
       <div className="screen active" style={{ padding: "40px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <div>
-            <h2 style={{ fontSize: "24px", fontWeight: 800 }}>{activeTest.title}</h2>
-            <p style={{ color: "var(--muted)" }}>Question {currentQIndex + 1} of {questions.length}</p>
+            <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)" }}>{activeTest.title}</h2>
+            <p style={{ color: "var(--muted)", fontSize: "13px" }}>{answeredCount}/{questions.length} answered</p>
           </div>
-          <button className="btn" onClick={() => setActiveTest(null)}>Exit Test</button>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div style={{ padding: "8px 16px", borderRadius: "8px", background: timeLeft < 120 ? "#fee2e2" : "var(--bg)", color: timeLeft < 120 ? "#dc2626" : "var(--text)", fontWeight: 700, fontSize: "16px", fontFamily: "monospace" }}>
+              ⏱ {formatTime(timeLeft)}
+            </div>
+            <button className="btn btn-p" disabled={submitting} onClick={finishTest}>{submitting ? "Submitting..." : "Submit Test"}</button>
+          </div>
         </div>
 
-        <div className="card" style={{ padding: "32px", maxWidth: "800px", margin: "0 auto" }}>
-          {q.data_presentation && (
-            <div style={{ padding: "16px", background: "var(--bg)", borderRadius: "12px", marginBottom: "24px", fontSize: "14px", color: "var(--muted)", fontStyle: "italic" }}>
-              {q.data_presentation}
+        {/* Progress bar */}
+        <div style={{ width: "100%", height: "6px", background: "var(--border)", borderRadius: "3px", marginBottom: "28px", overflow: "hidden" }}>
+          <div style={{ width: `${progress}%`, height: "100%", background: "var(--accent)", borderRadius: "3px", transition: "width 0.4s ease" }}></div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: "24px" }}>
+          {/* Question */}
+          <div className="card" style={{ padding: "32px" }}>
+            <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px" }}>Question {currentQIndex + 1} of {questions.length}</div>
+
+            {q.data_presentation && (
+              <div style={{ padding: "14px 18px", background: "var(--bg)", borderRadius: "10px", marginBottom: "20px", fontSize: "14px", color: "var(--muted)", lineHeight: 1.6, borderLeft: "3px solid var(--accent)" }}>
+                📊 {q.data_presentation}
+              </div>
+            )}
+
+            <h3 style={{ fontSize: "17px", fontWeight: 600, color: "var(--text)", marginBottom: "24px", lineHeight: 1.6 }}>
+              {q.question}
+            </h3>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
+              {q.options.map((opt, i) => {
+                const letter = String.fromCharCode(65 + i);
+                const isSelected = answers[String(q.id)] === opt;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => handleSelectOption(opt)}
+                    style={{
+                      padding: "14px 18px",
+                      background: isSelected ? "var(--accent-l)" : "var(--bg)",
+                      border: isSelected ? "2px solid var(--accent)" : "2px solid var(--border)",
+                      borderRadius: "10px",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      fontWeight: 500,
+                      color: isSelected ? "var(--accent)" : "var(--text)",
+                      transition: "all 0.2s",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
+                    <span style={{ width: "28px", height: "28px", borderRadius: "6px", background: isSelected ? "var(--accent)" : "var(--border)", color: isSelected ? "#fff" : "var(--text)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700, flexShrink: 0 }}>
+                      {letter}
+                    </span>
+                    {opt}
+                  </button>
+                );
+              })}
             </div>
-          )}
-          
-          <h3 style={{ fontSize: "18px", fontWeight: 600, color: "var(--text)", marginBottom: "24px", lineHeight: 1.5 }}>
-            {q.question}
-          </h3>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "32px" }}>
-            {q.options.map((opt, i) => (
-              <button
-                key={i}
-                onClick={() => handleSelectOption(opt)}
-                style={{
-                  padding: "16px 20px",
-                  background: answers[String(q.id)] === opt ? "var(--accent-l)" : "var(--bg)",
-                  border: answers[String(q.id)] === opt ? "2px solid var(--accent)" : "2px solid var(--border)",
-                  borderRadius: "12px",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  fontWeight: 500,
-                  color: answers[String(q.id)] === opt ? "var(--accent)" : "var(--text)",
-                  transition: "all 0.2s"
-                }}
-              >
-                {opt}
+
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <button className="btn" disabled={currentQIndex === 0} onClick={handlePrev}>← Previous</button>
+              <button className="btn btn-p" onClick={handleNext} disabled={currentQIndex === questions.length - 1}>
+                Next →
               </button>
-            ))}
+            </div>
           </div>
-          
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <button 
-              className="btn" 
-              disabled={currentQIndex === 0}
-              onClick={() => setCurrentQIndex(prev => prev - 1)}
-            >
-              Previous
-            </button>
-            <button
-              className="btn btn-p"
-              disabled={!answers[String(q.id)] || submitting}
-              onClick={handleNext}
-            >
-              {submitting ? "Submitting..." : currentQIndex === questions.length - 1 ? "Submit Test" : "Next Question"}
-            </button>
+
+          {/* Question palette */}
+          <div className="card" style={{ padding: "20px", height: "fit-content" }}>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)", marginBottom: "12px" }}>Question Palette</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "6px" }}>
+              {questions.map((qq, idx) => (
+                <button
+                  key={qq.id}
+                  onClick={() => setCurrentQIndex(idx)}
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "8px",
+                    border: idx === currentQIndex ? "2px solid var(--accent)" : "1px solid var(--border)",
+                    background: answers[String(qq.id)] ? "var(--accent-l)" : idx === currentQIndex ? "var(--bg)" : "transparent",
+                    color: answers[String(qq.id)] ? "var(--accent)" : "var(--text)",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+            </div>
+            <div style={{ marginTop: "16px", fontSize: "11px", color: "var(--muted)", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "12px", height: "12px", borderRadius: "3px", background: "var(--accent-l)", border: "1px solid var(--accent)" }}></div>
+                Answered
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "12px", height: "12px", borderRadius: "3px", background: "transparent", border: "1px solid var(--border)" }}></div>
+                Not answered
+              </div>
+            </div>
           </div>
         </div>
       </div>
