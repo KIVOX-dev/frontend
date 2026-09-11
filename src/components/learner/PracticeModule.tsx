@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { BarChart3, Brain, BookOpen, Table2, ArrowRight } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
@@ -23,9 +24,10 @@ type Category = {
   id: string;
   label: string;
   category: string;
-  icon: React.ReactNode;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
   color: string;
   colorLight: string;
+  gradient: string;
   description: string;
 };
 
@@ -35,57 +37,49 @@ type BackendTest = {
   description: string;
 };
 
+// Explicit hex pairs rather than the dashboard's --purple/--teal CSS vars —
+// those are redefined elsewhere in legacy-portal.css to unrelated colors
+// (--purple: a gray, --teal: a blue, both for button variants), so
+// referencing them here would silently render the wrong color.
 const CATEGORIES: Category[] = [
   {
     id: "quantitative",
     label: "Quantitative Aptitude",
     category: "quantitative",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-        <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-    ),
-    color: "var(--accent)",
-    colorLight: "var(--accent-l)",
+    icon: BarChart3,
+    color: "#2563EB",
+    colorLight: "#EFF6FF",
+    gradient: "linear-gradient(135deg, #60A5FA, #2563EB)",
     description: "Percentages, Ratios, Algebra, Geometry, Profit & Loss",
   },
   {
     id: "logical",
     label: "Logical Reasoning",
     category: "logical",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-        <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
-      </svg>
-    ),
-    color: "var(--purple, #7c3aed)",
-    colorLight: "var(--purple-l, #ede9fe)",
+    icon: Brain,
+    color: "#16A34A",
+    colorLight: "#ECFDF5",
+    gradient: "linear-gradient(135deg, #4ADE80, #16A34A)",
     description: "Puzzles, Series, Blood Relations, Coding-Decoding",
   },
   {
     id: "verbal",
     label: "Verbal Ability",
     category: "verbal",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-        <path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
-      </svg>
-    ),
-    color: "var(--teal, #0d9488)",
-    colorLight: "var(--teal-l, #ccfbf1)",
+    icon: BookOpen,
+    color: "#7C3AED",
+    colorLight: "#F5F3FF",
+    gradient: "linear-gradient(135deg, #A78BFA, #7C3AED)",
     description: "Synonyms, Antonyms, Comprehension, Grammar",
   },
   {
     id: "data_interpretation",
     label: "Data Interpretation",
     category: "data_interpretation",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" />
-      </svg>
-    ),
-    color: "var(--amber, #d97706)",
-    colorLight: "var(--amber-l, #fef3c7)",
+    icon: Table2,
+    color: "#D97706",
+    colorLight: "#FFFBEB",
+    gradient: "linear-gradient(135deg, #FBBF24, #D97706)",
     description: "Tables, Bar Charts, Pie Charts, Line Graphs",
   },
 ];
@@ -424,35 +418,65 @@ export function PracticeModule() {
         {CATEGORIES.map(cat => {
           const stats = categoryStats[cat.id];
           const accuracy = stats && stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : null;
+          const Icon = cat.icon;
 
           return (
             <div
               key={cat.id}
               className="card"
               onClick={() => loadCategory(cat)}
-              style={{ padding: "28px", cursor: "pointer", transition: "all 0.25s", borderLeft: `4px solid ${cat.color}`, position: "relative", overflow: "hidden" }}
+              style={{
+                padding: "28px",
+                cursor: "pointer",
+                transition: "transform 0.25s, box-shadow 0.25s",
+                borderLeft: `4px solid ${cat.color}`,
+                borderRadius: "20px",
+                position: "relative",
+                overflow: "hidden",
+              }}
               onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 12px 24px rgba(0,0,0,0.08)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-                <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: cat.colorLight, color: cat.color, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {cat.icon}
+              {/* Decorative gradient blob, bottom-right — purely cosmetic, sits
+                  behind every other element in the card. */}
+              <div
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  right: "-40px",
+                  bottom: "-40px",
+                  width: "140px",
+                  height: "140px",
+                  borderRadius: "50%",
+                  background: cat.colorLight,
+                  opacity: 0.8,
+                  zIndex: 0,
+                }}
+              />
+
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "18px" }}>
+                  <div style={{ width: "56px", height: "56px", borderRadius: "16px", background: cat.gradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 8px 16px -6px ${cat.color}66` }}>
+                    <Icon size={26} strokeWidth={2} />
+                  </div>
+                  <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: cat.colorLight, color: cat.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <ArrowRight size={18} strokeWidth={2.25} />
+                  </div>
                 </div>
-                {accuracy !== null && (
-                  <span style={{ padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: 700, background: accuracy >= 70 ? "#dcfce7" : accuracy >= 40 ? "#fef3c7" : "#fee2e2", color: accuracy >= 70 ? "#15803d" : accuracy >= 40 ? "#92400e" : "#b91c1c" }}>
-                    {accuracy}% avg
-                  </span>
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text)", marginBottom: "6px" }}>{cat.label}</h3>
+                <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px", lineHeight: 1.5 }}>{cat.description}</p>
+                {(stats || accuracy !== null) && (
+                  <div style={{ fontSize: "12px", color: "var(--muted)", display: "flex", alignItems: "center", gap: "12px" }}>
+                    {stats && <span>{stats.sessions} sessions</span>}
+                    {stats && <span>{stats.total} questions</span>}
+                    {accuracy !== null && (
+                      <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: accuracy >= 70 ? "#dcfce7" : accuracy >= 40 ? "#fef3c7" : "#fee2e2", color: accuracy >= 70 ? "#15803d" : accuracy >= 40 ? "#92400e" : "#b91c1c" }}>
+                        {accuracy}% avg
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
-              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "var(--text)", marginBottom: "6px" }}>{cat.label}</h3>
-              <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px", lineHeight: 1.5 }}>{cat.description}</p>
-              {stats && (
-                <div style={{ fontSize: "12px", color: "var(--muted)", display: "flex", gap: "12px" }}>
-                  <span>{stats.sessions} sessions</span>
-                  <span>{stats.total} questions</span>
-                </div>
-              )}
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "3px", background: cat.color, opacity: 0.3 }}></div>
             </div>
           );
         })}
