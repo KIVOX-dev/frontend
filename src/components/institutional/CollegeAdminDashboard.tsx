@@ -31,6 +31,14 @@ export function CollegeAdminDashboard() {
   const [viewingInsightsFor, setViewingInsightsFor] = useState<User | null>(null);
   const [insightsData, setInsightsData] = useState<StudentInsights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  // A student created without a department/batch year (e.g. the super
+  // admin's plain "Add New User" form, which collects neither) has no way
+  // to get one after the fact — Assign Test then permanently reports "No
+  // students with a recorded batch year" for that student's department,
+  // with nothing in the UI pointing at why. This lets an admin fix it here.
+  const [editingStudentUser, setEditingStudentUser] = useState<User | null>(null);
+  const [editStudentForm, setEditStudentForm] = useState({ department_id: "", batch_year: "" });
+  const [savingStudentEdit, setSavingStudentEdit] = useState(false);
   const [insightsError, setInsightsError] = useState<string | null>(null);
 
   // Applicants panel — toggled from the Placement Drives header (next to
@@ -558,6 +566,42 @@ export function CollegeAdminDashboard() {
     }
   };
 
+  const openEditStudent = (u: User) => {
+    const studentRecordId = studentRecordIdByUserId.get(String(u.id));
+    const existing = studentRecordId ? studentRecords.find(s => s.id === studentRecordId) : undefined;
+    setEditingStudentUser(u);
+    setEditStudentForm({
+      department_id: existing?.department_id || "",
+      batch_year: existing?.batch_year ? String(existing.batch_year) : "",
+    });
+  };
+
+  const closeEditStudent = () => setEditingStudentUser(null);
+
+  const handleSaveStudentEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStudentUser) return;
+    const studentRecordId = studentRecordIdByUserId.get(String(editingStudentUser.id));
+    if (!studentRecordId) {
+      toast.error("This user has no student record to update.");
+      return;
+    }
+    setSavingStudentEdit(true);
+    try {
+      await api.put(`/students/${studentRecordId}`, {
+        department_id: editStudentForm.department_id || null,
+        batch_year: editStudentForm.batch_year ? parseInt(editStudentForm.batch_year, 10) : undefined,
+      });
+      toast.success("Student updated.");
+      closeEditStudent();
+      fetchStudentRecords();
+    } catch (err) {
+      toast.error(apiErrorMessage(err, "Failed to update student"));
+    } finally {
+      setSavingStudentEdit(false);
+    }
+  };
+
   const fetchApplicants = async () => {
     setApplicantsLoading(true);
     try {
@@ -872,6 +916,11 @@ export function CollegeAdminDashboard() {
     !!viewingInsightsFor,
     closeInsights,
     "insights-title"
+  );
+  const { panelRef: editStudentPanelRef, dialogProps: editStudentDialogProps } = useModalA11y(
+    !!editingStudentUser,
+    closeEditStudent,
+    "edit-student-title"
   );
   const { panelRef: shortlistPanelRef, dialogProps: shortlistDialogProps } = useModalA11y(
     showShortlistForm,
@@ -1250,6 +1299,9 @@ export function CollegeAdminDashboard() {
                   <td style={{ padding: "12px 8px", textAlign: "right" }}>
                     {u.role === "student" && (
                       <button onClick={() => handleViewInsights(u)} style={{ background: "none", border: "none", color: "var(--purple, #7c3aed)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}>View Insights</button>
+                    )}
+                    {u.role === "student" && (
+                      <button onClick={() => openEditStudent(u)} style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}>Edit</button>
                     )}
                     <button onClick={() => handleDeleteUser(u.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>Delete</button>
                   </td>
@@ -1817,6 +1869,50 @@ export function CollegeAdminDashboard() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Student Modal — sets department/batch year for students who
+          didn't get one at creation time (e.g. the super admin's plain
+          "Add New User" form, which collects neither), so Assign Test's
+          batch-year filter has something real to match against. */}
+      {editingStudentUser && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}>
+          <div ref={editStudentPanelRef} {...editStudentDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "420px" }}>
+            <h3 id="edit-student-title" style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Edit Student</h3>
+            <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>{editingStudentUser.name} · {editingStudentUser.email}</p>
+            <form onSubmit={handleSaveStudentEdit}>
+              <div style={{ marginBottom: "14px" }}>
+                <label className="lbl">Department</label>
+                <select
+                  className="fi"
+                  value={editStudentForm.department_id}
+                  onChange={e => setEditStudentForm({ ...editStudentForm, department_id: e.target.value })}
+                >
+                  <option value="">— Not set —</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}{d.code ? ` (${d.code})` : ""}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ marginBottom: "20px" }}>
+                <label className="lbl">Graduation / Batch Year</label>
+                <input
+                  type="number"
+                  className="fi"
+                  placeholder="e.g. 2027"
+                  value={editStudentForm.batch_year}
+                  onChange={e => setEditStudentForm({ ...editStudentForm, batch_year: e.target.value })}
+                  min={1990}
+                  max={2100}
+                />
+              </div>
+              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                <button type="button" className="btn" disabled={savingStudentEdit} onClick={closeEditStudent}>Cancel</button>
+                <button type="submit" className="btn btn-p" disabled={savingStudentEdit}>{savingStudentEdit ? "Saving..." : "Save"}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
