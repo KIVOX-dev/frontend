@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { Clock, ArrowRight } from "lucide-react";
 import { toast } from "@/lib/toast";
 import {
   type MncQuestion as Question,
@@ -15,6 +16,7 @@ type CompanyTrack = {
   logo: string;
   color: string;
   colorLight: string;
+  gradient: string;
   description: string;
   sections: { label: string; file: string; count: number }[];
 };
@@ -26,6 +28,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     logo: "T",
     color: "#1a73e8",
     colorLight: "#e8f0fe",
+    gradient: "linear-gradient(135deg, #60A5FA, #1a73e8)",
     description: "Quantitative, Logical & Verbal — TCS National Qualifier Test pattern",
     sections: [
       { label: "Quantitative", file: "/quantitative_mcq.json", count: 10 },
@@ -39,6 +42,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     logo: "I",
     color: "#0071c5",
     colorLight: "#e0f2fe",
+    gradient: "linear-gradient(135deg, #38BDF8, #0071c5)",
     description: "Quantitative Aptitude, Logical Ability & Verbal Proficiency",
     sections: [
       { label: "Quantitative", file: "/quantitative_mcq.json", count: 12 },
@@ -52,6 +56,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     logo: "W",
     color: "#6d28d9",
     colorLight: "#ede9fe",
+    gradient: "linear-gradient(135deg, #A78BFA, #6d28d9)",
     description: "National Level Talent Hunt — Aptitude & Verbal sections",
     sections: [
       { label: "Quantitative", file: "/quantitative_mcq.json", count: 15 },
@@ -64,6 +69,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     logo: "C",
     color: "#0d9488",
     colorLight: "#ccfbf1",
+    gradient: "linear-gradient(135deg, #2DD4BF, #0d9488)",
     description: "GenC / GenC Elevate — Analytical, Logical & English",
     sections: [
       { label: "Analytical", file: "/quantitative_mcq.json", count: 8 },
@@ -78,6 +84,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     logo: "A",
     color: "#a855f7",
     colorLight: "#faf5ff",
+    gradient: "linear-gradient(135deg, #C084FC, #a855f7)",
     description: "Cognitive, Technical & Communication assessments",
     sections: [
       { label: "Cognitive", file: "/logical_mcq_500.json", count: 10 },
@@ -91,6 +98,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     logo: "Z",
     color: "#dc2626",
     colorLight: "#fee2e2",
+    gradient: "linear-gradient(135deg, #F87171, #dc2626)",
     description: "Advanced problem solving, logical & quantitative reasoning",
     sections: [
       { label: "Problem Solving", file: "/quantitative_mcq.json", count: 15 },
@@ -439,29 +447,63 @@ export function MNCTestModule() {
               type="button"
               key={track.id}
               className="card"
-              style={{ display: "block", width: "100%", textAlign: "left", padding: "28px", cursor: "pointer", transition: "all 0.25s", overflow: "hidden", position: "relative" }}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                padding: "28px",
+                cursor: "pointer",
+                transition: "transform 0.25s, box-shadow 0.25s",
+                borderLeft: `4px solid ${track.color}`,
+                borderRadius: "20px",
+                position: "relative",
+                overflow: "hidden",
+              }}
               onClick={() => startTrack(track)}
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 12px 24px rgba(0,0,0,0.08)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
-                <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: track.colorLight, color: track.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", fontWeight: 900 }}>
-                  {track.logo}
+              {/* Decorative gradient blob, bottom-right — same treatment as
+                  PracticeModule.tsx's category cards, for a consistent look
+                  across both practice surfaces. */}
+              <div
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  right: "-40px",
+                  bottom: "-40px",
+                  width: "140px",
+                  height: "140px",
+                  borderRadius: "50%",
+                  background: track.colorLight,
+                  opacity: 0.8,
+                  zIndex: 0,
+                }}
+              />
+
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+                  <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: track.gradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", fontWeight: 900, boxShadow: `0 8px 16px -6px ${track.color}66` }}>
+                    {track.logo}
+                  </div>
+                  <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: track.colorLight, color: track.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <ArrowRight size={18} strokeWidth={2.25} />
+                  </div>
                 </div>
-                <div>
-                  <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>{track.name}</h3>
-                  <div style={{ fontSize: "12px", color: "var(--muted)" }}>{totalQs} Qs · {totalMins} min</div>
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text)", marginBottom: "4px" }}>{track.name}</h3>
+                <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12px", color: "var(--muted)", fontWeight: 600, marginBottom: "14px" }}>
+                  <Clock size={13} />
+                  {totalQs} Qs · {totalMins} min
+                </div>
+                <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px", lineHeight: 1.5 }}>{track.description}</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {track.sections.map(s => (
+                    <span key={s.label} style={{ padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, background: track.colorLight, color: track.color }}>
+                      {s.label} ({s.count})
+                    </span>
+                  ))}
                 </div>
               </div>
-              <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px", lineHeight: 1.5 }}>{track.description}</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                {track.sections.map(s => (
-                  <span key={s.label} style={{ padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, background: track.colorLight, color: track.color }}>
-                    {s.label} ({s.count})
-                  </span>
-                ))}
-              </div>
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "3px", background: track.color, opacity: 0.4 }}></div>
             </button>
           );
         })}
