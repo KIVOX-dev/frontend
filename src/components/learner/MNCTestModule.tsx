@@ -14,6 +14,7 @@ type CompanyTrack = {
   id: string;
   name: string;
   logo: string;
+  domain: string;
   color: string;
   colorLight: string;
   gradient: string;
@@ -21,11 +22,43 @@ type CompanyTrack = {
   sections: { label: string; file: string; count: number }[];
 };
 
+// Real logo, fetched from the same third-party logo-lookup service the
+// Placement Dashboard's CompanyLogo already uses (see collegeAdminShared.tsx)
+// — not a trademarked asset hosted/bundled by this app. Falls back to the
+// existing letter badge if the fetch ever fails (unknown domain, service
+// down, etc.), same as that component. Plain <img> rather than next/image,
+// same reasoning as TrustedByColleges.tsx: these logos arrive at wildly
+// inconsistent aspect ratios (a square mark vs. a wide wordmark), which
+// next/image's fixed width/height model fights — object-contain on a
+// plain img scales all of them uniformly instead.
+function TrackLogo({ track }: { track: CompanyTrack }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: track.gradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", fontWeight: 900, boxShadow: `0 8px 16px -6px ${track.color}66` }}>
+        {track.logo}
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://unavatar.io/${track.domain}`}
+      alt={`${track.name} logo`}
+      onError={() => setFailed(true)}
+      style={{ height: "44px", maxWidth: "180px", width: "auto", objectFit: "contain" }}
+    />
+  );
+}
+
 const COMPANY_TRACKS: CompanyTrack[] = [
   {
     id: "tcs",
     name: "TCS NQT",
     logo: "T",
+    domain: "tcs.com",
     color: "#1a73e8",
     colorLight: "#e8f0fe",
     gradient: "linear-gradient(135deg, #60A5FA, #1a73e8)",
@@ -40,6 +73,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "infosys",
     name: "Infosys InfyTQ",
     logo: "I",
+    domain: "infosys.com",
     color: "#0071c5",
     colorLight: "#e0f2fe",
     gradient: "linear-gradient(135deg, #38BDF8, #0071c5)",
@@ -54,6 +88,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "wipro",
     name: "Wipro NLTH",
     logo: "W",
+    domain: "wipro.com",
     color: "#6d28d9",
     colorLight: "#ede9fe",
     gradient: "linear-gradient(135deg, #A78BFA, #6d28d9)",
@@ -67,6 +102,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "cognizant",
     name: "Cognizant GenC",
     logo: "C",
+    domain: "cognizant.com",
     color: "#0d9488",
     colorLight: "#ccfbf1",
     gradient: "linear-gradient(135deg, #2DD4BF, #0d9488)",
@@ -82,6 +118,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "accenture",
     name: "Accenture",
     logo: "A",
+    domain: "accenture.com",
     color: "#a855f7",
     colorLight: "#faf5ff",
     gradient: "linear-gradient(135deg, #C084FC, #a855f7)",
@@ -96,6 +133,7 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "zoho",
     name: "Zoho",
     logo: "Z",
+    domain: "zoho.com",
     color: "#dc2626",
     colorLight: "#fee2e2",
     gradient: "linear-gradient(135deg, #F87171, #dc2626)",
@@ -483,9 +521,7 @@ export function MNCTestModule() {
 
               <div style={{ position: "relative", zIndex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-                  <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: track.gradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", fontWeight: 900, boxShadow: `0 8px 16px -6px ${track.color}66` }}>
-                    {track.logo}
-                  </div>
+                  <TrackLogo track={track} />
                   <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: track.colorLight, color: track.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <ArrowRight size={18} strokeWidth={2.25} />
                   </div>
