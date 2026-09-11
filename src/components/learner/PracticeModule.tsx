@@ -105,12 +105,15 @@ export function PracticeModule() {
   const [sessionQuestions, setSessionQuestions] = useState<Question[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
+  // Every question's answer so far, keyed by index — same free-navigation
+  // shape as the MNC Company Tests screen (MNCTestModule.tsx) this mirrors:
+  // no per-question reveal, jump anywhere via the palette, grade everything
+  // together on Submit.
+  const [answers, setAnswers] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [timerActive, setTimerActive] = useState(false);
 
-  // Session stats
-  const [correct, setCorrect] = useState(0);
-  const [attempted, setAttempted] = useState(0);
   const [sessionDone, setSessionDone] = useState(false);
   const [questionCount, setQuestionCount] = useState(10);
 
@@ -157,75 +160,96 @@ export function PracticeModule() {
     }
   };
 
+  // 90s/question, same budget MNCTestModule.tsx uses for its timed company tests.
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
+
   const startSession = (pool: Question[], count: number) => {
     // Shuffle and pick
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
-    setSessionQuestions(shuffled.slice(0, Math.min(count, shuffled.length)));
+    const picked = shuffled.slice(0, Math.min(count, shuffled.length));
+    setSessionQuestions(picked);
     setCurrentIdx(0);
     setSelectedAnswer(null);
-    setShowExplanation(false);
-    setCorrect(0);
-    setAttempted(0);
+    setAnswers({});
     setSessionDone(false);
+    setTimeLeft(picked.length * 90);
+    setTimerActive(true);
   };
 
   const handleSelect = (opt: string) => {
-    if (selectedAnswer) return; // already answered
     setSelectedAnswer(opt);
-    setAttempted(prev => prev + 1);
-
-    const correctAnswer = resolveAnswer(sessionQuestions[currentIdx]);
-    if (opt === correctAnswer) {
-      setCorrect(prev => prev + 1);
-    }
-    setShowExplanation(true);
+    setAnswers(prev => ({ ...prev, [currentIdx]: opt }));
   };
 
   const handleNext = () => {
     if (currentIdx < sessionQuestions.length - 1) {
       setCurrentIdx(prev => prev + 1);
-      setSelectedAnswer(null);
-      setShowExplanation(false);
-    } else {
-      // Session complete
-      setSessionDone(true);
-      if (activeCategory) {
-        const prev = categoryStats[activeCategory.id] || { total: 0, correct: 0, sessions: 0 };
-        const updated = {
-          ...categoryStats,
-          [activeCategory.id]: {
-            total: prev.total + attempted + (selectedAnswer ? 0 : 0),
-            correct: prev.correct + correct + (selectedAnswer === resolveAnswer(sessionQuestions[currentIdx]) ? 0 : 0),
-            sessions: prev.sessions + 1,
-          },
-        };
-        // Recalculate with the final answer
-        const finalCorrect = correct + (selectedAnswer === resolveAnswer(sessionQuestions[currentIdx]) ? 0 : 0);
-        updated[activeCategory.id] = {
-          total: prev.total + sessionQuestions.length,
-          correct: prev.correct + (finalCorrect),
-          sessions: prev.sessions + 1,
-        };
-        saveStats(updated);
-
-        // Save to DB — the real /tests/submit endpoint (not the old
-        // /students/:id/tests path, whose camelCase fields didn't match its
-        // Joi schema and were silently dropped, so every practice attempt
-        // used to log as a generic untitled "Practice Test").
-        if (user?.id && activeTestId) {
-          api.post("/tests/submit", {
-            test_id: activeTestId,
-            score: finalCorrect,
-            max_score: sessionQuestions.length,
-            percentage: Math.round((finalCorrect / sessionQuestions.length) * 100),
-          }).catch(console.error);
-        }
-      }
+      setSelectedAnswer(answers[currentIdx + 1] || null);
     }
   };
 
+  const handlePrev = () => {
+    if (currentIdx > 0) {
+      setCurrentIdx(prev => prev - 1);
+      setSelectedAnswer(answers[currentIdx - 1] || null);
+    }
+  };
+
+  const finishSession = useCallback(() => {
+    setTimerActive(false);
+    setSessionDone(true);
+
+    if (!activeCategory) return;
+    const finalCorrect = sessionQuestions.reduce((sum, q, idx) => sum + (answers[idx] === resolveAnswer(q) ? 1 : 0), 0);
+
+    const prev = categoryStats[activeCategory.id] || { total: 0, correct: 0, sessions: 0 };
+    saveStats({
+      ...categoryStats,
+      [activeCategory.id]: {
+        total: prev.total + sessionQuestions.length,
+        correct: prev.correct + finalCorrect,
+        sessions: prev.sessions + 1,
+      },
+    });
+
+    // Save to DB — the real /tests/submit endpoint (not the old
+    // /students/:id/tests path, whose camelCase fields didn't match its
+    // Joi schema and were silently dropped, so every practice attempt used
+    // to log as a generic untitled "Practice Test").
+    if (user?.id && activeTestId) {
+      api.post("/tests/submit", {
+        test_id: activeTestId,
+        score: finalCorrect,
+        max_score: sessionQuestions.length,
+        percentage: Math.round((finalCorrect / sessionQuestions.length) * 100),
+      }).catch(console.error);
+    }
+  }, [activeCategory, activeTestId, answers, categoryStats, saveStats, sessionQuestions, user?.id]);
+
+  // Timer
+  useEffect(() => {
+    if (!timerActive || timeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setTimerActive(false);
+          finishSession();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timerActive, timeLeft, finishSession]);
+
   // ──── Session Complete Screen ────
   if (sessionDone && activeCategory) {
+    const correct = sessionQuestions.reduce((sum, q, idx) => sum + (answers[idx] === resolveAnswer(q) ? 1 : 0), 0);
     const pct = Math.round((correct / sessionQuestions.length) * 100);
     return (
       <div className="screen active" style={{ padding: "40px" }}>
@@ -274,9 +298,13 @@ export function PracticeModule() {
   }
 
   // ──── Question Screen ────
+  // Same layout as the MNC Company Tests screen (MNCTestModule.tsx): a
+  // timer + Submit Test in the header, free Previous/Next navigation, and a
+  // Question Palette to jump to any question — no per-question reveal, all
+  // questions get graded together on Submit.
   if (activeCategory && sessionQuestions.length > 0 && !loading) {
     const q = sessionQuestions[currentIdx];
-    const correctAnswer = resolveAnswer(q);
+    const answeredCount = Object.keys(answers).length;
     const progress = ((currentIdx + 1) / sessionQuestions.length) * 100;
 
     return (
@@ -285,9 +313,14 @@ export function PracticeModule() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <div>
             <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)" }}>{activeCategory.label}</h2>
-            <p style={{ color: "var(--muted)", fontSize: "13px" }}>Question {currentIdx + 1} of {sessionQuestions.length} · {correct}/{attempted} correct</p>
+            <p style={{ color: "var(--muted)", fontSize: "13px" }}>{answeredCount}/{sessionQuestions.length} answered</p>
           </div>
-          <button className="btn" onClick={() => { setActiveCategory(null); setSessionDone(false); }}>Exit Practice</button>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div style={{ padding: "8px 16px", borderRadius: "8px", background: timeLeft < 120 ? "#fee2e2" : "var(--bg)", color: timeLeft < 120 ? "#dc2626" : "var(--text)", fontWeight: 700, fontSize: "16px", fontFamily: "monospace" }}>
+              ⏱ {formatTime(timeLeft)}
+            </div>
+            <button className="btn btn-p" onClick={finishSession}>Submit Test</button>
+          </div>
         </div>
 
         {/* Progress bar */}
@@ -295,86 +328,94 @@ export function PracticeModule() {
           <div style={{ width: `${progress}%`, height: "100%", background: activeCategory.color, borderRadius: "3px", transition: "width 0.4s ease" }}></div>
         </div>
 
-        <div className="card" style={{ padding: "36px", maxWidth: "800px", margin: "0 auto" }}>
-          {/* Data presentation for DI questions */}
-          {q.data_presentation && (
-            <div style={{ padding: "16px 20px", background: "var(--bg)", borderRadius: "12px", marginBottom: "24px", fontSize: "14px", color: "var(--muted)", lineHeight: 1.6, borderLeft: `4px solid ${activeCategory.color}` }}>
-              📊 {q.data_presentation}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: "24px" }}>
+          {/* Question */}
+          <div className="card" style={{ padding: "32px" }}>
+            <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px" }}>Question {currentIdx + 1} of {sessionQuestions.length}</div>
+
+            {q.data_presentation && (
+              <div style={{ padding: "14px 18px", background: "var(--bg)", borderRadius: "10px", marginBottom: "20px", fontSize: "14px", color: "var(--muted)", lineHeight: 1.6, borderLeft: `3px solid ${activeCategory.color}` }}>
+                📊 {q.data_presentation}
+              </div>
+            )}
+
+            <h3 style={{ fontSize: "17px", fontWeight: 600, color: "var(--text)", marginBottom: "24px", lineHeight: 1.6 }}>{q.question}</h3>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
+              {q.options.map((opt, i) => {
+                const letter = String.fromCharCode(65 + i);
+                const isSelected = selectedAnswer === opt;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => handleSelect(opt)}
+                    style={{
+                      padding: "14px 18px",
+                      background: isSelected ? activeCategory.colorLight : "var(--bg)",
+                      border: isSelected ? `2px solid ${activeCategory.color}` : "2px solid var(--border)",
+                      borderRadius: "10px",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      fontWeight: 500,
+                      color: isSelected ? activeCategory.color : "var(--text)",
+                      transition: "all 0.2s",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
+                    <span style={{ width: "28px", height: "28px", borderRadius: "6px", background: isSelected ? activeCategory.color : "var(--border)", color: isSelected ? "#fff" : "var(--text)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700, flexShrink: 0 }}>
+                      {letter}
+                    </span>
+                    {opt}
+                  </button>
+                );
+              })}
             </div>
-          )}
 
-          <h3 style={{ fontSize: "18px", fontWeight: 600, color: "var(--text)", marginBottom: "28px", lineHeight: 1.6 }}>
-            {q.question}
-          </h3>
-
-          {/* Options */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px" }}>
-            {q.options.map((opt, i) => {
-              const letter = String.fromCharCode(65 + i);
-              let bg = "var(--bg)";
-              let border = "2px solid var(--border)";
-              let textColor = "var(--text)";
-
-              if (showExplanation) {
-                if (opt === correctAnswer) {
-                  bg = "#dcfce7";
-                  border = "2px solid #16a34a";
-                  textColor = "#15803d";
-                } else if (opt === selectedAnswer && opt !== correctAnswer) {
-                  bg = "#fee2e2";
-                  border = "2px solid #dc2626";
-                  textColor = "#b91c1c";
-                }
-              } else if (selectedAnswer === opt) {
-                bg = activeCategory.colorLight;
-                border = `2px solid ${activeCategory.color}`;
-                textColor = activeCategory.color;
-              }
-
-              return (
-                <button
-                  key={i}
-                  onClick={() => handleSelect(opt)}
-                  disabled={!!selectedAnswer}
-                  style={{
-                    padding: "16px 20px",
-                    background: bg,
-                    border,
-                    borderRadius: "12px",
-                    textAlign: "left",
-                    cursor: selectedAnswer ? "default" : "pointer",
-                    fontWeight: 500,
-                    color: textColor,
-                    transition: "all 0.2s",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "14px",
-                    opacity: showExplanation && opt !== correctAnswer && opt !== selectedAnswer ? 0.5 : 1,
-                  }}
-                >
-                  <span style={{ width: "32px", height: "32px", borderRadius: "8px", background: showExplanation && opt === correctAnswer ? "#16a34a" : showExplanation && opt === selectedAnswer ? "#dc2626" : "var(--border)", color: showExplanation && (opt === correctAnswer || opt === selectedAnswer) ? "#fff" : "var(--text)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: 700, flexShrink: 0 }}>
-                    {showExplanation && opt === correctAnswer ? "✓" : showExplanation && opt === selectedAnswer && opt !== correctAnswer ? "✗" : letter}
-                  </span>
-                  {opt}
-                </button>
-              );
-            })}
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <button className="btn" disabled={currentIdx === 0} onClick={handlePrev}>← Previous</button>
+              <button className="btn btn-p" onClick={handleNext} disabled={currentIdx === sessionQuestions.length - 1}>
+                Next →
+              </button>
+            </div>
           </div>
 
-          {/* Explanation */}
-          {showExplanation && q.explanation && (
-            <div style={{ padding: "16px 20px", background: "#f0f9ff", borderRadius: "12px", marginBottom: "24px", fontSize: "14px", color: "#0369a1", lineHeight: 1.6, border: "1px solid #bae6fd" }}>
-              <strong>💡 Explanation:</strong> {q.explanation}
+          {/* Question palette */}
+          <div className="card" style={{ padding: "20px", height: "fit-content" }}>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)", marginBottom: "12px" }}>Question Palette</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "6px" }}>
+              {sessionQuestions.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => { setCurrentIdx(idx); setSelectedAnswer(answers[idx] || null); }}
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "8px",
+                    border: idx === currentIdx ? `2px solid ${activeCategory.color}` : "1px solid var(--border)",
+                    background: answers[idx] ? activeCategory.colorLight : idx === currentIdx ? "var(--bg)" : "transparent",
+                    color: answers[idx] ? activeCategory.color : "var(--text)",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {idx + 1}
+                </button>
+              ))}
             </div>
-          )}
-
-          {/* Nav */}
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            {showExplanation && (
-              <button className="btn btn-p" onClick={handleNext}>
-                {currentIdx === sessionQuestions.length - 1 ? "Finish Practice" : "Next Question →"}
-              </button>
-            )}
+            <div style={{ marginTop: "16px", fontSize: "11px", color: "var(--muted)", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "12px", height: "12px", borderRadius: "3px", background: activeCategory.colorLight, border: `1px solid ${activeCategory.color}` }}></div>
+                Answered
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "12px", height: "12px", borderRadius: "3px", background: "transparent", border: "1px solid var(--border)" }}></div>
+                Not answered
+              </div>
+            </div>
           </div>
         </div>
       </div>
