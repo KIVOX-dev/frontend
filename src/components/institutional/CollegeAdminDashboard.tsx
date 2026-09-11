@@ -22,6 +22,21 @@ import {
 // ApexCharts touches `window` at import time, so it must never run during SSR.
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
+// <input type="datetime-local"> yields a bare "YYYY-MM-DDTHH:mm" with no
+// timezone marker at all — new Date(bareString) resolves it against
+// whatever timezone the CURRENT MACHINE's OS happens to be set to, which
+// silently produced the wrong instant the moment that differed from IST
+// (confirmed in production: an admin's browser resolving JS's "local"
+// timezone to UTC stored a test's start time 5.5 hours off from what the
+// picker showed them, with nothing in the UI indicating why). Every real
+// institution on this platform is in India, so the picker's digits are
+// pinned to IST explicitly here — a fixed +05:30 offset, never dependent
+// on any admin's, server's, or viewer's own machine clock/timezone
+// setting being configured correctly.
+function istDatetimeLocalToIso(value: string): string {
+  return `${value}:00+05:30`;
+}
+
 export function CollegeAdminDashboard() {
   const { user: currentUser } = useAuthStore();
   const { activeScreen, setActiveScreen } = useUiStore();
@@ -753,18 +768,8 @@ export function CollegeAdminDashboard() {
         total_marks: assessmentForm.total_marks,
         pass_percentage: assessmentForm.pass_percentage,
         status: assessmentForm.status,
-        // <input type="datetime-local"> yields a bare "YYYY-MM-DDTHH:mm"
-        // with no timezone — a wall-clock time in the admin's own browser
-        // timezone, not UTC. Sending that string straight through used to
-        // get re-parsed as UTC wherever it landed (the backend, or even a
-        // student's browser in a different offset), silently shifting the
-        // actual start/end time by the admin's UTC offset — e.g. an IST
-        // admin picking 9:50 AM had students see 4:20 AM. new Date(...)
-        // here parses it in THIS browser's own timezone (exactly what the
-        // picker meant), and toISOString() makes that moment unambiguous
-        // regardless of what timezone the server or any viewer is in.
-        start_at: assessmentForm.start_at ? new Date(assessmentForm.start_at).toISOString() : null,
-        end_at: assessmentForm.end_at ? new Date(assessmentForm.end_at).toISOString() : null,
+        start_at: assessmentForm.start_at ? istDatetimeLocalToIso(assessmentForm.start_at) : null,
+        end_at: assessmentForm.end_at ? istDatetimeLocalToIso(assessmentForm.end_at) : null,
       });
 
       let assignNote = "";
