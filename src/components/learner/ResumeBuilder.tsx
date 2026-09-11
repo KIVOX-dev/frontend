@@ -698,10 +698,14 @@ export function ResumeBuilder() {
               <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs flex flex-col justify-between">
                 <div>
                   <h3 className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-4">ATS Compatibility Score</h3>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-black text-slate-900">{atsReport ? atsReport.score : "—"}</span>
-                    <span className="text-slate-400 text-lg font-bold">/ 100</span>
-                  </div>
+                  {atsReport ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-5xl font-black text-slate-900">{atsReport.score}</span>
+                      <span className="text-slate-400 text-lg font-bold">/ 100</span>
+                    </div>
+                  ) : (
+                    <span className="text-2xl font-bold text-slate-300">Not scanned yet</span>
+                  )}
                   <div className="mt-4 h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-green-gradient"
