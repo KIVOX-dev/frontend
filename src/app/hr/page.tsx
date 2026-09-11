@@ -182,7 +182,7 @@ export default function HrPage() {
               Top Talent.
             </div>
             <div className="hero-sub">
-              Browse AI-scored aptitude profiles, view job-role badges, and shortlist directly from the SkilloWait leaderboard.
+              Browse AI-scored aptitude profiles, view job-role badges, and shortlist directly from the UpScalerAI leaderboard.
             </div>
             <div className="hero-acts">
               <button className="hbtn hbtn-w" onClick={() => setActiveScreen("hr-vac")}>Post a Vacancy</button>
@@ -374,7 +374,7 @@ export default function HrPage() {
                 <button className="btn btn-p btn-sm" style={{ width: "100%", justifyContent: "center" }}>Apply Now</button>
               </div>
               <div style={{ background: "var(--green-l)", border: "1.5px solid rgba(14,159,110,.18)", borderRadius: "var(--r2)", padding: "12px", fontSize: "12px", color: "var(--text)", lineHeight: 1.6 }}>
-                <strong style={{ color: "var(--green)" }}>Who sees this?</strong> All SkilloWait students matching your filters will see this vacancy in their Profile Summarizer → Open Roles tab.
+                <strong style={{ color: "var(--green)" }}>Who sees this?</strong> All UpScalerAI students matching your filters will see this vacancy in their Profile Summarizer → Open Roles tab.
               </div>
             </div>
           </div>
