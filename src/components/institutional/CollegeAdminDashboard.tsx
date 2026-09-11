@@ -778,11 +778,15 @@ export function CollegeAdminDashboard() {
       let assignFailed = false;
       if (assessmentForm.department_id) {
         try {
+          // A department-sized roster (100+ students) is real per-student
+          // work server-side even with the chunked-concurrency fix —
+          // overridden here rather than raising the shared 30s default
+          // everywhere, same reasoning as the batch-upload endpoint.
           const assignRes = await api.post("/test-assignments", {
             test_id: res.data.id,
             department_id: assessmentForm.department_id,
             batch_year: parseInt(assessmentForm.batch_year, 10) || new Date().getFullYear(),
-          });
+          }, { timeout: 4 * 60 * 1000 });
           const { assigned_count, matched_students } = assignRes.data as { assigned_count: number; matched_students: number };
           assignNote = `Assigned to ${assigned_count} of ${matched_students} matching student(s).`;
         } catch (assignErr: any) {
@@ -836,11 +840,15 @@ export function CollegeAdminDashboard() {
     const failures: { department: string; reason: string }[] = [];
     for (const deptId of assignForm.department_ids) {
       try {
+        // A single department can itself have 100+ matching students —
+        // real per-student server-side work even with the backend's
+        // chunked-concurrency fix, so this needs the same longer timeout
+        // the batch-upload endpoint got rather than the shared 30s default.
         const res = await api.post("/test-assignments", {
           test_id: assigningTest.id,
           department_id: deptId,
           batch_year: assignForm.batch_year,
-        });
+        }, { timeout: 4 * 60 * 1000 });
         const { assigned_count, matched_students } = res.data as { assigned_count: number; matched_students: number };
         totalAssigned += assigned_count;
         totalMatched += matched_students;
