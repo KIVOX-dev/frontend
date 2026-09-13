@@ -228,6 +228,64 @@ body.mobile-view .lp-mountains {
   display: none
 }
 
+.lp-snow {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none
+}
+
+.lp-snow span {
+  position: absolute;
+  top: -5%;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  animation-name: lp-snow-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite
+}
+
+@keyframes lp-snow-fall {
+  0% { top: -5%; opacity: 0; transform: translateX(0) }
+  10% { opacity: .9 }
+  50% { transform: translateX(var(--drift, 16px)) }
+  90% { opacity: .85 }
+  100% { top: 105%; opacity: 0; transform: translateX(0) }
+}
+
+body.mobile-view .lp-snow {
+  display: none
+}
+
+.lp-star {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: lp-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite
+}
+
+@keyframes lp-twinkle {
+  0%, 100% { opacity: var(--o, .5); transform: scale(1) }
+  50% { opacity: 1; transform: scale(1.7) }
+}
+
+.lp-shoot {
+  opacity: 0;
+  animation-name: lp-shoot-move;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite
+}
+
+@keyframes lp-shoot-move {
+  0% { opacity: 0; transform: translate(0, 0) }
+  2% { opacity: 1 }
+  20% { opacity: 0; transform: translate(var(--dx), var(--dy)) }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) }
+}
+
 .lp-logo {
   display: flex;
   align-items: center;

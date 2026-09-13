@@ -128,6 +128,108 @@ const SHAPES: Record<AuthSeason, Shape> = {
   },
 };
 
+// The night sky's star field — fixed positions and fixed twinkle timing
+// (not Math.random()) so server and client render identical markup, but
+// varied enough per star that the sparkle reads as random rather than a
+// single synchronized pulse. `o` is a multiplier on the palette's own
+// accentOpacity, `dur`/`delay` stagger each star's twinkle cycle.
+const STARS = [
+  { cx: 54, cy: 40, r: 1.6, o: 1, dur: 3.4, delay: -0.6 },
+  { cx: 128, cy: 70, r: 1.1, o: 0.65, dur: 4.1, delay: -2.4 },
+  { cx: 96, cy: 105, r: 1.3, o: 0.75, dur: 2.9, delay: -1.1 },
+  { cx: 18, cy: 80, r: 1.2, o: 0.6, dur: 3.8, delay: -3 },
+  { cx: 70, cy: 150, r: 1.1, o: 0.55, dur: 2.6, delay: -0.3 },
+  { cx: 160, cy: 40, r: 1.3, o: 0.7, dur: 4.4, delay: -1.8 },
+  { cx: 200, cy: 95, r: 1, o: 0.5, dur: 3.1, delay: -2.1 },
+  { cx: 248, cy: 30, r: 1.2, o: 0.55, dur: 3.6, delay: -0.9 },
+  { cx: 270, cy: 110, r: 1.4, o: 0.7, dur: 2.7, delay: -1.5 },
+  { cx: 368, cy: 94, r: 1.4, o: 0.75, dur: 4, delay: -2.7 },
+  { cx: 30, cy: 140, r: 1.1, o: 0.55, dur: 3.3, delay: -1.2 },
+  { cx: 395, cy: 150, r: 1.2, o: 0.6, dur: 2.8, delay: -3.3 },
+  { cx: 8, cy: 30, r: 1, o: 0.5, dur: 3.9, delay: -0.5 },
+  { cx: 230, cy: 150, r: 1.1, o: 0.5, dur: 3.2, delay: -2.9 },
+  { cx: 110, cy: 20, r: 1, o: 0.6, dur: 4.2, delay: -1.6 },
+  { cx: 150, cy: 120, r: 1.2, o: 0.65, dur: 2.6, delay: -0.8 },
+  { cx: 185, cy: 55, r: 1.1, o: 0.5, dur: 3.5, delay: -2.2 },
+  { cx: 220, cy: 15, r: 1.3, o: 0.6, dur: 3, delay: -1.4 },
+  { cx: 260, cy: 145, r: 1, o: 0.55, dur: 4.3, delay: -3.1 },
+  { cx: 290, cy: 50, r: 1.2, o: 0.7, dur: 2.9, delay: -0.4 },
+  { cx: 315, cy: 130, r: 1.1, o: 0.5, dur: 3.7, delay: -2.5 },
+  { cx: 350, cy: 25, r: 1.3, o: 0.65, dur: 3.1, delay: -1.9 },
+  { cx: 380, cy: 60, r: 1, o: 0.55, dur: 4, delay: -0.7 },
+  { cx: 405, cy: 110, r: 1.2, o: 0.6, dur: 2.7, delay: -2.6 },
+  { cx: 45, cy: 115, r: 1, o: 0.5, dur: 3.6, delay: -1.3 },
+  { cx: 75, cy: 25, r: 1.1, o: 0.6, dur: 3.2, delay: -3.2 },
+  { cx: 135, cy: 150, r: 1, o: 0.5, dur: 4.1, delay: -0.2 },
+  { cx: 175, cy: 155, r: 1.2, o: 0.55, dur: 2.8, delay: -1.7 },
+  { cx: 250, cy: 70, r: 1, o: 0.5, dur: 3.4, delay: -2.8 },
+  { cx: 300, cy: 20, r: 1.1, o: 0.6, dur: 3.9, delay: -1, },
+];
+
+// Fixed-position, fixed-timing streaks (not Math.random()) so server and
+// client render identical markup — a real streak across the sky every few
+// seconds, not a static decoration.
+const SHOOTING_STARS = [
+  { x1: 40, y1: 30, x2: 92, y2: 52, dx: 150, dy: 65, duration: 7, delay: -1 },
+  { x1: 210, y1: 18, x2: 258, y2: 40, dx: 128, dy: 55, duration: 9.5, delay: -4.2 },
+  { x1: 305, y1: 62, x2: 352, y2: 83, dx: 108, dy: 46, duration: 6.5, delay: -2.7 },
+  { x1: 130, y1: 90, x2: 178, y2: 112, dx: 118, dy: 50, duration: 8.5, delay: -6 },
+];
+
+// A handful of falling snow particles, drifting side to side as they fall —
+// only used for the winter scene's overlay (see `Snowfall` below).
+const SNOWFLAKES = [
+  { left: 4, size: 3, duration: 9, delay: -1, drift: 18 },
+  { left: 12, size: 2, duration: 12, delay: -6, drift: -22 },
+  { left: 20, size: 4, duration: 8, delay: -3, drift: 12 },
+  { left: 28, size: 2.5, duration: 14, delay: -9, drift: -16 },
+  { left: 35, size: 3, duration: 10, delay: -2, drift: 24 },
+  { left: 43, size: 2, duration: 13, delay: -7, drift: -10 },
+  { left: 50, size: 3.5, duration: 9, delay: -4, drift: 20 },
+  { left: 58, size: 2, duration: 11, delay: -8, drift: -18 },
+  { left: 65, size: 3, duration: 15, delay: -5, drift: 14 },
+  { left: 72, size: 2.5, duration: 10, delay: -1, drift: -24 },
+  { left: 80, size: 4, duration: 12, delay: -10, drift: 16 },
+  { left: 88, size: 2, duration: 9, delay: -3, drift: -12 },
+  { left: 95, size: 3, duration: 13, delay: -6, drift: 22 },
+  { left: 8, size: 2, duration: 16, delay: -11, drift: -20 },
+  { left: 16, size: 3.5, duration: 8, delay: -2, drift: 10 },
+  { left: 24, size: 2, duration: 11, delay: -9, drift: -14 },
+  { left: 32, size: 3, duration: 14, delay: -4, drift: 18 },
+  { left: 40, size: 2.5, duration: 9, delay: -7, drift: -22 },
+  { left: 48, size: 4, duration: 12, delay: -1, drift: 12 },
+  { left: 55, size: 2, duration: 10, delay: -5, drift: -16 },
+  { left: 63, size: 3, duration: 15, delay: -8, drift: 20 },
+  { left: 70, size: 2.5, duration: 13, delay: -2, drift: -10 },
+  { left: 78, size: 3, duration: 9, delay: -6, drift: 24 },
+  { left: 85, size: 2, duration: 11, delay: -3, drift: -18 },
+  { left: 92, size: 3.5, duration: 14, delay: -10, drift: 14 },
+  { left: 98, size: 2, duration: 8, delay: -4, drift: -12 },
+];
+
+// Winter-only snow overlay, layered above AuthMountains in AuthSplitLayout
+// so it falls across the full panel height, not just the mountain SVG's
+// masked bottom band.
+export function Snowfall() {
+  return (
+    <div className="lp-snow" aria-hidden="true">
+      {SNOWFLAKES.map((f, i) => (
+        <span
+          key={i}
+          style={{
+            left: `${f.left}%`,
+            width: f.size,
+            height: f.size,
+            animationDuration: `${f.duration}s`,
+            animationDelay: `${f.delay}s`,
+            ["--drift" as string]: `${f.drift}px`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 // A puffy cartoon-cloud silhouette: a cluster of overlapping ellipses,
 // anchored at (x, y) and scaled by `s`. Same shape reused at different
 // positions/sizes/opacities for variety.
@@ -152,23 +254,53 @@ export function AuthMountains({ season = "night" }: { season?: AuthSeason }) {
       preserveAspectRatio="xMidYMax slice"
       aria-hidden="true"
     >
+      <defs>
+        <linearGradient id="lp-shoot-trail" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#fff" stopOpacity="0" />
+          <stop offset="1" stopColor="#fff" stopOpacity="1" />
+        </linearGradient>
+      </defs>
+
+      {/* live shooting stars — a real streak crossing the sky every few
+          seconds, independent of day/night palette */}
+      {SHOOTING_STARS.map((star, i) => (
+        <line
+          key={i}
+          x1={star.x1}
+          y1={star.y1}
+          x2={star.x2}
+          y2={star.y2}
+          stroke="url(#lp-shoot-trail)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          className="lp-shoot"
+          style={{
+            animationDuration: `${star.duration}s`,
+            animationDelay: `${star.delay}s`,
+            ["--dx" as string]: `${star.dx}px`,
+            ["--dy" as string]: `${star.dy}px`,
+          }}
+        />
+      ))}
+
       {p.sky === "night" ? (
         <>
-          {/* stars */}
-          <circle cx="54" cy="40" r="1.6" fill={p.accent} opacity={p.accentOpacity} />
-          <circle cx="128" cy="70" r="1.1" fill={p.accent} opacity={p.accentOpacity * 0.65} />
-          <circle cx="96" cy="105" r="1.3" fill={p.accent} opacity={p.accentOpacity * 0.75} />
-          <circle cx="18" cy="80" r="1.2" fill={p.accent} opacity={p.accentOpacity * 0.6} />
-          <circle cx="70" cy="150" r="1.1" fill={p.accent} opacity={p.accentOpacity * 0.55} />
-          <circle cx="160" cy="40" r="1.3" fill={p.accent} opacity={p.accentOpacity * 0.7} />
-          <circle cx="200" cy="95" r="1" fill={p.accent} opacity={p.accentOpacity * 0.5} />
-          <circle cx="248" cy="30" r="1.2" fill={p.accent} opacity={p.accentOpacity * 0.55} />
-          <circle cx="270" cy="110" r="1.4" fill={p.accent} opacity={p.accentOpacity * 0.7} />
-          <circle cx="368" cy="94" r="1.4" fill={p.accent} opacity={p.accentOpacity * 0.75} />
-          <circle cx="30" cy="140" r="1.1" fill={p.accent} opacity={p.accentOpacity * 0.55} />
-          <circle cx="395" cy="150" r="1.2" fill={p.accent} opacity={p.accentOpacity * 0.6} />
-          <circle cx="8" cy="30" r="1" fill={p.accent} opacity={p.accentOpacity * 0.5} />
-          <circle cx="230" cy="150" r="1.1" fill={p.accent} opacity={p.accentOpacity * 0.5} />
+          {/* stars — a full field, each twinkling on its own random-feeling cycle */}
+          {STARS.map((st, i) => (
+            <circle
+              key={i}
+              cx={st.cx}
+              cy={st.cy}
+              r={st.r}
+              fill={p.accent}
+              className="lp-star"
+              style={{
+                ["--o" as string]: p.accentOpacity * st.o,
+                animationDuration: `${st.dur}s`,
+                animationDelay: `${st.delay}s`,
+              }}
+            />
+          ))}
 
           {/* half moon: a full pale disc with an offset "shadow" disc, filled
               with the sky's own top colour so the cutout reads as a true

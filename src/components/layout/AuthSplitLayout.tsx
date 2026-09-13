@@ -1,6 +1,6 @@
 import React from "react";
 import { Logo } from "@/components/shared/Logo";
-import { AuthMountains, type AuthSeason } from "@/components/layout/AuthMountains";
+import { AuthMountains, Snowfall, type AuthSeason } from "@/components/layout/AuthMountains";
 
 const SEASON_BG: Record<AuthSeason, string> = {
   spring: "linear-gradient(150deg, #4A2E52 0%, #8B5A8F 45%, #C98FB0 80%, #F5C6D8 100%)",
@@ -24,6 +24,7 @@ export function AuthSplitLayout({
     <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", background: "var(--bg)" }}>
       <div className="lp-left" style={{ background: SEASON_BG[season] }}>
         <AuthMountains season={season} />
+        {season === "winter" && <Snowfall />}
         {/* No generic fallback copy here on purpose: every screen besides
             HrLogin and LearnerLogin used to inherit HrLogin's sibling —
             learner-specific "Train smarter" stats — regardless of whether
