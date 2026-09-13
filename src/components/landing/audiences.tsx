@@ -37,7 +37,7 @@ export const AUDIENCES: Record<AudienceKey, AudienceConfig> = {
   learner: {
     key: "learner",
     path: "/",
-    tabLabel: "For Learners",
+    tabLabel: "For Institutions",
     navSuffix: null,
     navCtaLabel: "Request Demo",
     headline: (
@@ -95,7 +95,7 @@ export const AUDIENCES: Record<AudienceKey, AudienceConfig> = {
   institutional: {
     key: "institutional",
     path: "/for-institutions",
-    tabLabel: "For Institutions",
+    tabLabel: "For Learners",
     navSuffix: "for Institutions",
     navCtaLabel: "Contact Us",
     headline: (
