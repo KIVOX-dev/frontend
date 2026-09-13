@@ -30,54 +30,14 @@ export function AuthSplitLayout({
             TalentSnaps
           </span>
         </div>
-        <div className="lp-body">
-          {leftContent || (
-            <>
-              <div className="lp-pill">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="10" height="10">
-                  <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" />
-                </svg>
-                AI-Powered Aptitude Training
-              </div>
-              <div className="lp-title">
-                Train smarter.
-                <br />
-                Score higher.
-              </div>
-              <div className="lp-sub">
-                Adaptive AI that learns your weak spots, builds your profile, and connects you to real opportunities —
-                all in one platform.
-              </div>
-              <div className="lp-stats">
-                <div className="lp-stat">
-                  <div className="lp-stat-val">1000+</div>
-                  <div className="lp-stat-lbl">Students trained</div>
-                </div>
-                <div className="lp-stat">
-                  <div className="lp-stat-val">90%</div>
-                  <div className="lp-stat-lbl">Placement rate</div>
-                </div>
-                <div className="lp-stat">
-                  <div className="lp-stat-val">4.5/5</div>
-                  <div className="lp-stat-lbl">Average rating</div>
-                </div>
-                <div className="lp-stat">
-                  <div className="lp-stat-val">20+</div>
-                  <div className="lp-stat-lbl">Colleges enrolled</div>
-                </div>
-              </div>
-              <div className="lp-avs">
-                <div className="lp-av-stack">
-                  <div className="lp-av">AR</div>
-                  <div className="lp-av">PK</div>
-                  <div className="lp-av">VR</div>
-                  <div className="lp-av">SM</div>
-                </div>
-                <span className="lp-av-text">Joined this week from 38 colleges</span>
-              </div>
-            </>
-          )}
-        </div>
+        {/* No generic fallback copy here on purpose: every screen besides
+            HrLogin and LearnerLogin used to inherit HrLogin's sibling —
+            learner-specific "Train smarter" stats — regardless of whether
+            it made sense (an institution admin or super admin screen has
+            no business citing "Students trained"). Screens that want their
+            own pitch pass `leftContent`; everyone else just gets the full
+            mountain scene, unobstructed. */}
+        {leftContent && <div className="lp-body">{leftContent}</div>}
       </div>
       <div
         className="lp-right"

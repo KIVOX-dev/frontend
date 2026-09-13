@@ -68,55 +68,7 @@ export function HrLogin() {
   };
 
   return (
-    <AuthSplitLayout
-      season="autumn"
-      leftContent={
-        <>
-          <div className="lp-pill">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="10" height="10">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-            </svg>
-            HR & Recruiter Platform
-          </div>
-          <div className="lp-title">
-            Hire smarter.
-            <br />
-            Source better.
-          </div>
-          <div className="lp-sub">
-            AI-ranked aptitude profiles, interview scores, and placement-ready talent — all in one recruiter dashboard.
-          </div>
-          <div className="lp-stats">
-            <div className="lp-stat">
-              <div className="lp-stat-val">450+</div>
-              <div className="lp-stat-lbl">Colleges enrolled</div>
-            </div>
-            <div className="lp-stat">
-              <div className="lp-stat-val">2.4L+</div>
-              <div className="lp-stat-lbl">Scored profiles</div>
-            </div>
-            <div className="lp-stat">
-              <div className="lp-stat-val">94%</div>
-              <div className="lp-stat-lbl">Hire success rate</div>
-            </div>
-            <div className="lp-stat">
-              <div className="lp-stat-val">30+</div>
-              <div className="lp-stat-lbl">Partner companies</div>
-            </div>
-          </div>
-          <div className="lp-avs">
-            <div className="lp-av-stack">
-              <div className="lp-av">ZO</div>
-              <div className="lp-av">TC</div>
-              <div className="lp-av">IN</div>
-              <div className="lp-av">HX</div>
-            </div>
-            <span className="lp-av-text">Trusted by top MNC recruiters</span>
-          </div>
-        </>
-      }
-    >
+    <AuthSplitLayout season="autumn">
       <div className="lp-card">
         {isLogin ? (
           <>

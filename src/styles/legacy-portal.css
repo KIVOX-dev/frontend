@@ -237,13 +237,13 @@ a:focus-visible,
   right: 0;
   bottom: 0;
   width: 100%;
-  height: 24%;
-  min-height: 150px;
+  height: 68%;
+  min-height: 320px;
   z-index: 0;
   pointer-events: none;
-  opacity: .8;
-  mask-image: linear-gradient(to bottom, transparent, #000 40px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 40px)
+  opacity: .92;
+  mask-image: linear-gradient(to bottom, transparent, #000 90px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 90px)
 }
 
 body.mobile-view .lp-mountains {
