@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingPageLayout } from "@/components/marketing/MarketingPageLayout";
+import { partnerColleges } from "@/lib/partnerColleges";
 
 export const metadata: Metadata = {
   title: "Partner Colleges — TalentSnaps",
@@ -17,6 +18,27 @@ export default function PartnerCollegesPage() {
           getting your existing data (students, past drives, offer letters already on file) into it
           correctly on day one.
         </p>
+      </section>
+
+      <section>
+        <h2>Colleges on TalentSnaps today</h2>
+        <p>All in and around Coimbatore, across arts, science, commerce, and engineering.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+          {partnerColleges.map((college) => (
+            <div
+              key={college.code}
+              title={college.name}
+              className="flex h-20 items-center justify-center rounded-lg border border-line bg-white px-5"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={college.logo}
+                alt={college.name}
+                className="max-h-12 max-w-full w-auto object-contain"
+              />
+            </div>
+          ))}
+        </div>
       </section>
 
       <section>

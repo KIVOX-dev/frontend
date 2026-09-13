@@ -9,6 +9,7 @@ import { revealUp, revealEase } from "../reveal";
 import { RevealHeading } from "../RevealHeading";
 import { TiltCard } from "../TiltCard";
 import { MagneticButton } from "../MagneticButton";
+import TrustedByColleges from "../TrustedByColleges";
 
 /* ------------------------------------------------------------------ *
  * Content. Everything the page says lives here, so copy changes never
@@ -906,6 +907,7 @@ export default function TalentSnapsLanding() {
     <div className="ts-landing">
       <Hero />
       <HeroScene><Dashboard /></HeroScene>
+      <TrustedByColleges />
       <Modules />
       <DrivesFeature />
       <OfferLettersFeature />
