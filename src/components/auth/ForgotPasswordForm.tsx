@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import Link from "next/link";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
+import { Turnstile, isTurnstileConfigured, TurnstileHandle } from "@/components/auth/Turnstile";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 
@@ -28,6 +29,8 @@ export function ForgotPasswordForm() {
   const [submitError, setSubmitError] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,13 +42,19 @@ export function ForgotPasswordForm() {
       return;
     }
     setFieldError("");
+    if (isTurnstileConfigured && !turnstileToken) {
+      setSubmitError("Please complete the verification challenge.");
+      return;
+    }
 
     setLoading(true);
     try {
-      await api.post("/auth/forgot-password", { email: trimmed });
+      await api.post("/auth/forgot-password", { email: trimmed, turnstileToken });
       setSubmitted(true);
     } catch (err: unknown) {
       setSubmitError(extractErrorMessage(err, "Something went wrong. Please try again."));
+      turnstileRef.current?.reset();
+      setTurnstileToken("");
     } finally {
       setLoading(false);
     }
@@ -129,7 +138,18 @@ export function ForgotPasswordForm() {
                 {fieldError}
               </p>
             )}
-            <button type="submit" className="l-submit l-submit-blue" style={{ width: "100%", marginBottom: "16px" }} disabled={loading}>
+            <Turnstile
+              ref={turnstileRef}
+              action="forgot_password"
+              onVerify={setTurnstileToken}
+              onExpire={() => setTurnstileToken("")}
+            />
+            <button
+              type="submit"
+              className="l-submit l-submit-blue"
+              style={{ width: "100%", marginBottom: "16px" }}
+              disabled={loading || (isTurnstileConfigured && !turnstileToken)}
+            >
               {loading ? "Sending..." : "Send reset link"}
             </button>
             <Link

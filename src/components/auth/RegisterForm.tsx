@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { GoogleLoginButton, isGoogleLoginConfigured } from "@/components/auth/GoogleLoginButton";
+import { Turnstile, isTurnstileConfigured, TurnstileHandle } from "@/components/auth/Turnstile";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
@@ -56,6 +57,8 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   const login = useAuthStore((state) => state.login);
   const router = useRouter();
@@ -73,10 +76,11 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
     if (!email.trim()) return setError("Please enter your email.");
     if (!password.trim()) return setError("Please choose a password.");
     if (role === "hr" && !companyName.trim()) return setError("Please enter your company name.");
+    if (isTurnstileConfigured && !turnstileToken) return setError("Please complete the verification challenge.");
 
     setLoading(true);
     try {
-      const payload: Record<string, unknown> = { name, email, password, role };
+      const payload: Record<string, unknown> = { name, email, password, role, turnstileToken };
       if (phone.trim()) payload.phone = phone.trim();
       if (role === "hr") payload.company_name = companyName;
 
@@ -107,6 +111,8 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
       }
     } catch (err: unknown) {
       setError(extractErrorMessage(err, "Registration failed. Please try again."));
+      turnstileRef.current?.reset();
+      setTurnstileToken("");
     } finally {
       setLoading(false);
     }
@@ -209,7 +215,19 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
               </div>
             )}
 
-            <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={handleSubmit} disabled={loading}>
+            <Turnstile
+              ref={turnstileRef}
+              action="register"
+              onVerify={setTurnstileToken}
+              onExpire={() => setTurnstileToken("")}
+            />
+
+            <button
+              className="l-submit l-submit-blue"
+              style={{ width: "100%" }}
+              onClick={handleSubmit}
+              disabled={loading || (isTurnstileConfigured && !turnstileToken)}
+            >
               {loading ? "Submitting..." : copy.submitLabel}
             </button>
 

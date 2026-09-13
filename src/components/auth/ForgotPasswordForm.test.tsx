@@ -33,7 +33,13 @@ describe("ForgotPasswordForm", () => {
     await user.type(screen.getByLabelText(/email/i), "student@college.edu");
     await user.click(screen.getByRole("button", { name: /send reset link/i }));
 
-    await waitFor(() => expect(postMock).toHaveBeenCalledWith("/auth/forgot-password", { email: "student@college.edu" }));
+    // turnstileToken is "" here because NEXT_PUBLIC_TURNSTILE_SITE_KEY isn't set in
+    // the test environment — isTurnstileConfigured is false, so the widget never
+    // renders and never blocks submission (see Turnstile.tsx); the field is still
+    // sent on the payload either way.
+    await waitFor(() =>
+      expect(postMock).toHaveBeenCalledWith("/auth/forgot-password", { email: "student@college.edu", turnstileToken: "" })
+    );
     expect(await screen.findByText(/if an account exists for that email/i)).toBeInTheDocument();
     expect(screen.queryByText(/no account/i)).not.toBeInTheDocument();
   });
