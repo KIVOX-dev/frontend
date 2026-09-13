@@ -1,7 +1,8 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
+import { isTurnstileConfigured, TurnstileHandle } from "@/components/auth/Turnstile";
 
 /**
  * Shared email/password login state + submit logic behind every role's
@@ -13,6 +14,11 @@ import { extractErrorMessage } from "@/lib/errors";
  * to fold in here, so those stay page-specific and just reuse the setters
  * this hook already exposes (`setError`/`setLoading`) to share one error/
  * loading surface with the login panel next to them.
+ *
+ * Also owns Turnstile state for the same reason: /auth/login is one shared
+ * backend endpoint (see node-api's verifyTurnstile('login') middleware), so
+ * every caller of this hook needs the same widget/token/reset behavior —
+ * centralizing it here instead of in all six login components.
  */
 export function useLoginForm(options?: { fallbackErrorMessage?: string }) {
   const authLogin = useAuthStore((state) => state.login);
@@ -20,6 +26,8 @@ export function useLoginForm(options?: { fallbackErrorMessage?: string }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   const login = useCallback(
     async (extraPayload?: Record<string, unknown>): Promise<boolean> => {
@@ -28,9 +36,13 @@ export function useLoginForm(options?: { fallbackErrorMessage?: string }) {
         setError("Please enter your email and password.");
         return false;
       }
+      if (isTurnstileConfigured && !turnstileToken) {
+        setError("Please complete the verification challenge.");
+        return false;
+      }
       setLoading(true);
       try {
-        const res = await api.post("/auth/login", { email: email.trim(), password, ...extraPayload });
+        const res = await api.post("/auth/login", { email: email.trim(), password, turnstileToken, ...extraPayload });
         const { user, access_token } = res.data;
         authLogin(
           {
@@ -51,13 +63,29 @@ export function useLoginForm(options?: { fallbackErrorMessage?: string }) {
         let message = extractErrorMessage(err, options?.fallbackErrorMessage ?? "Invalid password or email");
         if (message === "Incorrect email or password") message = "Invalid password or email";
         setError(message);
+        turnstileRef.current?.reset();
+        setTurnstileToken("");
         return false;
       } finally {
         setLoading(false);
       }
     },
-    [email, password, authLogin, options?.fallbackErrorMessage]
+    [email, password, turnstileToken, authLogin, options?.fallbackErrorMessage]
   );
 
-  return { email, setEmail, password, setPassword, error, setError, loading, setLoading, login };
+  return {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    error,
+    setError,
+    loading,
+    setLoading,
+    login,
+    turnstileRef,
+    setTurnstileToken,
+    /** Pass straight through as LoginFields' `disabled` prop. */
+    turnstileDisabled: isTurnstileConfigured && !turnstileToken,
+  };
 }

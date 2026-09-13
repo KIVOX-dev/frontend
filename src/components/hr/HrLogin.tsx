@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { LoginFields } from "@/components/auth/LoginFields";
+import { Turnstile, isTurnstileConfigured, TurnstileHandle } from "@/components/auth/Turnstile";
 import { useLoginForm } from "@/hooks/useLoginForm";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -12,8 +13,13 @@ export function HrLogin() {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
+  const [registerTurnstileToken, setRegisterTurnstileToken] = useState("");
+  const registerTurnstileRef = useRef<TurnstileHandle>(null);
 
-  const { email, setEmail, password, setPassword, error, setError, loading, setLoading, login } = useLoginForm({
+  const {
+    email, setEmail, password, setPassword, error, setError, loading, setLoading, login,
+    turnstileRef, setTurnstileToken, turnstileDisabled,
+  } = useLoginForm({
     fallbackErrorMessage: "Invalid credentials. Please try again.",
   });
   const authStoreLogin = useAuthStore((state) => state.login);
@@ -24,6 +30,10 @@ export function HrLogin() {
       setError("Please fill in all fields.");
       return;
     }
+    if (isTurnstileConfigured && !registerTurnstileToken) {
+      setError("Please complete the verification challenge.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await api.post("/auth/register", {
@@ -32,6 +42,7 @@ export function HrLogin() {
         company_name: company,
         password,
         role: "hr",
+        turnstileToken: registerTurnstileToken,
       });
 
       // Same {user, access_token} envelope and field mapping as
@@ -49,6 +60,8 @@ export function HrLogin() {
       );
     } catch (err: unknown) {
       setError(extractErrorMessage(err, "Registration failed. Please try again."));
+      registerTurnstileRef.current?.reset();
+      setRegisterTurnstileToken("");
     } finally {
       setLoading(false);
     }
@@ -133,6 +146,9 @@ export function HrLogin() {
               forgotPasswordHref="/forgot-password"
               showGoogleLogin
               onGoogleError={setError}
+              turnstileRef={turnstileRef}
+              onTurnstileVerify={setTurnstileToken}
+              disabled={turnstileDisabled}
               footer={
                 <div className="l-footer">
                   New company? <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(false); setError(""); }}>Create Account</a>
@@ -188,7 +204,17 @@ export function HrLogin() {
                 {error}
               </div>
             )}
-            <button className="l-submit l-submit-blue" onClick={handleRegister} disabled={loading}>
+            <Turnstile
+              ref={registerTurnstileRef}
+              action="register"
+              onVerify={setRegisterTurnstileToken}
+              onExpire={() => setRegisterTurnstileToken("")}
+            />
+            <button
+              className="l-submit l-submit-blue"
+              onClick={handleRegister}
+              disabled={loading || (isTurnstileConfigured && !registerTurnstileToken)}
+            >
               {loading ? "Registering..." : "Register Company"}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
                 <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />

@@ -7,7 +7,10 @@ import { LoginFields } from "@/components/auth/LoginFields";
 import { useLoginForm } from "@/hooks/useLoginForm";
 
 export function InstitutionalStudentLogin({ onBack }: { onBack: () => void }) {
-  const { email, setEmail, password, setPassword, error, setError, loading, login } = useLoginForm({
+  const {
+    email, setEmail, password, setPassword, error, setError, loading, login,
+    turnstileRef, setTurnstileToken, turnstileDisabled,
+  } = useLoginForm({
     fallbackErrorMessage: "Invalid password or email",
   });
 
@@ -52,6 +55,9 @@ export function InstitutionalStudentLogin({ onBack }: { onBack: () => void }) {
             loadingLabel="Signing in..."
             showGoogleLogin
             onGoogleError={setError}
+            turnstileRef={turnstileRef}
+            onTurnstileVerify={setTurnstileToken}
+            disabled={turnstileDisabled}
           />
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { GoogleLoginButton, isGoogleLoginConfigured } from "@/components/auth/GoogleLoginButton";
+import { Turnstile, TurnstileHandle } from "@/components/auth/Turnstile";
 
 // The repeated email/password/submit/error/Google-divider block shared by
 // every role's login form (see useLoginForm.ts for the state/submit half of
@@ -32,6 +33,15 @@ export interface LoginFieldsProps {
   onGoogleError?: (message: string) => void;
   /** Rendered below the submit/Google block — e.g. a "New here? Sign up" link. */
   footer?: React.ReactNode;
+  /** Cloudflare Turnstile — pass the fields useLoginForm() returns
+   * (turnstileRef/turnstileToken/setTurnstileToken) to render the widget
+   * above the submit button. Omit to render no widget at all. */
+  turnstileRef?: React.Ref<TurnstileHandle>;
+  onTurnstileVerify?: (token: string) => void;
+  /** Extra disable condition beyond `loading` (e.g. Turnstile not yet
+   * verified) — kept separate from `loading` so the button doesn't show
+   * loadingLabel just because the challenge isn't done yet. */
+  disabled?: boolean;
 }
 
 export function LoginFields({
@@ -39,6 +49,7 @@ export function LoginFields({
   password, onPasswordChange, passwordLabel = "Password",
   error, loading, onSubmit, submitLabel, loadingLabel,
   forgotPasswordHref, showGoogleLogin = false, onGoogleError, footer,
+  turnstileRef, onTurnstileVerify, disabled = false,
 }: LoginFieldsProps) {
   return (
     <>
@@ -81,7 +92,16 @@ export function LoginFields({
         autoComplete="current-password"
       />
 
-      <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={onSubmit} disabled={loading}>
+      {onTurnstileVerify && (
+        <Turnstile
+          ref={turnstileRef}
+          action="login"
+          onVerify={onTurnstileVerify}
+          onExpire={() => onTurnstileVerify("")}
+        />
+      )}
+
+      <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={onSubmit} disabled={loading || disabled}>
         {loading ? loadingLabel : submitLabel}
       </button>
 

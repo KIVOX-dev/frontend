@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { LoginFields } from "@/components/auth/LoginFields";
+import { Turnstile, isTurnstileConfigured, TurnstileHandle } from "@/components/auth/Turnstile";
 import { useLoginForm } from "@/hooks/useLoginForm";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -15,7 +16,10 @@ interface LearnerLoginProps {
 export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
   const [tab, setTab] = useState<"login" | "signup">(initialMode);
 
-  const { email, setEmail, password, setPassword, error: loginError, setError: setLoginError, loading: loginLoading, login } = useLoginForm();
+  const {
+    email, setEmail, password, setPassword, error: loginError, setError: setLoginError, loading: loginLoading, login,
+    turnstileRef: loginTurnstileRef, setTurnstileToken: setLoginTurnstileToken, turnstileDisabled: loginTurnstileDisabled,
+  } = useLoginForm();
   const authStoreLogin = useAuthStore((state) => state.login);
 
   // Signup state — a different field set (role, college) to what login
@@ -26,12 +30,15 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupError, setSignupError] = useState("");
   const [signupLoading, setSignupLoading] = useState(false);
+  const [signupTurnstileToken, setSignupTurnstileToken] = useState("");
+  const signupTurnstileRef = useRef<TurnstileHandle>(null);
 
   const handleSignup = async () => {
     setSignupError("");
     if (!signupName.trim()) return setSignupError("Please enter your name.");
     if (!signupEmail.trim()) return setSignupError("Please enter your email.");
     if (!signupPassword.trim()) return setSignupError("Please choose a password.");
+    if (isTurnstileConfigured && !signupTurnstileToken) return setSignupError("Please complete the verification challenge.");
     setSignupLoading(true);
     try {
       const res = await api.post("/auth/register", {
@@ -39,6 +46,7 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
         email: signupEmail,
         password: signupPassword,
         role: signupRole,
+        turnstileToken: signupTurnstileToken,
       });
 
       const payload = res.data;
@@ -63,6 +71,8 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
       }
     } catch (err: unknown) {
       setSignupError(extractErrorMessage(err, "Registration failed. Please try again."));
+      signupTurnstileRef.current?.reset();
+      setSignupTurnstileToken("");
     } finally {
       setSignupLoading(false);
     }
@@ -116,6 +126,9 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
               forgotPasswordHref="/forgot-password"
               showGoogleLogin
               onGoogleError={setLoginError}
+              turnstileRef={loginTurnstileRef}
+              onTurnstileVerify={setLoginTurnstileToken}
+              disabled={loginTurnstileDisabled}
               footer={
                 <div className="l-footer" style={{ marginTop: "16px" }}>
                   No account?{" "}
@@ -172,10 +185,16 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
                 {signupError}
               </div>
             )}
+            <Turnstile
+              ref={signupTurnstileRef}
+              action="register"
+              onVerify={setSignupTurnstileToken}
+              onExpire={() => setSignupTurnstileToken("")}
+            />
             <button
               className="l-submit l-submit-blue"
               onClick={handleSignup}
-              disabled={signupLoading}
+              disabled={signupLoading || (isTurnstileConfigured && !signupTurnstileToken)}
               style={{ opacity: signupLoading ? 0.7 : 1 }}
             >
               {signupLoading ? "Creating account…" : "Get Started Now"}

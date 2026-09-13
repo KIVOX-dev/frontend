@@ -7,7 +7,10 @@ import { LoginFields } from "@/components/auth/LoginFields";
 import { useLoginForm } from "@/hooks/useLoginForm";
 
 export function FacultyLogin({ onBack }: { onBack?: () => void }) {
-  const { email, setEmail, password, setPassword, error, setError, loading, login } = useLoginForm();
+  const {
+    email, setEmail, password, setPassword, error, setError, loading, login,
+    turnstileRef, setTurnstileToken, turnstileDisabled,
+  } = useLoginForm();
 
   return (
     <AuthSplitLayout>
@@ -53,6 +56,9 @@ export function FacultyLogin({ onBack }: { onBack?: () => void }) {
             forgotPasswordHref="/forgot-password"
             showGoogleLogin
             onGoogleError={setError}
+            turnstileRef={turnstileRef}
+            onTurnstileVerify={setTurnstileToken}
+            disabled={turnstileDisabled}
           />
         </div>
       </div>

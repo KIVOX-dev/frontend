@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
 import { LoginFields } from "@/components/auth/LoginFields";
+import { Turnstile, isTurnstileConfigured, TurnstileHandle } from "@/components/auth/Turnstile";
 import { useLoginForm } from "@/hooks/useLoginForm";
 import { toast } from "@/lib/toast";
 import { api } from "@/lib/api";
@@ -13,11 +14,16 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [registerTurnstileToken, setRegisterTurnstileToken] = useState("");
+  const registerTurnstileRef = useRef<TurnstileHandle>(null);
 
   // Shared with the sign-in panel below — switching tabs deliberately keeps
   // whatever email/password was already typed, matching this form's
   // original behavior.
-  const { email, setEmail, password, setPassword, error, setError, loading, setLoading, login } = useLoginForm();
+  const {
+    email, setEmail, password, setPassword, error, setError, loading, setLoading, login,
+    turnstileRef, setTurnstileToken, turnstileDisabled,
+  } = useLoginForm();
 
   const handleRegister = async () => {
     setError("");
@@ -25,15 +31,21 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
       setError("Please fill in all fields.");
       return;
     }
+    if (isTurnstileConfigured && !registerTurnstileToken) {
+      setError("Please complete the verification challenge.");
+      return;
+    }
     setLoading(true);
     try {
-      const payload: Record<string, unknown> = { name, email, password, role: "college_admin" };
+      const payload: Record<string, unknown> = { name, email, password, role: "college_admin", turnstileToken: registerTurnstileToken };
       if (phone.trim()) payload.phone = phone.trim();
       await api.post("/auth/register", payload);
       toast.success("Registration request submitted!", "Please wait for super admin approval.");
       setIsSignUp(false);
     } catch (err: unknown) {
       setError(extractErrorMessage(err, "An error occurred."));
+      registerTurnstileRef.current?.reset();
+      setRegisterTurnstileToken("");
     } finally {
       setLoading(false);
     }
@@ -127,7 +139,18 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleRegister()}
             />
-            <button className="l-submit l-submit-blue" style={{ width: "100%" }} onClick={handleRegister} disabled={loading}>
+            <Turnstile
+              ref={registerTurnstileRef}
+              action="register"
+              onVerify={setRegisterTurnstileToken}
+              onExpire={() => setRegisterTurnstileToken("")}
+            />
+            <button
+              className="l-submit l-submit-blue"
+              style={{ width: "100%" }}
+              onClick={handleRegister}
+              disabled={loading || (isTurnstileConfigured && !registerTurnstileToken)}
+            >
               {loading ? "Registering..." : "Submit Registration Request"}
             </button>
           </div>
@@ -148,6 +171,9 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
               forgotPasswordHref="/forgot-password"
               showGoogleLogin
               onGoogleError={setError}
+              turnstileRef={turnstileRef}
+              onTurnstileVerify={setTurnstileToken}
+              disabled={turnstileDisabled}
             />
           </div>
         )}

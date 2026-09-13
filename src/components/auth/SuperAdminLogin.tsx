@@ -12,7 +12,10 @@ export function SuperAdminLogin() {
      real data just hides the actual failure — every request after it 401s
      silently instead of surfacing "please log in again". If the backend is
      unreachable, that has to be a visible error, not a session. */
-  const { email, setEmail, password, setPassword, error, loading, login } = useLoginForm({
+  const {
+    email, setEmail, password, setPassword, error, loading, login,
+    turnstileRef, setTurnstileToken, turnstileDisabled,
+  } = useLoginForm({
     fallbackErrorMessage: "Invalid credentials. Please try again.",
   });
 
@@ -45,6 +48,9 @@ export function SuperAdminLogin() {
             submitLabel="Secure Login"
             loadingLabel="Authenticating..."
             forgotPasswordHref="/forgot-password"
+            turnstileRef={turnstileRef}
+            onTurnstileVerify={setTurnstileToken}
+            disabled={turnstileDisabled}
           />
         </div>
       </div>
