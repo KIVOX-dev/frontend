@@ -20,9 +20,14 @@ env:
   NODE_VERSION: "24"
 
 jobs:
-  # Lint, typecheck, and build run as independent jobs so a failure in one is
+  # Lint and typecheck run as independent jobs so a failure in one is
   # reported on its own instead of stacking wall-clock time in a single job —
-  # same split the backend pipeline uses for node-api.
+  # same split the backend pipeline uses for node-api. There's deliberately
+  # no separate bare `npm run build` job: `docker-build` below builds the
+  # app via the Dockerfile anyway, and a failure there stops the job before
+  # its Trivy scan / smoke-test steps ever run — so a standalone build job
+  # would only add a second full `npm run build` on every run without buying
+  # any earlier failure signal.
   lint:
     name: lint
     runs-on: ubuntu-latest
@@ -47,21 +52,17 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
 
-  # No unit/integration test suite exists in this repo yet (see
-  # PROJECT_AUDIT_REPORT.md Phase 11) — this job is a placeholder that fails
-  # loudly with a clear message rather than silently reporting green for a
-  # test run that never happened. Replace the `echo`/`exit` below with the
-  # real test command (e.g. `npm test`) once a framework is wired up; do not
-  # delete the job, since removing it would silently drop the CI gate.
   test:
     name: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: No test suite configured yet
-        run: |
-          echo "::warning::No frontend test suite is configured yet (see PROJECT_AUDIT_REPORT.md Phase 11)."
-          echo "This job is a placeholder — replace this step with the real test command once one exists."
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - run: npm run test
 
   audit:
     name: dependency audit
@@ -79,38 +80,9 @@ jobs:
       - name: npm audit (fail on high/critical)
         run: npm audit --audit-level=high
 
-  build:
-    name: build
-    runs-on: ubuntu-latest
-    needs: [lint, typecheck]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm ci
-      - name: Production build
-        run: npm run build
-        env:
-          # Build-time only (see Dockerfile's own note on this) — a dummy
-          # same-shape value is enough to prove the build succeeds; the real
-          # value is supplied per-environment when the Docker image is built.
-          NEXT_PUBLIC_API_URL: https://ci-build-placeholder.invalid/api/v1
-      # Route/bundle-size summary, kept for a short window so a failed or
-      # suspicious build can be inspected without re-running it locally.
-      - name: Upload build output summary
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-output
-          path: .next/build-manifest.json
-          retention-days: 7
-          if-no-files-found: ignore
-
   docker-build:
     name: Docker build
-    needs: [lint, typecheck, build]
+    needs: [lint, typecheck, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
