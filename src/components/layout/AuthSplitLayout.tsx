@@ -24,12 +24,6 @@ export function AuthSplitLayout({
     <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", background: "var(--bg)" }}>
       <div className="lp-left" style={{ background: SEASON_BG[season] }}>
         <AuthMountains season={season} />
-        <div className="lp-logo" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Logo variant="mark" height={32} priority />
-          <span className="text-xl font-black tracking-wider text-white">
-            TalentSnaps
-          </span>
-        </div>
         {/* No generic fallback copy here on purpose: every screen besides
             HrLogin and LearnerLogin used to inherit HrLogin's sibling —
             learner-specific "Train smarter" stats — regardless of whether

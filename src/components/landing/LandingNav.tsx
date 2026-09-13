@@ -91,7 +91,7 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
       }`}
     >
       <div className="ui-container">
-        <div className="flex items-center justify-between h-32">
+        <div className="flex items-center justify-between h-28">
           <Link href={audience.path} className="flex items-center gap-2 shrink-0">
             <ResponsiveLogo height={112} priority />
             {audience.navSuffix && (
