@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function DataProtectionPage() {
   return (
-    <LegalPageLayout title="Data Protection" updated="September 2026">
+    <LegalPageLayout title="Data Protection" updated="September 2026" active="data-protection">
       <section>
         <h2>1. Role-based access</h2>
         <p>
