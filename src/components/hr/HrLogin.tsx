@@ -69,6 +69,7 @@ export function HrLogin() {
 
   return (
     <AuthSplitLayout
+      season="autumn"
       leftContent={
         <>
           <div className="lp-pill">

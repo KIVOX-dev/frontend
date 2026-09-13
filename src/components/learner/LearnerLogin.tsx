@@ -79,7 +79,7 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
   };
 
   return (
-    <AuthSplitLayout>
+    <AuthSplitLayout season="spring">
       <div className="lp-card">
         {/* Tab switcher */}
         <div className="l-tabs">

@@ -119,7 +119,7 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
   };
 
   return (
-    <AuthSplitLayout>
+    <AuthSplitLayout season="autumn">
       <div className="lp-card">
         <div className="l-tabs">
           {ROLE_TABS.map((tab) => (

@@ -332,27 +332,27 @@ function CountUpStat({ value }: { value: string }) {
 
 function Hero() {
   return (
-    <header className="wrap hero" id="ts-dash">
-      <motion.span className="chip" {...revealUp(0, 14)}>
+    <header className="ts-wrap ts-hero" id="ts-dash">
+      <motion.span className="ts-chip" {...revealUp(0, 14)}>
         <i />Built in Coimbatore, for Indian colleges
       </motion.span>
       <RevealHeading as="h1" delay={0.08}>
         The complete placement suite<br />for your college.
       </RevealHeading>
-      <motion.p className="lede" {...revealUp(0.18, 16)}>
+      <motion.p className="ts-lede" {...revealUp(0.18, 16)}>
         Drives, applications, screening, selection status, offer letters, aptitude and NIRF
         reporting. Eight modules on one student record, so nothing is entered twice and nothing
         is chased twice.
       </motion.p>
-      <motion.div className="row" {...revealUp(0.28, 16)}>
+      <motion.div className="ts-row" {...revealUp(0.28, 16)}>
         <MagneticButton strength={0.25}>
-          <button className="btn btn-p">Get started free</button>
+          <button className="ts-btn ts-btn-p">Get started free</button>
         </MagneticButton>
         <MagneticButton strength={0.25}>
-          <button className="btn btn-g">Talk to our team</button>
+          <button className="ts-btn ts-btn-g">Talk to our team</button>
         </MagneticButton>
       </motion.div>
-      <motion.span className="fine" {...revealUp(0.36, 10)}>
+      <motion.span className="ts-fine" {...revealUp(0.36, 10)}>
         No credit card needed · Set up in one placement season
       </motion.span>
     </header>
@@ -361,32 +361,32 @@ function Hero() {
 
 function Dashboard() {
   return (
-    <motion.div className="shot" {...revealUp(0.15, 36)}>
-      <div className="chrome">
-        <div className="l"><s /><s /><s />Nirmala College for Women · Placement Cell</div>
-        <div className="r">2026–27 <b /></div>
+    <motion.div className="ts-shot" {...revealUp(0.15, 36)}>
+      <div className="ts-chrome">
+        <div className="ts-cl"><s /><s /><s />Nirmala College for Women · Placement Cell</div>
+        <div className="ts-cr">2026–27 <b /></div>
       </div>
 
-      <div className="dash">
-        <div className="side">
-          <span className="k">MENU</span>
+      <div className="ts-dashgrid">
+        <div className="ts-side">
+          <span className="ts-k">MENU</span>
           {SIDEBAR.map((item, i) => (
-            <a key={item} className={i === 0 ? "on" : undefined}><i />{item}</a>
+            <a key={item} className={i === 0 ? "ts-on" : undefined}><i />{item}</a>
           ))}
         </div>
 
-        <div className="main">
-          <div className="mh">
+        <div className="ts-main">
+          <div className="ts-mh">
             <div><b>Placement overview</b><span>Updated today, 9:40 AM</span></div>
-            <div className="seg">
-              <span className="on">All departments</span><span>CS</span><span>Commerce</span>
+            <div className="ts-seg">
+              <span className="ts-on">All departments</span><span>CS</span><span>Commerce</span>
             </div>
           </div>
 
-          <div className="kpis">
+          <div className="ts-kpis">
             {KPIS.map((k, i) => (
               <motion.div
-                className="kpi" key={k.label}
+                className="ts-kpi" key={k.label}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 + i * 0.08, ease: revealEase }}
@@ -399,15 +399,15 @@ function Dashboard() {
             ))}
           </div>
 
-          <div className="panels">
-            <div className="panel">
+          <div className="ts-panels">
+            <div className="ts-panel">
               <b>Placed by department</b>
-              <div className="bars">
+              <div className="ts-bars">
                 {DEPARTMENTS.map(({ dept, placed, total }, i) => (
                   <div key={dept}>
                     <em>{placed}</em>
-                    <div className="tr" style={{ height: `${(total / TALLEST) * PLOT_SHARE * 100}%` }}>
-                      <GrowBar axis="height" target={`${(placed / total) * 100}%`} className="fl" delay={0.6 + i * 0.06} />
+                    <div className="ts-tr" style={{ height: `${(total / TALLEST) * PLOT_SHARE * 100}%` }}>
+                      <GrowBar axis="height" target={`${(placed / total) * 100}%`} className="ts-fl" delay={0.6 + i * 0.06} />
                     </div>
                     <small>{dept}</small>
                   </div>
@@ -415,20 +415,20 @@ function Dashboard() {
               </div>
             </div>
 
-            <div className="panel">
-              <div className="phead">
+            <div className="ts-panel">
+              <div className="ts-phead">
                 <b style={{ fontSize: 13 }}>Recent drives</b>
                 <a>View all</a>
               </div>
               {DRIVES.map((d, i) => (
                 <motion.div
-                  className="drow" key={d.name}
+                  className="ts-drow" key={d.name}
                   initial={{ opacity: 0, x: 8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4, delay: 0.55 + i * 0.06, ease: revealEase }}
                 >
                   <div><b>{d.name}</b><span>{d.detail}</span></div>
-                  <span className={`tag ${d.tone}`}>{d.stage}</span>
+                  <span className={`ts-tag ts-${d.tone}`}>{d.stage}</span>
                 </motion.div>
               ))}
             </div>
@@ -441,8 +441,8 @@ function Dashboard() {
 
 function Modules() {
   return (
-    <section className="wrap sec" id="ts-modules">
-      <div className="center">
+    <section className="ts-wrap ts-sec" id="ts-modules">
+      <div className="ts-center">
         <RevealHeading as="h2">Eight modules. One student record.</RevealHeading>
         <motion.p {...revealUp(0.1)}>
           Every module writes to the same record, so a student applying in August and collecting
@@ -450,43 +450,43 @@ function Modules() {
         </motion.p>
       </div>
 
-      <div className="flowlabel">The drive path</div>
-      <div className="flow">
+      <div className="ts-flowlabel">The drive path</div>
+      <div className="ts-flow">
         <motion.div
-          className="flow-progress"
+          className="ts-flow-progress"
           initial={{ scaleX: 0 }}
           whileInView={{ scaleX: 1 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 1.1, ease: revealEase }}
         />
-        <span className="pulse" aria-hidden="true" />
-        <span className="pulse" aria-hidden="true" />
+        <span className="ts-pulse" aria-hidden="true" />
+        <span className="ts-pulse" aria-hidden="true" />
         {DRIVE_PATH.map(({ title, copy, icon: Icon }, i) => (
           <motion.div
-            className="step" key={title}
+            className="ts-step" key={title}
             initial={{ opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.5, delay: i * 0.12, ease: revealEase }}
           >
-            <div className="node">
-              <span className="num">{i + 1}</span>
+            <div className="ts-node">
+              <span className="ts-num">{i + 1}</span>
               <Icon />
             </div>
-            <div className="txt"><h3>{title}</h3><p>{copy}</p></div>
+            <div className="ts-txt"><h3>{title}</h3><p>{copy}</p></div>
           </motion.div>
         ))}
       </div>
 
-      <div className="flowlabel">Running alongside</div>
-      <div className="alongside">
+      <div className="ts-flowlabel">Running alongside</div>
+      <div className="ts-alongside">
         {ALONGSIDE.map(({ title, copy, accent, icon: Icon }, i) => (
           <motion.div
             key={title}
             {...revealUp(i * 0.1, 16)}
           >
-            <TiltCard maxTilt={5} className="along">
-              <span className="ic" style={{ background: accent }}><Icon size={20} /></span>
+            <TiltCard maxTilt={5} className="ts-along">
+              <span className="ts-ic" style={{ background: accent }}><Icon size={20} /></span>
               <div><h3>{title}</h3><p>{copy}</p></div>
             </TiltCard>
           </motion.div>
@@ -504,15 +504,15 @@ function DrivesFeature() {
     ["Selected", 44, "20%", "var(--ts-olive)"],
   ];
   return (
-    <section className="wrap feat">
+    <section className="ts-wrap ts-feat">
       <motion.div
-        className="copy"
+        className="ts-copy"
         initial={{ opacity: 0, x: -24, filter: "blur(6px)" }}
         whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.7, ease: revealEase }}
       >
-        <span className="eyebrow" style={{ color: "var(--ts-green)" }}>Drives and applications</span>
+        <span className="ts-eyebrow" style={{ color: "var(--ts-green)" }}>Drives and applications</span>
         <h2>Announce a drive to exactly the students who qualify.</h2>
         <p>
           Set the rule once. Department, year, CGPA, backlogs, any criterion the recruiter has.
@@ -529,27 +529,27 @@ function DrivesFeature() {
       </motion.div>
 
       <motion.div
-        className="card"
+        className="ts-card"
         initial={{ opacity: 0, x: 24, filter: "blur(6px)" }}
         whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.7, delay: 0.1, ease: revealEase }}
       >
-        <div className="ch">
+        <div className="ts-ch">
           <div><b>New drive</b><span>Zoho Corporation · Software Engineer Trainee</span></div>
-          <button className="btn btn-p" style={{ padding: "8px 14px", fontSize: 12.5 }}>Publish</button>
+          <button className="ts-btn ts-btn-p" style={{ padding: "8px 14px", fontSize: 12.5 }}>Publish</button>
         </div>
-        <span className="k">Eligibility</span>
-        <div className="chips" style={{ marginTop: 9 }}>
+        <span className="ts-k">Eligibility</span>
+        <div className="ts-chips" style={{ marginTop: 9 }}>
           {["B.Sc CS", "B.Sc IT", "Final year", "CGPA ≥ 6.5", "No backlog"].map((c) => (
             <span key={c}>{c}</span>
           ))}
         </div>
-        <div className="fun">
+        <div className="ts-fun">
           {funnel.map(([label, count, width, color], i) => (
             <div key={label}>
-              <div className="lab"><span>{label}</span><b>{count}</b></div>
-              <div className="tr"><GrowBar target={width} color={color} className="fl" delay={0.2 + i * 0.1} /></div>
+              <div className="ts-lab"><span>{label}</span><b>{count}</b></div>
+              <div className="ts-tr"><GrowBar target={width} color={color} className="ts-fl" delay={0.2 + i * 0.1} /></div>
             </div>
           ))}
         </div>
@@ -566,47 +566,47 @@ function OfferLettersFeature() {
     ["Naveen Kumar T", "23UCS029", "Reminder sent", "t-nu"],
   ];
   return (
-    <section className="wrap feat rev">
+    <section className="ts-wrap ts-feat ts-rev">
       <motion.div
-        className="card"
+        className="ts-card"
         initial={{ opacity: 0, x: -24, filter: "blur(6px)" }}
         whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.7, ease: revealEase }}
       >
-        <div className="ch">
+        <div className="ts-ch">
           <div><b>Offer letters</b><span>Zoho Corporation · 2026–27</span></div>
           <b style={{ color: "var(--ts-green)", fontSize: 15.5 }}>42 of 44</b>
         </div>
-        <div className="fun">
-          <div className="tr" style={{ height: 10 }}>
-            <GrowBar target="95%" color="var(--ts-green)" className="fl" style={{ height: 10 }} delay={0.2} />
+        <div className="ts-fun">
+          <div className="ts-tr" style={{ height: 10 }}>
+            <GrowBar target="95%" color="var(--ts-green)" className="ts-fl" style={{ height: 10 }} delay={0.2} />
           </div>
         </div>
         <div style={{ marginTop: 14 }}>
           {people.map(([name, reg, status, tone], i) => (
             <motion.div
-              className="drow" key={reg} style={i === 0 ? { borderTop: 0 } : undefined}
+              className="ts-drow" key={reg} style={i === 0 ? { borderTop: 0 } : undefined}
               initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.4, delay: 0.3 + i * 0.08, ease: revealEase }}
             >
               <div><b style={{ fontSize: 13.5 }}>{name}</b><span>{reg}</span></div>
-              <span className={`tag ${tone}`}>{status}</span>
+              <span className={`ts-tag ts-${tone}`}>{status}</span>
             </motion.div>
           ))}
         </div>
       </motion.div>
 
       <motion.div
-        className="copy"
+        className="ts-copy"
         initial={{ opacity: 0, x: 24, filter: "blur(6px)" }}
         whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.7, delay: 0.1, ease: revealEase }}
       >
-        <span className="eyebrow" style={{ color: "var(--ts-teal)" }}>Offer letter vault</span>
+        <span className="ts-eyebrow" style={{ color: "var(--ts-teal)" }}>Offer letter vault</span>
         <h2>The offer letter is requested before the student walks away.</h2>
         <p>
           The moment a student is marked selected, the upload is asked for. Reminders go out on
@@ -628,18 +628,18 @@ function OfferLettersFeature() {
 function SkillReport() {
   const cardRef = useRef<HTMLDivElement>(null);
   const cardInView = useInView(cardRef, { once: true, margin: "-100px" });
-  const bars = ["on", "on", "on", ""];
+  const bars = ["ts-on", "ts-on", "ts-on", ""];
 
   return (
-    <section className="wrap feat" id="ts-report">
+    <section className="ts-wrap ts-feat" id="ts-report">
       <motion.div
-        className="copy"
+        className="ts-copy"
         initial={{ opacity: 0, x: -24, filter: "blur(6px)" }}
         whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.7, ease: revealEase }}
       >
-        <span className="eyebrow" style={{ color: "var(--ts-leaf)" }}>Skill Report</span>
+        <span className="ts-eyebrow" style={{ color: "var(--ts-leaf)" }}>Skill Report</span>
         <h2>Four years, recorded while they happen.</h2>
         <p>
           Training, courses, projects, hackathons, internships and certifications go onto the same
@@ -650,34 +650,34 @@ function SkillReport() {
 
       <motion.div
         ref={cardRef}
-        className="card"
+        className="ts-card"
         initial={{ opacity: 0, x: 24, filter: "blur(6px)" }}
         whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.7, delay: 0.1, ease: revealEase }}
       >
-        <div className="ch">
+        <div className="ts-ch">
           <div><b>Skill Report</b><span>Keerthana R · B.Sc Computer Science · 2023–27</span></div>
         </div>
-        <div className="rail">
+        <div className="ts-rail">
           {bars.map((state, i) => (
             <motion.s
               key={i}
               className={state}
               initial={{ scaleX: 0 }}
-              animate={cardInView && state === "on" ? { scaleX: 1 } : undefined}
+              animate={cardInView && state === "ts-on" ? { scaleX: 1 } : undefined}
               style={{ transformOrigin: "left" }}
               transition={{ duration: 0.5, delay: 0.35 + i * 0.15, ease: revealEase }}
             />
           ))}
           <b><VerifiedBadge animate={cardInView} /></b>
         </div>
-        <div className="rlab">
+        <div className="ts-rlab">
           {["Year 1", "Year 2", "Year 3", "Year 4"].map((y) => <span key={y}>{y}</span>)}
         </div>
         {SKILL_ROWS.map(([k, v], i) => (
           <motion.div
-            className="drow" key={k}
+            className="ts-drow" key={k}
             initial={{ opacity: 0 }}
             animate={cardInView ? { opacity: 1 } : undefined}
             transition={{ duration: 0.4, delay: 1.1 + i * 0.06 }}
@@ -693,28 +693,28 @@ function SkillReport() {
 
 function ExportCard() {
   return (
-    <motion.div className="export" {...revealUp(0.15, 24)}>
-      <div className="eh">
+    <motion.div className="ts-export" {...revealUp(0.15, 24)}>
+      <div className="ts-eh">
         <div>
           <b>NIRF export 2026–27</b>
           <span>Three year rolling · 1,232 offer letters attached</span>
         </div>
-        <span className="tag t-ok">Ready</span>
+        <span className="ts-tag ts-t-ok">Ready</span>
       </div>
-      <div className="row"><span>Placement percentage</span><b>59.8%</b></div>
-      <div className="row"><span>Median salary</span><b>₹4,20,000</b></div>
-      <div className="row"><span>Higher studies</span><b>214 students</b></div>
-      <button className="cta">Download the submission file</button>
+      <div className="ts-row"><span>Placement percentage</span><b>59.8%</b></div>
+      <div className="ts-row"><span>Median salary</span><b>₹4,20,000</b></div>
+      <div className="ts-row"><span>Higher studies</span><b>214 students</b></div>
+      <button className="ts-cta">Download the submission file</button>
     </motion.div>
   );
 }
 
 function DataBand() {
   return (
-    <section className="band" id="ts-data">
-      <div className="wrap">
-        <div className="center">
-          <span className="eyebrow" style={{ color: "var(--ts-green)" }}>Data you can hand over</span>
+    <section className="ts-band" id="ts-data">
+      <div className="ts-wrap">
+        <div className="ts-center">
+          <span className="ts-eyebrow" style={{ color: "var(--ts-green)" }}>Data you can hand over</span>
           <RevealHeading as="h2" className="ts-mw-17ch">Every record your college creates stays your college&apos;s.</RevealHeading>
           <motion.p style={{ maxWidth: "66ch", fontSize: 17, lineHeight: 1.72 }} {...revealUp(0.1)}>
             Role based access so each person sees what they should, an audit trail behind every
@@ -723,12 +723,12 @@ function DataBand() {
           </motion.p>
         </div>
 
-        <div className="spec">
+        <div className="ts-spec">
           {SPEC.map(({ term, copy, evLabel, evValue }, i) => (
             <motion.div key={term} {...revealUp(i * 0.08, 14)}>
-              <span className="lab">{term}</span>
+              <span className="ts-lab">{term}</span>
               <p>{copy}</p>
-              <span className="ev">
+              <span className="ts-ev">
                 {evLabel}<br />
                 <b>
                   {evValue.map((line, j) => (
@@ -740,7 +740,7 @@ function DataBand() {
           ))}
         </div>
 
-        <TiltCard maxTilt={4} className="export-tilt">
+        <TiltCard maxTilt={4} className="ts-export-tilt">
           <ExportCard />
         </TiltCard>
       </div>
@@ -750,8 +750,8 @@ function DataBand() {
 
 function Numbers() {
   return (
-    <section className="wrap">
-      <div className="nums">
+    <section className="ts-wrap">
+      <div className="ts-nums">
         {NUMBERS.map(({ big, small }, i) => (
           <motion.div key={big} {...revealUp(i * 0.1, 14)}>
             <strong><CountUpStat value={big} /></strong>
@@ -766,16 +766,16 @@ function Numbers() {
 function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section className="wrap sec" id="ts-faq">
-      <div className="center"><RevealHeading as="h2">Questions we get in the first meeting</RevealHeading></div>
-      <div className="faq">
+    <section className="ts-wrap ts-sec" id="ts-faq">
+      <div className="ts-center"><RevealHeading as="h2">Questions we get in the first meeting</RevealHeading></div>
+      <div className="ts-faq">
         {FAQS.map(({ q, a }, i) => {
           const isOpen = open === i;
           return (
             <motion.div key={q} {...revealUp(Math.min(i * 0.05, 0.3), 10)}>
               <button
                 type="button"
-                className="q"
+                className="ts-q"
                 aria-expanded={isOpen}
                 onClick={() => setOpen(isOpen ? null : i)}
               >
@@ -805,18 +805,18 @@ function Faq() {
 
 function CtaBand() {
   return (
-    <section className="ctab">
+    <section className="ts-ctab">
       <RevealHeading as="h2">Set up your placement cell for this season.</RevealHeading>
       <motion.p {...revealUp(0.1)}>
         We will walk your team through a drive you have already run, so you can see exactly what
         changes.
       </motion.p>
-      <motion.div className="row" {...revealUp(0.2)}>
+      <motion.div className="ts-row" {...revealUp(0.2)}>
         <MagneticButton strength={0.25}>
-          <button className="btn w">Get started free</button>
+          <button className="ts-btn ts-w">Get started free</button>
         </MagneticButton>
         <MagneticButton strength={0.25}>
-          <button className="btn o">Talk to our team</button>
+          <button className="ts-btn ts-o">Talk to our team</button>
         </MagneticButton>
       </motion.div>
     </section>
@@ -826,28 +826,28 @@ function CtaBand() {
 function Footer() {
   return (
     <footer>
-      <div className="wrap">
-        <motion.div className="ftop" {...revealUp(0, 16)}>
-          <div className="fb">
-            <div className="brand"><i />TalentSnaps</div>
+      <div className="ts-wrap">
+        <motion.div className="ts-ftop" {...revealUp(0, 16)}>
+          <div className="ts-fb">
+            <div className="ts-brand"><i />TalentSnaps</div>
             <p>
               The placement suite for Indian colleges.<br />
               Built in Coimbatore, for Tier 3 and growing Tier 2 institutions.
             </p>
           </div>
-          <div className="contact">
+          <div className="ts-contact">
             <b>Talk to us about your next placement season</b>
-            <div className="f">
+            <div className="ts-f">
               <input id="ts-femail" type="email" placeholder="Your college email" aria-label="Your college email" />
               <MagneticButton strength={0.2}>
-                <button className="btn btn-p" style={{ padding: "12px 20px", fontSize: 14 }}>Book a demo</button>
+                <button className="ts-btn ts-btn-p" style={{ padding: "12px 20px", fontSize: 14 }}>Book a demo</button>
               </MagneticButton>
             </div>
             <small>hello@talentsnaps.in · Coimbatore, Tamil Nadu</small>
           </div>
         </motion.div>
 
-        <div className="fcols">
+        <div className="ts-fcols">
           {FOOTER_COLS.map(({ head, items }) => (
             <div key={head}>
               <h4>{head}</h4>
@@ -864,9 +864,9 @@ function Footer() {
           ))}
         </div>
 
-        <div className="fbar">
+        <div className="ts-fbar">
           <span>© 2026 TalentSnaps. All rights reserved.</span>
-          <div className="m">
+          <div className="ts-m">
             <span>Offer letters verified by the placement cell</span>
             <span>NIRF ready, three year rolling data</span>
             <span>Your data stays yours</span>
@@ -880,7 +880,7 @@ function Footer() {
 function ClosingScene() {
   return (
     <motion.div
-      className="scene closing-scene"
+      className="ts-scene ts-closing-scene"
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true, margin: "-40px" }}

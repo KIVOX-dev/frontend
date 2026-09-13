@@ -95,7 +95,7 @@ export default function InstitutionalPage() {
     
     // The Hub
     return (
-      <AuthSplitLayout>
+      <AuthSplitLayout season="winter">
         <div className="lp-card">
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
             <div className="flex justify-center mb-6">

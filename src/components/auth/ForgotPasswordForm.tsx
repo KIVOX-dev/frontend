@@ -61,7 +61,7 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <AuthSplitLayout>
+    <AuthSplitLayout season="summer">
       <div className="lp-card">
         <div style={{ textAlign: "center", marginBottom: "30px" }}>
           <div className="flex justify-center mb-6">

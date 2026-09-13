@@ -52,7 +52,7 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
   };
 
   return (
-    <AuthSplitLayout>
+    <AuthSplitLayout season="winter">
       <div className="lp-card">
         {onBack && (
           <div style={{ display: "flex", width: "100%", marginBottom: "16px" }}>

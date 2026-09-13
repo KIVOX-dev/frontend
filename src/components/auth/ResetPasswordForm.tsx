@@ -24,7 +24,7 @@ export function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <AuthSplitLayout>
+      <AuthSplitLayout season="summer">
         <div className="lp-card">
           <div style={{ textAlign: "center", marginBottom: "24px" }}>
             <div className="flex justify-center mb-6">
@@ -75,7 +75,7 @@ export function ResetPasswordForm() {
 
   if (succeeded) {
     return (
-      <AuthSplitLayout>
+      <AuthSplitLayout season="summer">
         <div className="lp-card">
           <div style={{ textAlign: "center", marginBottom: "24px" }}>
             <div className="flex justify-center mb-6">
@@ -100,7 +100,7 @@ export function ResetPasswordForm() {
   const isExpiredOrInvalidToken = /invalid or has expired/i.test(submitError);
 
   return (
-    <AuthSplitLayout>
+    <AuthSplitLayout season="summer">
       <div className="lp-card">
         <div style={{ textAlign: "center", marginBottom: "30px" }}>
           <div className="flex justify-center mb-6">
