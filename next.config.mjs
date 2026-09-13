@@ -28,7 +28,16 @@ function apiOrigin() {
 // two relaxed — see PROJECT_AUDIT_REPORT.md P2-23.
 function securityHeaders() {
   const origin = apiOrigin();
-  const connectSrc = ["'self'", "https://accounts.google.com", origin].filter(Boolean).join(" ");
+  // Cloudflare Turnstile (src/components/auth/Turnstile.tsx) loads
+  // api.js from this origin, renders its actual challenge in an iframe
+  // from it, and the widget itself calls back to it (token refresh/retry)
+  // — needs all three directives or the widget silently fails to render
+  // with no visible error (CSP blocks fail closed, not with a console-visible
+  // widget error), which is exactly what happened before this was added:
+  // the login/register forms required a token from a challenge that CSP
+  // never let load in the first place.
+  const turnstileOrigin = "https://challenges.cloudflare.com";
+  const connectSrc = ["'self'", "https://accounts.google.com", turnstileOrigin, origin].filter(Boolean).join(" ");
 
   return [
     { key: "X-Content-Type-Options", value: "nosniff" },
@@ -40,12 +49,12 @@ function securityHeaders() {
       key: "Content-Security-Policy",
       value: [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://accounts.google.com",
+        `script-src 'self' 'unsafe-inline' https://accounts.google.com ${turnstileOrigin}`,
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https://unavatar.io https://upscaler-ai.com https://via.placeholder.com https://t3.gstatic.com",
         "font-src 'self' data:",
         `connect-src ${connectSrc}`,
-        "frame-src https://accounts.google.com",
+        `frame-src https://accounts.google.com ${turnstileOrigin}`,
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
