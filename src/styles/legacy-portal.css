@@ -209,28 +209,6 @@ a:focus-visible,
   overflow: hidden
 }
 
-.lp-left::before {
-  content: '';
-  position: absolute;
-  top: -100px;
-  right: -80px;
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, .05)
-}
-
-.lp-left::after {
-  content: '';
-  position: absolute;
-  bottom: -120px;
-  left: -60px;
-  width: 380px;
-  height: 380px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, .04)
-}
-
 .lp-mountains {
   position: absolute;
   left: 0;
@@ -402,7 +380,12 @@ body.mobile-view .lp-mountains {
 .lp-card {
   width: 100%;
   max-width: 420px;
-  position: relative
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px;
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, .12), 0 4px 12px rgba(15, 23, 42, .06)
 }
 
 .lp-heading {
@@ -4828,7 +4811,8 @@ body.mobile-view .lp-right {
 }
 
 body.mobile-view .lp-card {
-  max-width: 100%
+  max-width: 100%;
+  padding: 24px
 }
 
 body.mobile-view .lp-heading h2 {

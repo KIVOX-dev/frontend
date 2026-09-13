@@ -9,6 +9,9 @@ export type AuthSeason = "spring" | "summer" | "autumn" | "winter" | "night";
 type Palette = {
   /** Background gradient for AuthSplitLayout's `.lp-left` panel. */
   bg: string;
+  /** The gradient's own first stop — used behind the moon's crescent cutout
+      so it blends with the sky instead of reading as a mountain-colour bite. */
+  skyTop: string;
   far: string;
   mid: string;
   near: string;
@@ -16,10 +19,11 @@ type Palette = {
   midOpacity: number;
   snow: string;
   snowOpacity: number;
-  /** "day" shows a sun glow; "night" shows a moon and stars. */
+  /** "day" shows a real sun; "night" shows a moon, stars, and clouds. */
   sky: "day" | "night";
   sun: string;
-  /** Small drifting accents: stars (night), petals (spring), motes (others). */
+  sunCore: string;
+  /** Small drifting accents: stars (night), petals/leaves/pollen (day). */
   accent: string;
   accentOpacity: number;
 };
@@ -27,43 +31,48 @@ type Palette = {
 const PALETTES: Record<AuthSeason, Palette> = {
   spring: {
     bg: "linear-gradient(150deg, #4A2E52 0%, #8B5A8F 45%, #C98FB0 80%, #F5C6D8 100%)",
+    skyTop: "#4A2E52",
     far: "#B37FA8", mid: "#8C5090", near: "#5C2E5E",
     farOpacity: 0.5, midOpacity: 0.75,
     snow: "#FCE4EF", snowOpacity: 0.7,
-    sky: "day", sun: "#FBD3E4",
+    sky: "day", sun: "#FFE3F1", sunCore: "#FFFFFF",
     accent: "#FCE4EF", accentOpacity: 0.65,
   },
   summer: {
     bg: "linear-gradient(150deg, #0B3D24 0%, #1C7A4C 45%, #4CAF6E 80%, #A8DDB5 100%)",
+    skyTop: "#0B3D24",
     far: "#6FAE85", mid: "#2F8557", near: "#0F4A2C",
     farOpacity: 0.5, midOpacity: 0.78,
     snow: "#EAF9EE", snowOpacity: 0.6,
-    sky: "day", sun: "#DFF6E8",
+    sky: "day", sun: "#FFF6C9", sunCore: "#FFFFFF",
     accent: "#EAF9EE", accentOpacity: 0.5,
   },
   autumn: {
     bg: "linear-gradient(150deg, #6B2A10 0%, #B54A18 45%, #D97B2B 80%, #F0B860 100%)",
+    skyTop: "#6B2A10",
     far: "#C77A44", mid: "#9C4E22", near: "#5E2A10",
     farOpacity: 0.5, midOpacity: 0.78,
     snow: "#FDE8C9", snowOpacity: 0.5,
-    sky: "day", sun: "#FBDCA0",
+    sky: "day", sun: "#FFD98A", sunCore: "#FFF3D6",
     accent: "#E8934B", accentOpacity: 0.8,
   },
   winter: {
     bg: "linear-gradient(150deg, #17324A 0%, #3E6B96 45%, #6FA3C7 80%, #C8E6F5 100%)",
+    skyTop: "#17324A",
     far: "#7FA9C4", mid: "#4C7EA0", near: "#1F425E",
     farOpacity: 0.55, midOpacity: 0.8,
     snow: "#FFFFFF", snowOpacity: 0.9,
-    sky: "day", sun: "#E7F4FC",
-    accent: "#FFFFFF", accentOpacity: 0.85,
+    sky: "night", sun: "#F3FAFF", sunCore: "#FFFFFF",
+    accent: "#FFFFFF", accentOpacity: 0.8,
   },
   night: {
     bg: "linear-gradient(150deg, #002457 0%, #0B408B 45%, #0056D2 80%, #5B9DFC 100%)",
+    skyTop: "#002457",
     far: "#15458F", mid: "#0D3272", near: "#081F4D",
     farOpacity: 0.55, midOpacity: 0.8,
     snow: "#E8F0FF", snowOpacity: 0.5,
-    sky: "night", sun: "#EAF2FF",
-    accent: "#fff", accentOpacity: 0.4,
+    sky: "night", sun: "#EAF2FF", sunCore: "#FFFFFF",
+    accent: "#fff", accentOpacity: 0.75,
   },
 };
 
@@ -94,11 +103,14 @@ const SHAPES: Record<AuthSeason, Shape> = {
       "M335 228 L347 249 L323 249 Z",
     ],
   },
-  // Calm, almost-flat wave — barely any relief, the gentlest of the five.
+  // Soft, rounded peaks — real mountain relief, just with smooth curved
+  // summits instead of winter/night's sharp triangular ones. One tall
+  // central peak flanked by smaller rounded ones, unlike summer's evenly
+  // separated domes or autumn's dense tiny bumps.
   spring: {
-    far: "M0 270 C 100 240 200 252 300 232 C 350 222 390 228 420 232 L420 380 L0 380 Z",
-    mid: "M0 300 C 100 275 200 285 300 268 C 350 260 390 264 420 268 L420 380 L0 380 Z",
-    near: "M0 330 C 100 310 200 320 300 305 C 350 298 390 302 420 305 L420 380 L0 380 Z",
+    far: "M0 250 C 25 210 45 195 70 200 C 95 205 105 235 130 225 C 155 215 175 160 205 165 C 235 170 250 225 280 220 C 310 215 325 180 355 185 C 385 190 400 220 420 215 L420 380 L0 380 Z",
+    mid: "M0 280 C 30 245 55 230 80 235 C 105 240 115 265 140 258 C 165 251 185 205 215 210 C 245 215 260 260 290 255 C 320 250 335 220 365 225 C 390 230 405 255 420 250 L420 380 L0 380 Z",
+    near: "M0 315 C 35 275 65 258 95 264 C 125 270 138 300 168 292 C 198 284 220 230 255 236 C 290 242 308 295 343 289 C 373 283 390 250 420 258 L420 380 L0 380 Z",
   },
   // A few big, separate rounded dome hills with real valleys between them —
   // reads as distinct hills, not one continuous wave.
@@ -116,6 +128,20 @@ const SHAPES: Record<AuthSeason, Shape> = {
   },
 };
 
+// A puffy cartoon-cloud silhouette: a cluster of overlapping ellipses,
+// anchored at (x, y) and scaled by `s`. Same shape reused at different
+// positions/sizes/opacities for variety.
+function Cloud({ x, y, s = 1, fill, opacity }: { x: number; y: number; s?: number; fill: string; opacity: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`} fill={fill} opacity={opacity}>
+      <ellipse cx="0" cy="0" rx="26" ry="12" />
+      <ellipse cx="-16" cy="3" rx="16" ry="9" />
+      <ellipse cx="16" cy="3" rx="18" ry="10" />
+      <ellipse cx="0" cy="-6" rx="15" ry="10" />
+    </g>
+  );
+}
+
 export function AuthMountains({ season = "night" }: { season?: AuthSeason }) {
   const p = PALETTES[season];
   const s = SHAPES[season];
@@ -129,28 +155,50 @@ export function AuthMountains({ season = "night" }: { season?: AuthSeason }) {
       {p.sky === "night" ? (
         <>
           {/* stars */}
-          <circle cx="54" cy="46" r="1.6" fill={p.accent} opacity={p.accentOpacity} />
-          <circle cx="128" cy="78" r="1.1" fill={p.accent} opacity={p.accentOpacity * 0.65} />
-          <circle cx="96" cy="112" r="1.3" fill={p.accent} opacity={p.accentOpacity * 0.75} />
-          <circle cx="248" cy="52" r="1.2" fill={p.accent} opacity={p.accentOpacity * 0.55} />
+          <circle cx="54" cy="40" r="1.6" fill={p.accent} opacity={p.accentOpacity} />
+          <circle cx="128" cy="70" r="1.1" fill={p.accent} opacity={p.accentOpacity * 0.65} />
+          <circle cx="96" cy="105" r="1.3" fill={p.accent} opacity={p.accentOpacity * 0.75} />
+          <circle cx="18" cy="80" r="1.2" fill={p.accent} opacity={p.accentOpacity * 0.6} />
+          <circle cx="70" cy="150" r="1.1" fill={p.accent} opacity={p.accentOpacity * 0.55} />
+          <circle cx="160" cy="40" r="1.3" fill={p.accent} opacity={p.accentOpacity * 0.7} />
+          <circle cx="200" cy="95" r="1" fill={p.accent} opacity={p.accentOpacity * 0.5} />
+          <circle cx="248" cy="30" r="1.2" fill={p.accent} opacity={p.accentOpacity * 0.55} />
+          <circle cx="270" cy="110" r="1.4" fill={p.accent} opacity={p.accentOpacity * 0.7} />
           <circle cx="368" cy="94" r="1.4" fill={p.accent} opacity={p.accentOpacity * 0.75} />
           <circle cx="30" cy="140" r="1.1" fill={p.accent} opacity={p.accentOpacity * 0.55} />
-          {/* moon */}
-          <circle cx="322" cy="70" r="24" fill={p.sun} opacity=".92" />
-          <circle cx="331" cy="62" r="21" fill={p.mid} opacity=".65" />
+          <circle cx="395" cy="150" r="1.2" fill={p.accent} opacity={p.accentOpacity * 0.6} />
+          <circle cx="8" cy="30" r="1" fill={p.accent} opacity={p.accentOpacity * 0.5} />
+          <circle cx="230" cy="150" r="1.1" fill={p.accent} opacity={p.accentOpacity * 0.5} />
+
+          {/* half moon: a full pale disc with an offset "shadow" disc, filled
+              with the sky's own top colour so the cutout reads as a true
+              crescent against the gradient rather than a grey bite. */}
+          <circle cx="330" cy="66" r="26" fill={p.sun} />
+          <circle cx="341" cy="58" r="24" fill={p.skyTop} />
+
+          {/* clouds drifting past, lower and further from the moon than the stars */}
+          <Cloud x={90} y={210} s={1.15} fill="#fff" opacity={0.14} />
+          <Cloud x={300} y={175} s={0.85} fill="#fff" opacity={0.12} />
+          <Cloud x={190} y={245} s={0.7} fill="#fff" opacity={0.1} />
         </>
       ) : (
         <>
-          {/* sun / soft glow */}
-          <circle cx="332" cy="68" r="34" fill={p.sun} opacity=".5" />
-          <circle cx="332" cy="68" r="20" fill={p.sun} opacity=".85" />
-          {/* drifting accents — petals (spring), leaves (autumn), pollen (summer), snow (winter) */}
+          {/* a real, clearly visible sun — soft outer glow, bright core */}
+          <circle cx="332" cy="66" r="56" fill={p.sun} opacity=".22" />
+          <circle cx="332" cy="66" r="38" fill={p.sun} opacity=".45" />
+          <circle cx="332" cy="66" r="24" fill={p.sunCore} opacity=".95" />
+
+          {/* drifting accents — petals (spring), pollen (summer), leaves (autumn) */}
           <circle cx="54" cy="86" r="2.4" fill={p.accent} opacity={p.accentOpacity} />
           <circle cx="128" cy="128" r="1.8" fill={p.accent} opacity={p.accentOpacity * 0.7} />
           <circle cx="96" cy="162" r="2" fill={p.accent} opacity={p.accentOpacity * 0.8} />
           <circle cx="248" cy="112" r="1.7" fill={p.accent} opacity={p.accentOpacity * 0.6} />
           <circle cx="200" cy="150" r="2.2" fill={p.accent} opacity={p.accentOpacity * 0.75} />
           <circle cx="30" cy="180" r="1.6" fill={p.accent} opacity={p.accentOpacity * 0.6} />
+
+          {/* clouds, soft and pale against the day sky */}
+          <Cloud x={110} y={70} s={1} fill="#fff" opacity={0.22} />
+          <Cloud x={220} y={130} s={0.75} fill="#fff" opacity={0.16} />
         </>
       )}
 
