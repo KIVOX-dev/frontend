@@ -99,7 +99,7 @@ export default function InstitutionalPage() {
         <div className="lp-card">
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
             <div className="flex justify-center mb-6">
-              <Logo variant="brand" height={48} priority />
+              <Logo variant="brand" height={72} priority />
             </div>
             <h2 style={{ fontSize: "28px", color: "var(--text)", fontWeight: 800, marginBottom: "12px" }}>
               Institutional Portal

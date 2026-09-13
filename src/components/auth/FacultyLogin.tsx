@@ -30,7 +30,7 @@ export function FacultyLogin({ onBack }: { onBack?: () => void }) {
         )}
         <div style={{ textAlign: "center", marginBottom: "30px" }}>
           <div className="flex justify-center mb-6">
-            <Logo variant="brand" height={48} priority />
+            <Logo variant="brand" height={72} priority />
           </div>
           <h2 style={{ fontSize: "24px", color: "var(--text)", fontWeight: 700, marginBottom: "8px" }}>
             Faculty Portal
