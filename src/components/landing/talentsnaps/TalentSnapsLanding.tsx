@@ -1,7 +1,7 @@
 "use client";
 
 import "@/styles/talentsnaps-landing.css";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useInView, useReducedMotion, animate as fmAnimate } from "framer-motion";
 import { HeroScene, LandscapeArt } from "./MountainScene";
@@ -131,7 +131,15 @@ const FOOTER_COLS: { head: string; items: FooterItem[] }[] = [
   { head: "MODULES", items: ["Drives", "Applications", "Screening", "Selection", "Offer Letters"] },
   { head: "ALSO INSIDE", items: ["Aptitude", "Training Tracking", "Reports", "Skill Report"] },
   { head: "FOR COLLEGES", items: ["NIRF Data Export", "Accreditation Reports", "Onboarding", "Support"] },
-  { head: "COMPANY", items: ["About Us", "Partner Colleges", "Careers", "Contact"] },
+  {
+    head: "COMPANY",
+    items: [
+      { label: "About Us", href: "/about-us" },
+      { label: "Partner Colleges", href: "/partner-colleges" },
+      { label: "Careers", href: "/careers" },
+      { label: "Contact", href: "#ts-contact-form" },
+    ],
+  },
   {
     head: "LEGAL",
     items: [
@@ -469,7 +477,7 @@ function Modules() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.5, delay: i * 0.12, ease: revealEase }}
           >
-            <div className="ts-node">
+            <div className="ts-node" style={{ "--ts-node-delay": `${i * 0.9}s` } as CSSProperties}>
               <span className="ts-num">{i + 1}</span>
               <Icon />
             </div>
@@ -835,7 +843,7 @@ function Footer() {
               Built in Coimbatore, for Tier 3 and growing Tier 2 institutions.
             </p>
           </div>
-          <div className="ts-contact">
+          <div className="ts-contact" id="ts-contact-form">
             <b>Talk to us about your next placement season</b>
             <div className="ts-f">
               <input id="ts-femail" type="email" placeholder="Your college email" aria-label="Your college email" />
