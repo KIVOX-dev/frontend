@@ -78,7 +78,7 @@ export function LearnerDashboard() {
           Score with AI.
         </div>
         <div className="hero-sub">
-          Welcome to UpScalerAI. Start a practice session to build your aptitude profile and unlock your national
+          Welcome to TalentSnaps. Start a practice session to build your aptitude profile and unlock your national
           leaderboard ranking.
         </div>
         <div className="hero-acts">

@@ -57,7 +57,7 @@ const sourceSansPro = Source_Sans_3({
 // (src/app/icon.png, src/app/apple-icon.png, src/app/manifest.ts) — no manual
 // `icons` block needed here; Next auto-generates the right <link> tags.
 export const metadata: Metadata = {
-  title: "UpScalerAI",
+  title: "TalentSnaps",
   description: "Campus Placement & Assessment Management Platform",
 };
 

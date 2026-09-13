@@ -1,8 +1,8 @@
-# UpScalerAI
+# TalentSnaps
 
 **Campus placement and assessment management, in one platform.**
 
-UpScalerAI connects students, faculty, institution administrators, and hiring teams around a single source of truth for aptitude practice, placement drives, and career readiness — replacing the spreadsheets and disconnected tools most campuses still run on.
+TalentSnaps connects students, faculty, institution administrators, and hiring teams around a single source of truth for aptitude practice, placement drives, and career readiness — replacing the spreadsheets and disconnected tools most campuses still run on.
 
 This repository is the **frontend**: a Next.js 15 / React 19 application serving the public marketing site and four role-specific portals (Learner, Institutional Admin, HR, Faculty), plus a Super Admin console. It talks to a separate Node.js API and a Python AI microservice, both in sibling repositories.
 
@@ -178,4 +178,4 @@ npm run test:coverage # with coverage
 
 ---
 
-<sub>© UpScalerAI. Proprietary and confidential — internal use only.</sub>
+<sub>© TalentSnaps. Proprietary and confidential — internal use only.</sub>

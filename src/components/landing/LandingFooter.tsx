@@ -97,7 +97,7 @@ export default function LandingFooter() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-ink-faint text-[13px]">
-            © 2026 UpScaler. All rights reserved.
+            © 2026 TalentSnaps. All rights reserved.
           </p>
           <div className="flex items-center gap-2">
             <span className="relative flex w-2 h-2">

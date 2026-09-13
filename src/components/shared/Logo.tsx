@@ -7,19 +7,23 @@ type LogoVariant = "primary" | "brand" | "bar" | "mark" | "icon";
 // app/icon.png for the "icon" variant) — used to derive width from a target
 // height so the mark is never stretched.
 const VARIANTS: Record<LogoVariant, { src: string; width: number; height: number }> = {
-  // Stacked lockup: mark over "UpScaler" wordmark over tagline. Portrait —
-  // only fits contexts with real vertical room (footer, docs, big brand
-  // sections), never a shallow navbar/sidebar row.
-  primary: { src: "/logos/primary-logo.png", width: 751, height: 900 },
-  // Horizontal mark + "UpScaler" wordmark, no tagline. The default for any
+  // Stacked lockup: mark over "TalentSnaps" wordmark over tagline. Square —
+  // only fits contexts with real room (footer, docs, big brand sections),
+  // never a shallow navbar/sidebar row.
+  primary: { src: "/logos/primary-logo.png", width: 2048, height: 2048 },
+  // Horizontal mark + "TalentSnaps" wordmark + tagline. The default for any
   // shallow horizontal slot: navbars, expanded sidebars, auth screens.
-  brand: { src: "/logos/brand-logo.png", width: 900, height: 269 },
-  // Compact horizontal mark + wordmark for the tightest spaces (mobile nav,
-  // thin bars) — use via <ResponsiveLogo> rather than directly in most cases.
-  bar: { src: "/logos/bar-logo.png", width: 700, height: 186 },
-  // Arrow mark only, no text — collapsed sidebar, floating buttons, loaders,
+  brand: { src: "/logos/brand-logo.png", width: 2880, height: 1440 },
+  // Mark only, square — used at small sizes for the tightest spaces (mobile
+  // nav, thin bars) since the full wordmark+tagline lockup isn't legible
+  // that small. Use via <ResponsiveLogo> rather than directly in most cases.
+  bar: { src: "/logos/bar-logo.png", width: 2048, height: 2048 },
+  // Mark only, no text — collapsed sidebar, floating buttons, loaders,
   // decorative watermarks, anywhere text would be too small to read.
-  mark: { src: "/logos/logo-mark.png", width: 437, height: 500 },
+  // Note: this asset has an opaque white background rather than
+  // transparency, so it'll show a faint white square on non-white
+  // surfaces (e.g. AuthSplitLayout's dark sidebar) until re-exported.
+  mark: { src: "/logos/logo-mark.png", width: 2048, height: 2048 },
   // Circular app-icon badge — matches app/icon.png, for the rare in-app
   // spot that wants the literal favicon-shaped mark rather than the bare
   // arrow (e.g. an "install app" prompt).
@@ -45,7 +49,7 @@ export function Logo({
   return (
     <Image
       src={src}
-      alt="UpScaler"
+      alt="TalentSnaps"
       width={computedWidth}
       height={height}
       priority={priority}

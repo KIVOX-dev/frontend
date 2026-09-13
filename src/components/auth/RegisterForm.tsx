@@ -33,7 +33,7 @@ const ROLE_COPY: Record<Role, { heading: string; sub: string; nameLabel: string;
   },
   hr: {
     heading: "Create HR Account",
-    sub: "Register your company on UpScaler",
+    sub: "Register your company on TalentSnaps",
     nameLabel: "Full Name",
     namePlaceholder: "John Doe",
     submitLabel: "Register Company",
@@ -170,7 +170,7 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
                 <input
                   type="text"
                   className="fi"
-                  placeholder="UpScaler Global"
+                  placeholder="TalentSnaps Global"
                   style={{ marginBottom: "12px" }}
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}

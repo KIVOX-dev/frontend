@@ -610,7 +610,7 @@
 }
 
 @utility scale-btn {
-  /* ── UpScaler rebrand — pill buttons ──────────
+  /* ── TalentSnaps rebrand — pill buttons ──────────
      Separate from .ui-btn-* (which stays black-only per
      the old system) so sections not yet migrated are
      unaffected. Rolling out section by section. */
@@ -633,7 +633,7 @@
 }
 
 @utility scale-card {
-  /* ── UpScaler rebrand — surfaces & typography accents ── */
+  /* ── TalentSnaps rebrand — surfaces & typography accents ── */
   @apply relative bg-white rounded-2xl border border-scale-line shadow-scale-card
            transition-all duration-300 ease-expo;
 }

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "UpScalerAI — Complete Education Management Platform",
-    short_name: "UpScalerAI",
+    name: "TalentSnaps — Complete Education Management Platform",
+    short_name: "TalentSnaps",
     description: "One intelligent platform connecting HR, students, faculty, and administrators across your institution.",
     start_url: "/",
     display: "standalone",

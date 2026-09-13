@@ -64,7 +64,7 @@ export default function ContactSection() {
 
     setStatus("submitting");
     try {
-      const subject = encodeURIComponent(`UpScaler inquiry from ${form.name}`);
+      const subject = encodeURIComponent(`TalentSnaps inquiry from ${form.name}`);
       const body = encodeURIComponent(
         `Name: ${form.name}\nEmail: ${form.email}\nInstitution: ${form.institution || "n/a"}\n\n${form.message}`
       );
@@ -93,7 +93,7 @@ export default function ContactSection() {
               Let&apos;s talk about your <span className="ui-mark">institution</span>
             </RevealHeading>
             <p className="text-body text-ink-muted mb-8 max-w-md">
-              Whether you&apos;re evaluating UpScaler for your HR team, faculty, or student body,
+              Whether you&apos;re evaluating TalentSnaps for your HR team, faculty, or student body,
               request a demo and our team will walk you through the platform directly.
             </p>
 

@@ -39,7 +39,7 @@ export function SuperAdminLogin() {
             email={email}
             onEmailChange={setEmail}
             emailLabel="Admin Email"
-            emailPlaceholder="admin@upscaler.ai"
+            emailPlaceholder="admin@talentsnaps.ai"
             password={password}
             onPasswordChange={setPassword}
             error={error}

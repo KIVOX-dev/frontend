@@ -15,7 +15,7 @@ export type AudienceConfig = {
   path: string;
   /** Label shown in the black top audience bar. */
   tabLabel: string;
-  /** Suffix appended to the wordmark in the nav, e.g. "UpScaler for HR". */
+  /** Suffix appended to the wordmark in the nav, e.g. "TalentSnaps for HR". */
   navSuffix: string | null;
   /** Nav's primary CTA button. */
   navCtaLabel: string;

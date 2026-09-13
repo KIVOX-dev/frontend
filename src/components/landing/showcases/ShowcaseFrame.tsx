@@ -41,7 +41,7 @@ export function ShowcaseFrame({
             <span className="size-2.5 rounded-full bg-primary" />
           </div>
           <div className="flex-1 h-6 rounded-md bg-white border border-line flex items-center px-2.5 min-w-0">
-            <span className="text-caption font-mono truncate">app.upscaler.edu{path}</span>
+            <span className="text-caption font-mono truncate">app.talentsnaps.io{path}</span>
           </div>
         </div>
 

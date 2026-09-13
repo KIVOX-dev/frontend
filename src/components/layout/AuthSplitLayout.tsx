@@ -14,7 +14,7 @@ export function AuthSplitLayout({
         <div className="lp-logo" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Logo variant="mark" height={32} priority />
           <span className="text-xl font-black tracking-wider text-white">
-            UpScaler
+            TalentSnaps
           </span>
         </div>
         <div className="lp-body">

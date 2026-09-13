@@ -133,7 +133,7 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
             {audienceKey === "learner" && (
               <button
                 type="button"
-                aria-label="Ask UpScaler AI"
+                aria-label="Ask TalentSnaps AI"
                 className="flex items-center justify-center size-9 rounded-full text-[var(--color-accent-purple-600)] hover:bg-[var(--color-accent-purple-25)] transition-colors shrink-0"
               >
                 <Sparkle className="size-[18px]" weight="fill" />
