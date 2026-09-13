@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
-import { LegalPageLayout } from "@/components/legal/LegalPageLayout";
+import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
   title: "Data Protection — TalentSnaps",
   description: "How TalentSnaps secures placement data and what happens to it if you leave.",
 };
 
+const TOC = [
+  { id: "role-based-access", label: "Role-based access" },
+  { id: "audit-trail", label: "Audit trail" },
+  { id: "encryption-and-storage", label: "Encryption and storage" },
+  { id: "your-data-stays-yours", label: "Your data stays yours" },
+  { id: "if-you-leave", label: "If you stop using TalentSnaps" },
+  { id: "reporting-a-concern", label: "Reporting a concern" },
+];
+
 export default function DataProtectionPage() {
   return (
-    <LegalPageLayout title="Data Protection" updated="September 2026" active="data-protection">
+    <SitePageLayout title="Data Protection" updated="September 2026" active="data-protection" toc={TOC}>
       <section>
-        <h2>1. Role-based access</h2>
+        <h2 id="role-based-access">1. Role-based access</h2>
         <p>
           TalentSnaps enforces access at the role level, not just at login: a student can see only
           their own record, a placement coordinator sees only their institution&apos;s students and
@@ -20,7 +29,7 @@ export default function DataProtectionPage() {
       </section>
 
       <section>
-        <h2>2. Audit trail</h2>
+        <h2 id="audit-trail">2. Audit trail</h2>
         <p>
           Every verification — an offer letter marked confirmed, a student marked selected, a
           record edited — carries the name of the person who did it and a timestamp. This means a
@@ -29,7 +38,7 @@ export default function DataProtectionPage() {
       </section>
 
       <section>
-        <h2>3. Encryption and storage</h2>
+        <h2 id="encryption-and-storage">3. Encryption and storage</h2>
         <p>
           Data in transit between your browser and TalentSnaps is encrypted (HTTPS/TLS). Uploaded
           documents, including offer letters, are stored with access restricted to the roles
@@ -38,7 +47,7 @@ export default function DataProtectionPage() {
       </section>
 
       <section>
-        <h2>4. Your data stays yours</h2>
+        <h2 id="your-data-stays-yours">4. Your data stays yours</h2>
         <p>
           Nothing your institution puts into TalentSnaps is locked in. Students, drives, offers,
           and reports can be exported in full at any time in .xlsx, .csv, or .pdf format — the same
@@ -47,7 +56,7 @@ export default function DataProtectionPage() {
       </section>
 
       <section>
-        <h2>5. If your institution stops using TalentSnaps</h2>
+        <h2 id="if-you-leave">5. If your institution stops using TalentSnaps</h2>
         <p>
           Your institution can request a full export of all its data before closing an account.
           After a transition period, remaining data is permanently deleted from active systems on
@@ -56,13 +65,13 @@ export default function DataProtectionPage() {
       </section>
 
       <section>
-        <h2>6. Reporting a concern</h2>
+        <h2 id="reporting-a-concern">6. Reporting a concern</h2>
         <p>
           If you believe your data has been accessed inappropriately, or you have a security
           concern, contact <a href="mailto:hello@talentsnaps.in">hello@talentsnaps.in</a> and we&apos;ll
           investigate.
         </p>
       </section>
-    </LegalPageLayout>
+    </SitePageLayout>
   );
 }

@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
-import { MarketingPageLayout } from "@/components/marketing/MarketingPageLayout";
+import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
   title: "About Us — TalentSnaps",
   description: "Why TalentSnaps exists, and who's building it.",
 };
 
+const TOC = [
+  { id: "what-were-building", label: "What we're building" },
+  { id: "where-were-based", label: "Where we're based" },
+  { id: "get-in-touch", label: "Get in touch" },
+];
+
 export default function AboutUsPage() {
   return (
-    <MarketingPageLayout eyebrow="About Us" title="Built for the placement cell, not around it.">
+    <SitePageLayout title="Built for the placement cell, not around it." active="about-us" toc={TOC}>
       <section>
         <p>
           Most Indian colleges run placements the same way they did fifteen years ago: a shared
@@ -25,7 +31,7 @@ export default function AboutUsPage() {
       </section>
 
       <section>
-        <h2>What we&apos;re actually building</h2>
+        <h2 id="what-were-building">What we&apos;re actually building</h2>
         <p>
           One student record that every module — drives, applications, screening, selection, offer
           letters, aptitude, skill tracking — writes to. Not eight disconnected tools that all claim
@@ -35,7 +41,7 @@ export default function AboutUsPage() {
       </section>
 
       <section>
-        <h2>Where we&apos;re based</h2>
+        <h2 id="where-were-based">Where we&apos;re based</h2>
         <p>
           Built in Coimbatore. We work directly with placement cells at the colleges we onboard —
           setup, data import, and training are done with your team, not handed off to a support
@@ -44,12 +50,12 @@ export default function AboutUsPage() {
       </section>
 
       <section>
-        <h2>Get in touch</h2>
+        <h2 id="get-in-touch">Get in touch</h2>
         <p>
           Questions about TalentSnaps, or want to talk before onboarding your college? Reach us at{" "}
           <a href="mailto:hello@talentsnaps.in">hello@talentsnaps.in</a>.
         </p>
       </section>
-    </MarketingPageLayout>
+    </SitePageLayout>
   );
 }
