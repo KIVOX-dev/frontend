@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { List, X, ArrowRight, CaretDown, GraduationCap, Briefcase, Buildings, ShieldCheck, Sparkle } from "@phosphor-icons/react";
+import { List, X, ArrowRight, CaretDown, GraduationCap, Briefcase, Buildings, ShieldCheck } from "@phosphor-icons/react";
 import { ResponsiveLogo } from "@/components/shared/Logo";
 import { Button, ButtonIconChip } from "@/components/ui/Button";
 import { AUDIENCES, type AudienceKey } from "./audiences";
@@ -14,6 +14,16 @@ const navLinks = [
   { label: "Features", href: "#features" },
   { label: "Resources", href: "#resources" },
   { label: "Contact", href: "#contact" },
+];
+
+// The root ("/") page is the TalentSnaps redesign, whose sections carry
+// their own ts- prefixed ids (see TalentSnapsLanding.tsx) rather than the
+// #platform/#solutions/... placeholders above.
+const learnerNavLinks = [
+  { label: "Modules", href: "#ts-modules" },
+  { label: "Skill Report", href: "#ts-report" },
+  { label: "Data", href: "#ts-data" },
+  { label: "FAQ", href: "#ts-faq" },
 ];
 
 // The 4 real top-level login audiences — Faculty isn't a separate one, it
@@ -27,6 +37,7 @@ const loginRoles = [
 
 export default function LandingNav({ audience: audienceKey }: { audience: AudienceKey }) {
   const audience = AUDIENCES[audienceKey];
+  const activeNavLinks = audienceKey === "learner" ? learnerNavLinks : navLinks;
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -52,7 +63,7 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
   // yet; harmless no-op for links whose section hasn't been built in this
   // rebuild phase.
   useEffect(() => {
-    const sections = navLinks
+    const sections = activeNavLinks
       .map((link) => document.querySelector(link.href))
       .filter((el): el is Element => el !== null);
     if (sections.length === 0) return;
@@ -68,7 +79,8 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
 
     sections.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audienceKey]);
 
   return (
     <header
@@ -79,7 +91,7 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
       }`}
     >
       <div className="ui-container">
-        <div className="flex items-center justify-between h-32 lg:h-36">
+        <div className="flex items-center justify-between h-32">
           <Link href={audience.path} className="flex items-center gap-2 shrink-0">
             <ResponsiveLogo height={112} priority />
             {audience.navSuffix && (
@@ -87,39 +99,28 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
             )}
           </Link>
 
-          {audienceKey === "learner" ? null : (
-            <div className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => {
-                const isActive = activeHref === link.href;
-                return (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    aria-current={isActive ? "true" : undefined}
-                    className={`relative px-3.5 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
-                      isActive ? "text-ink" : "text-ink-muted hover:text-ink"
-                    }`}
-                  >
-                    {link.label}
-                    {isActive && (
-                      <span className="absolute bottom-1 left-3.5 right-3.5 h-[2px] rounded-full bg-primary" />
-                    )}
-                  </a>
-                );
-              })}
-            </div>
-          )}
+          <div className="hidden md:flex items-center gap-1">
+            {activeNavLinks.map((link) => {
+              const isActive = activeHref === link.href;
+              return (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  aria-current={isActive ? "true" : undefined}
+                  className={`relative px-3.5 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+                    isActive ? "text-ink" : "text-ink-muted hover:text-ink"
+                  }`}
+                >
+                  {link.label}
+                  {isActive && (
+                    <span className="absolute bottom-1 left-3.5 right-3.5 h-[2px] rounded-full bg-primary" />
+                  )}
+                </a>
+              );
+            })}
+          </div>
 
           <div className="hidden md:flex items-center gap-2">
-            {audienceKey === "learner" && (
-              <button
-                type="button"
-                aria-label="Ask TalentSnaps AI"
-                className="flex items-center justify-center size-9 rounded-full text-[var(--color-accent-purple-600)] hover:bg-[var(--color-accent-purple-25)] transition-colors shrink-0"
-              >
-                <Sparkle className="size-[18px]" weight="fill" />
-              </button>
-            )}
             <div className="relative" ref={loginRef}>
               <Button
                 variant="ghost"
@@ -191,7 +192,7 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
             className="md:hidden bg-white border-t border-line overflow-hidden"
           >
             <div className="px-6 py-5 flex flex-col gap-1">
-              {navLinks.map((link) => (
+              {activeNavLinks.map((link) => (
                 <a
                   key={link.label}
                   href={link.href}
