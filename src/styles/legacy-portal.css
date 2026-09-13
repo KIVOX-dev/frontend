@@ -199,7 +199,7 @@ a:focus-visible,
 }
 
 .lp-left {
-  width: 420px;
+  width: 50%;
   flex-shrink: 0;
   background: linear-gradient(150deg, #002457 0%, #0B408B 45%, #0056D2 80%, #5B9DFC 100%);
   display: flex;
@@ -229,6 +229,25 @@ a:focus-visible,
   height: 380px;
   border-radius: 50%;
   background: rgba(255, 255, 255, .04)
+}
+
+.lp-mountains {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 24%;
+  min-height: 150px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .8;
+  mask-image: linear-gradient(to bottom, transparent, #000 40px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 40px)
+}
+
+body.mobile-view .lp-mountains {
+  display: none
 }
 
 .lp-logo {

@@ -1,5 +1,6 @@
 import React from "react";
 import { Logo } from "@/components/shared/Logo";
+import { AuthMountains } from "@/components/layout/AuthMountains";
 
 export function AuthSplitLayout({
   children,
@@ -11,6 +12,7 @@ export function AuthSplitLayout({
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", background: "var(--bg)" }}>
       <div className="lp-left">
+        <AuthMountains />
         <div className="lp-logo" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Logo variant="mark" height={32} priority />
           <span className="text-xl font-black tracking-wider text-white">

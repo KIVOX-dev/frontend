@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { List, X, ArrowRight, CaretDown, GraduationCap, Briefcase, Buildings, ShieldCheck, MagnifyingGlass, Sparkle } from "@phosphor-icons/react";
+import { List, X, ArrowRight, CaretDown, GraduationCap, Briefcase, Buildings, ShieldCheck, Sparkle } from "@phosphor-icons/react";
 import { ResponsiveLogo } from "@/components/shared/Logo";
 import { Button, ButtonIconChip } from "@/components/ui/Button";
 import { AUDIENCES, type AudienceKey } from "./audiences";
@@ -81,32 +81,13 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
       <div className="ui-container">
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
           <Link href={audience.path} className="flex items-center gap-2 shrink-0">
-            <ResponsiveLogo height={40} priority />
+            <ResponsiveLogo height={56} priority />
             {audience.navSuffix && (
               <span className="hidden sm:inline text-lg text-ink-muted font-medium">{audience.navSuffix}</span>
             )}
           </Link>
 
-          {audienceKey === "learner" ? (
-            // Root nav mirrors coursera.org's own homepage: "Explore" +
-            // a real search input, not the Platform/Solutions/... link row
-            // used on the /for-hr and /for-institutions pages (which mirror
-            // coursera.org/business and /campus instead).
-            <div className="hidden md:flex items-center gap-4 flex-1 max-w-xl mx-8">
-              <a href="#platform" className="flex items-center gap-1 text-sm font-medium text-ink-muted hover:text-ink shrink-0 transition-colors">
-                Explore
-                <CaretDown className="size-3" />
-              </a>
-              <label className="relative flex-1">
-                <MagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-ink-faint" />
-                <input
-                  type="search"
-                  placeholder="What do you want to practice?"
-                  className="w-full h-10 rounded-full border border-line bg-[var(--color-sidebar)] pl-10 pr-4 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                />
-              </label>
-            </div>
-          ) : (
+          {audienceKey === "learner" ? null : (
             <div className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => {
                 const isActive = activeHref === link.href;
@@ -147,7 +128,7 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
                 onClick={() => setLoginOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={loginOpen}
-                className="group"
+                className="group rounded-none"
               >
                 Log In
                 <CaretDown className={`size-3.5 transition-transform duration-200 ${loginOpen ? "rotate-180" : ""}`} />
@@ -180,9 +161,9 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
               </AnimatePresence>
             </div>
             <Link href="#contact">
-              <Button size="sm" shape="pill" className="group pr-1.5">
+              <Button size="sm" shape="pill" className="group pr-1.5 rounded-none">
                 {audience.navCtaLabel}
-                <ButtonIconChip className="size-5">
+                <ButtonIconChip className="size-5 rounded-none">
                   <ArrowRight className="size-3" />
                 </ButtonIconChip>
               </Button>
@@ -238,7 +219,7 @@ export default function LandingNav({ audience: audienceKey }: { audience: Audien
               </div>
               <div className="pt-4 mt-2 border-t border-line flex flex-col gap-2">
                 <Link href="#contact" onClick={() => setMenuOpen(false)}>
-                  <Button shape="pill" className="w-full justify-center">
+                  <Button shape="pill" className="w-full justify-center rounded-none">
                     {audience.navCtaLabel}
                   </Button>
                 </Link>

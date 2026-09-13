@@ -1,8 +1,14 @@
 "use client";
 
 import "@/styles/talentsnaps-landing.css";
-import type { ReactNode } from "react";
-import { HeroScene, BandScene } from "./MountainScene";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence, useInView, useReducedMotion, animate as fmAnimate } from "framer-motion";
+import { HeroScene, LandscapeArt } from "./MountainScene";
+import { revealUp, revealEase } from "../reveal";
+import { RevealHeading } from "../RevealHeading";
+import { TiltCard } from "../TiltCard";
+import { MagneticButton } from "../MagneticButton";
 
 /* ------------------------------------------------------------------ *
  * Content. Everything the page says lives here, so copy changes never
@@ -92,24 +98,48 @@ const NUMBERS = [
   { big: "3 people", small: "the size of a typical placement team in a Tier 3 college" },
 ];
 
-const FAQS: { q: string; a?: string }[] = [
+const FAQS: { q: string; a: string }[] = [
   {
     q: "Do we need a technical team to run this?",
     a: "No. Your existing placement staff run it. Setup, import and training are done with you, and support stays available through placement season.",
   },
-  { q: "Can we bring our old placement data in?" },
-  { q: "Does it work for arts and science, or only engineering?" },
-  { q: "How does offer letter verification actually work?" },
-  { q: "Will this help with NIRF and NAAC?" },
-  { q: "What happens to our data if we stop using TalentSnaps?" },
+  {
+    q: "Can we bring our old placement data in?",
+    a: "Yes. We import your existing student, drive and offer letter records during onboarding, so nothing has to be re-entered by hand.",
+  },
+  {
+    q: "Does it work for arts and science, or only engineering?",
+    a: "Every department. Drives, eligibility rules and reports work the same way regardless of stream — commerce, arts, science or engineering.",
+  },
+  {
+    q: "How does offer letter verification actually work?",
+    a: "The placement cell reviews the uploaded letter once and marks it verified. That verification, and who signed off on it, is kept with the letter forever.",
+  },
+  {
+    q: "Will this help with NIRF and NAAC?",
+    a: "Yes — placement percentage, median salary and higher studies figures are held as a rolling three year set, exportable in the format your submission needs.",
+  },
+  {
+    q: "What happens to our data if we stop using TalentSnaps?",
+    a: "You can export everything — students, drives, offers and reports — before closing your account. We don't hold your data hostage.",
+  },
 ];
 
-const FOOTER_COLS = [
+type FooterItem = string | { label: string; href: string };
+
+const FOOTER_COLS: { head: string; items: FooterItem[] }[] = [
   { head: "MODULES", items: ["Drives", "Applications", "Screening", "Selection", "Offer Letters"] },
   { head: "ALSO INSIDE", items: ["Aptitude", "Training Tracking", "Reports", "Skill Report"] },
   { head: "FOR COLLEGES", items: ["NIRF Data Export", "Accreditation Reports", "Onboarding", "Support"] },
   { head: "COMPANY", items: ["About Us", "Partner Colleges", "Careers", "Contact"] },
-  { head: "LEGAL", items: ["Privacy Policy", "Terms of Service", "Data Protection"] },
+  {
+    head: "LEGAL",
+    items: [
+      { label: "Privacy Policy", href: "/privacy-policy" },
+      { label: "Terms of Service", href: "/terms-of-service" },
+      { label: "Data Protection", href: "/data-protection" },
+    ],
+  },
 ];
 
 const SKILL_ROWS: [string, string][] = [
@@ -197,6 +227,105 @@ function Badge(p: IconProps) {
   );
 }
 
+// Verified-seal badge: a scalloped rosette (12 overlapping bumps around a
+// core disc) with a checkmark, rather than a plain circle — reads as
+// "certified" the way an award seal does. Pops in with a spring once the
+// rail bars ahead of it have filled.
+function VerifiedBadge({ size = 30, animate: shouldAnimate = false }: IconProps & { animate?: boolean }) {
+  const bumps = Array.from({ length: 12 }, (_, i) => {
+    const angle = (i * 30 * Math.PI) / 180;
+    // Rounded to a fixed precision so the server- and client-rendered
+    // attribute strings match exactly — raw Math.cos/sin doubles can
+    // stringify with a trailing-digit difference between JS engines,
+    // which React flags as a hydration mismatch.
+    return { cx: Math.round((16 + Math.cos(angle) * 10) * 1000) / 1000, cy: Math.round((16 + Math.sin(angle) * 10) * 1000) / 1000 };
+  });
+  return (
+    <motion.svg
+      width={size} height={size} viewBox="0 0 32 32" aria-hidden="true"
+      initial={shouldAnimate ? { scale: 0, rotate: -35 } : false}
+      animate={shouldAnimate ? { scale: 1, rotate: 0 } : undefined}
+      transition={{ type: "spring", stiffness: 260, damping: 14, delay: 0.9 }}
+    >
+      {bumps.map(({ cx, cy }, i) => (
+        <circle key={i} cx={cx} cy={cy} r="6" fill="var(--ts-green)" />
+      ))}
+      <circle cx="16" cy="16" r="11" fill="var(--ts-green)" />
+      <path d="M10.8 16.3l3.4 3.4l7-7.2" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </motion.svg>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Small motion helpers local to this page.
+ * ------------------------------------------------------------------ */
+
+// A bar that grows from 0 to its target width/height once scrolled into
+// view, instead of just appearing pre-filled — used for every progress /
+// funnel bar on the page.
+function GrowBar({
+  axis = "width",
+  target,
+  color,
+  className,
+  delay = 0,
+  style,
+}: {
+  axis?: "width" | "height";
+  target: string;
+  color?: string;
+  className?: string;
+  delay?: number;
+  style?: React.CSSProperties;
+}) {
+  const reduceMotion = useReducedMotion();
+  const dim = axis === "width" ? "width" : "height";
+  return (
+    <motion.div
+      className={className}
+      style={{ ...style, background: color }}
+      initial={reduceMotion ? false : { [dim]: 0 }}
+      whileInView={{ [dim]: target }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.9, delay, ease: revealEase }}
+    />
+  );
+}
+
+// Animates a leading number up to its target value once in view. Handles
+// labels like "48,246", "60 of 100" and "3 people" by counting only the
+// leading numeric run and leaving the rest of the string static.
+function CountUpStat({ value }: { value: string }) {
+  const match = value.match(/^([\d,]+)(.*)$/);
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const reduceMotion = useReducedMotion();
+  const [display, setDisplay] = useState(match ? "0" : value);
+
+  useEffect(() => {
+    if (!match || !inView) return;
+    const target = Number(match[1].replace(/,/g, ""));
+    if (reduceMotion) {
+      setDisplay(match[1]);
+      return;
+    }
+    const controls = fmAnimate(0, target, {
+      duration: 1.4,
+      ease: revealEase,
+      onUpdate: (v) => setDisplay(Math.round(v).toLocaleString("en-IN")),
+    });
+    return () => controls.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView]);
+
+  return (
+    <span ref={ref}>
+      {display}
+      {match ? match[2] : ""}
+    </span>
+  );
+}
+
 /* ------------------------------------------------------------------ *
  * Sections
  * ------------------------------------------------------------------ */
@@ -204,25 +333,35 @@ function Badge(p: IconProps) {
 function Hero() {
   return (
     <header className="wrap hero" id="ts-dash">
-      <span className="chip"><i />Built in Coimbatore, for Indian colleges</span>
-      <h1>The complete placement suite<br />for your college.</h1>
-      <p className="lede">
+      <motion.span className="chip" {...revealUp(0, 14)}>
+        <i />Built in Coimbatore, for Indian colleges
+      </motion.span>
+      <RevealHeading as="h1" delay={0.08}>
+        The complete placement suite<br />for your college.
+      </RevealHeading>
+      <motion.p className="lede" {...revealUp(0.18, 16)}>
         Drives, applications, screening, selection status, offer letters, aptitude and NIRF
         reporting. Eight modules on one student record, so nothing is entered twice and nothing
         is chased twice.
-      </p>
-      <div className="row">
-        <button className="btn btn-p">Get started free</button>
-        <button className="btn btn-g">Talk to our team</button>
-      </div>
-      <span className="fine">No credit card needed · Set up in one placement season</span>
+      </motion.p>
+      <motion.div className="row" {...revealUp(0.28, 16)}>
+        <MagneticButton strength={0.25}>
+          <button className="btn btn-p">Get started free</button>
+        </MagneticButton>
+        <MagneticButton strength={0.25}>
+          <button className="btn btn-g">Talk to our team</button>
+        </MagneticButton>
+      </motion.div>
+      <motion.span className="fine" {...revealUp(0.36, 10)}>
+        No credit card needed · Set up in one placement season
+      </motion.span>
     </header>
   );
 }
 
 function Dashboard() {
   return (
-    <div className="shot">
+    <motion.div className="shot" {...revealUp(0.15, 36)}>
       <div className="chrome">
         <div className="l"><s /><s /><s />Nirmala College for Women · Placement Cell</div>
         <div className="r">2026–27 <b /></div>
@@ -245,13 +384,18 @@ function Dashboard() {
           </div>
 
           <div className="kpis">
-            {KPIS.map((k) => (
-              <div className="kpi" key={k.label}>
+            {KPIS.map((k, i) => (
+              <motion.div
+                className="kpi" key={k.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 + i * 0.08, ease: revealEase }}
+              >
                 <s style={{ background: k.accent }} />
                 <em>{k.label}</em>
                 <strong>{k.value}</strong>
                 <small>{k.note}</small>
-              </div>
+              </motion.div>
             ))}
           </div>
 
@@ -259,11 +403,11 @@ function Dashboard() {
             <div className="panel">
               <b>Placed by department</b>
               <div className="bars">
-                {DEPARTMENTS.map(({ dept, placed, total }) => (
+                {DEPARTMENTS.map(({ dept, placed, total }, i) => (
                   <div key={dept}>
                     <em>{placed}</em>
                     <div className="tr" style={{ height: `${(total / TALLEST) * PLOT_SHARE * 100}%` }}>
-                      <div className="fl" style={{ height: `${(placed / total) * 100}%` }} />
+                      <GrowBar axis="height" target={`${(placed / total) * 100}%`} className="fl" delay={0.6 + i * 0.06} />
                     </div>
                     <small>{dept}</small>
                   </div>
@@ -276,17 +420,22 @@ function Dashboard() {
                 <b style={{ fontSize: 13 }}>Recent drives</b>
                 <a>View all</a>
               </div>
-              {DRIVES.map((d) => (
-                <div className="drow" key={d.name}>
+              {DRIVES.map((d, i) => (
+                <motion.div
+                  className="drow" key={d.name}
+                  initial={{ opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: 0.55 + i * 0.06, ease: revealEase }}
+                >
                   <div><b>{d.name}</b><span>{d.detail}</span></div>
                   <span className={`tag ${d.tone}`}>{d.stage}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -294,33 +443,53 @@ function Modules() {
   return (
     <section className="wrap sec" id="ts-modules">
       <div className="center">
-        <h2>Eight modules. One student record.</h2>
-        <p>
+        <RevealHeading as="h2">Eight modules. One student record.</RevealHeading>
+        <motion.p {...revealUp(0.1)}>
           Every module writes to the same record, so a student applying in August and collecting
           an offer letter in March is one row, not six.
-        </p>
+        </motion.p>
       </div>
 
       <div className="flowlabel">The drive path</div>
       <div className="flow">
+        <motion.div
+          className="flow-progress"
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 1.1, ease: revealEase }}
+        />
+        <span className="pulse" aria-hidden="true" />
+        <span className="pulse" aria-hidden="true" />
         {DRIVE_PATH.map(({ title, copy, icon: Icon }, i) => (
-          <div className="step" key={title}>
+          <motion.div
+            className="step" key={title}
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.5, delay: i * 0.12, ease: revealEase }}
+          >
             <div className="node">
               <span className="num">{i + 1}</span>
               <Icon />
             </div>
             <div className="txt"><h3>{title}</h3><p>{copy}</p></div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
       <div className="flowlabel">Running alongside</div>
       <div className="alongside">
-        {ALONGSIDE.map(({ title, copy, accent, icon: Icon }) => (
-          <div className="along" key={title}>
-            <span className="ic" style={{ background: accent }}><Icon size={20} /></span>
-            <div><h3>{title}</h3><p>{copy}</p></div>
-          </div>
+        {ALONGSIDE.map(({ title, copy, accent, icon: Icon }, i) => (
+          <motion.div
+            key={title}
+            {...revealUp(i * 0.1, 16)}
+          >
+            <TiltCard maxTilt={5} className="along">
+              <span className="ic" style={{ background: accent }}><Icon size={20} /></span>
+              <div><h3>{title}</h3><p>{copy}</p></div>
+            </TiltCard>
+          </motion.div>
         ))}
       </div>
     </section>
@@ -336,7 +505,13 @@ function DrivesFeature() {
   ];
   return (
     <section className="wrap feat">
-      <div className="copy">
+      <motion.div
+        className="copy"
+        initial={{ opacity: 0, x: -24, filter: "blur(6px)" }}
+        whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7, ease: revealEase }}
+      >
         <span className="eyebrow" style={{ color: "var(--ts-green)" }}>Drives and applications</span>
         <h2>Announce a drive to exactly the students who qualify.</h2>
         <p>
@@ -351,9 +526,15 @@ function DrivesFeature() {
             <li key={line}><i style={{ background: "var(--ts-green)" }} />{line}</li>
           ))}
         </ul>
-      </div>
+      </motion.div>
 
-      <div className="card">
+      <motion.div
+        className="card"
+        initial={{ opacity: 0, x: 24, filter: "blur(6px)" }}
+        whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7, delay: 0.1, ease: revealEase }}
+      >
         <div className="ch">
           <div><b>New drive</b><span>Zoho Corporation · Software Engineer Trainee</span></div>
           <button className="btn btn-p" style={{ padding: "8px 14px", fontSize: 12.5 }}>Publish</button>
@@ -365,14 +546,14 @@ function DrivesFeature() {
           ))}
         </div>
         <div className="fun">
-          {funnel.map(([label, count, width, color]) => (
+          {funnel.map(([label, count, width, color], i) => (
             <div key={label}>
               <div className="lab"><span>{label}</span><b>{count}</b></div>
-              <div className="tr"><div className="fl" style={{ width, background: color }} /></div>
+              <div className="tr"><GrowBar target={width} color={color} className="fl" delay={0.2 + i * 0.1} /></div>
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
@@ -386,27 +567,45 @@ function OfferLettersFeature() {
   ];
   return (
     <section className="wrap feat rev">
-      <div className="card">
+      <motion.div
+        className="card"
+        initial={{ opacity: 0, x: -24, filter: "blur(6px)" }}
+        whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7, ease: revealEase }}
+      >
         <div className="ch">
           <div><b>Offer letters</b><span>Zoho Corporation · 2026–27</span></div>
           <b style={{ color: "var(--ts-green)", fontSize: 15.5 }}>42 of 44</b>
         </div>
         <div className="fun">
           <div className="tr" style={{ height: 10 }}>
-            <div className="fl" style={{ height: 10, width: "95%", background: "var(--ts-green)" }} />
+            <GrowBar target="95%" color="var(--ts-green)" className="fl" style={{ height: 10 }} delay={0.2} />
           </div>
         </div>
         <div style={{ marginTop: 14 }}>
           {people.map(([name, reg, status, tone], i) => (
-            <div className="drow" key={reg} style={i === 0 ? { borderTop: 0 } : undefined}>
+            <motion.div
+              className="drow" key={reg} style={i === 0 ? { borderTop: 0 } : undefined}
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.4, delay: 0.3 + i * 0.08, ease: revealEase }}
+            >
               <div><b style={{ fontSize: 13.5 }}>{name}</b><span>{reg}</span></div>
               <span className={`tag ${tone}`}>{status}</span>
-            </div>
+            </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
-      <div className="copy">
+      <motion.div
+        className="copy"
+        initial={{ opacity: 0, x: 24, filter: "blur(6px)" }}
+        whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7, delay: 0.1, ease: revealEase }}
+      >
         <span className="eyebrow" style={{ color: "var(--ts-teal)" }}>Offer letter vault</span>
         <h2>The offer letter is requested before the student walks away.</h2>
         <p>
@@ -421,15 +620,25 @@ function OfferLettersFeature() {
             <li key={line}><i style={{ background: "var(--ts-teal)" }} />{line}</li>
           ))}
         </ul>
-      </div>
+      </motion.div>
     </section>
   );
 }
 
 function SkillReport() {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const cardInView = useInView(cardRef, { once: true, margin: "-100px" });
+  const bars = ["on", "on", "on", ""];
+
   return (
     <section className="wrap feat" id="ts-report">
-      <div className="copy">
+      <motion.div
+        className="copy"
+        initial={{ opacity: 0, x: -24, filter: "blur(6px)" }}
+        whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7, ease: revealEase }}
+      >
         <span className="eyebrow" style={{ color: "var(--ts-leaf)" }}>Skill Report</span>
         <h2>Four years, recorded while they happen.</h2>
         <p>
@@ -437,33 +646,54 @@ function SkillReport() {
           record as the placement journey. By final year the student does not write a resume from
           memory, they export a record the college has already verified.
         </p>
-      </div>
+      </motion.div>
 
-      <div className="card">
+      <motion.div
+        ref={cardRef}
+        className="card"
+        initial={{ opacity: 0, x: 24, filter: "blur(6px)" }}
+        whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7, delay: 0.1, ease: revealEase }}
+      >
         <div className="ch">
           <div><b>Skill Report</b><span>Keerthana R · B.Sc Computer Science · 2023–27</span></div>
         </div>
         <div className="rail">
-          <s className="on" /><s className="on" /><s className="on" /><s />
-          <b>✓</b>
+          {bars.map((state, i) => (
+            <motion.s
+              key={i}
+              className={state}
+              initial={{ scaleX: 0 }}
+              animate={cardInView && state === "on" ? { scaleX: 1 } : undefined}
+              style={{ transformOrigin: "left" }}
+              transition={{ duration: 0.5, delay: 0.35 + i * 0.15, ease: revealEase }}
+            />
+          ))}
+          <b><VerifiedBadge animate={cardInView} /></b>
         </div>
         <div className="rlab">
           {["Year 1", "Year 2", "Year 3", "Year 4"].map((y) => <span key={y}>{y}</span>)}
         </div>
-        {SKILL_ROWS.map(([k, v]) => (
-          <div className="drow" key={k}>
+        {SKILL_ROWS.map(([k, v], i) => (
+          <motion.div
+            className="drow" key={k}
+            initial={{ opacity: 0 }}
+            animate={cardInView ? { opacity: 1 } : undefined}
+            transition={{ duration: 0.4, delay: 1.1 + i * 0.06 }}
+          >
             <span style={{ fontSize: 14, color: "var(--ts-body)" }}>{k}</span>
             <b style={{ fontSize: 14 }}>{v}</b>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </section>
   );
 }
 
 function ExportCard() {
   return (
-    <div className="export">
+    <motion.div className="export" {...revealUp(0.15, 24)}>
       <div className="eh">
         <div>
           <b>NIRF export 2026–27</b>
@@ -475,7 +705,7 @@ function ExportCard() {
       <div className="row"><span>Median salary</span><b>₹4,20,000</b></div>
       <div className="row"><span>Higher studies</span><b>214 students</b></div>
       <button className="cta">Download the submission file</button>
-    </div>
+    </motion.div>
   );
 }
 
@@ -485,30 +715,34 @@ function DataBand() {
       <div className="wrap">
         <div className="center">
           <span className="eyebrow" style={{ color: "var(--ts-green)" }}>Data you can hand over</span>
-          <h2 style={{ maxWidth: "17ch" }}>Every record your college creates stays your college&apos;s.</h2>
-          <p style={{ maxWidth: "66ch", fontSize: 17, lineHeight: 1.72 }}>
+          <RevealHeading as="h2" className="ts-mw-17ch">Every record your college creates stays your college&apos;s.</RevealHeading>
+          <motion.p style={{ maxWidth: "66ch", fontSize: 17, lineHeight: 1.72 }} {...revealUp(0.1)}>
             Role based access so each person sees what they should, an audit trail behind every
             verification, and a full export whenever you want one. Nothing is locked in, and
             nothing has to be rebuilt at submission time.
-          </p>
+          </motion.p>
         </div>
 
         <div className="spec">
-          {SPEC.map(({ term, copy, evLabel, evValue }) => (
-            <div key={term}>
+          {SPEC.map(({ term, copy, evLabel, evValue }, i) => (
+            <motion.div key={term} {...revealUp(i * 0.08, 14)}>
               <span className="lab">{term}</span>
               <p>{copy}</p>
               <span className="ev">
                 {evLabel}<br />
                 <b>
-                  {evValue.map((line, i) => (
-                    <span key={line}>{i > 0 && <br />}{line}</span>
+                  {evValue.map((line, j) => (
+                    <span key={line}>{j > 0 && <br />}{line}</span>
                   ))}
                 </b>
               </span>
-            </div>
+            </motion.div>
           ))}
         </div>
+
+        <TiltCard maxTilt={4} className="export-tilt">
+          <ExportCard />
+        </TiltCard>
       </div>
     </section>
   );
@@ -518,8 +752,11 @@ function Numbers() {
   return (
     <section className="wrap">
       <div className="nums">
-        {NUMBERS.map(({ big, small }) => (
-          <div key={big}><strong>{big}</strong><p>{small}</p></div>
+        {NUMBERS.map(({ big, small }, i) => (
+          <motion.div key={big} {...revealUp(i * 0.1, 14)}>
+            <strong><CountUpStat value={big} /></strong>
+            <p>{small}</p>
+          </motion.div>
         ))}
       </div>
     </section>
@@ -527,16 +764,40 @@ function Numbers() {
 }
 
 function Faq() {
+  const [open, setOpen] = useState<number | null>(0);
   return (
     <section className="wrap sec" id="ts-faq">
-      <div className="center"><h2>Questions we get in the first meeting</h2></div>
+      <div className="center"><RevealHeading as="h2">Questions we get in the first meeting</RevealHeading></div>
       <div className="faq">
-        {FAQS.map(({ q, a }) => (
-          <div key={q}>
-            <div className="q">{q}<em>{a ? "–" : "+"}</em></div>
-            {a && <p>{a}</p>}
-          </div>
-        ))}
+        {FAQS.map(({ q, a }, i) => {
+          const isOpen = open === i;
+          return (
+            <motion.div key={q} {...revealUp(Math.min(i * 0.05, 0.3), 10)}>
+              <button
+                type="button"
+                className="q"
+                aria-expanded={isOpen}
+                onClick={() => setOpen(isOpen ? null : i)}
+              >
+                {q}
+                <motion.em animate={{ rotate: isOpen ? 45 : 0 }} transition={{ duration: 0.25, ease: revealEase }}>+</motion.em>
+              </button>
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: revealEase }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <p>{a}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
       </div>
     </section>
   );
@@ -545,63 +806,88 @@ function Faq() {
 function CtaBand() {
   return (
     <section className="ctab">
-      <h2>Set up your placement cell for this season.</h2>
-      <p>
+      <RevealHeading as="h2">Set up your placement cell for this season.</RevealHeading>
+      <motion.p {...revealUp(0.1)}>
         We will walk your team through a drive you have already run, so you can see exactly what
         changes.
-      </p>
-      <div className="row">
-        <button className="btn w">Get started free</button>
-        <button className="btn o">Talk to our team</button>
-      </div>
+      </motion.p>
+      <motion.div className="row" {...revealUp(0.2)}>
+        <MagneticButton strength={0.25}>
+          <button className="btn w">Get started free</button>
+        </MagneticButton>
+        <MagneticButton strength={0.25}>
+          <button className="btn o">Talk to our team</button>
+        </MagneticButton>
+      </motion.div>
     </section>
   );
 }
 
 function Footer() {
   return (
-    <BandScene className="footer-scene">
-      <ExportCard />
-      <footer>
-        <div className="wrap">
-          <div className="ftop">
-            <div className="fb">
-              <div className="brand"><i />TalentSnaps</div>
-              <p>
-                The placement suite for Indian colleges.<br />
-                Built in Coimbatore, for Tier 3 and growing Tier 2 institutions.
-              </p>
-            </div>
-            <div className="contact">
-              <b>Talk to us about your next placement season</b>
-              <div className="f">
-                <input id="ts-femail" type="email" placeholder="Your college email" aria-label="Your college email" />
+    <footer>
+      <div className="wrap">
+        <motion.div className="ftop" {...revealUp(0, 16)}>
+          <div className="fb">
+            <div className="brand"><i />TalentSnaps</div>
+            <p>
+              The placement suite for Indian colleges.<br />
+              Built in Coimbatore, for Tier 3 and growing Tier 2 institutions.
+            </p>
+          </div>
+          <div className="contact">
+            <b>Talk to us about your next placement season</b>
+            <div className="f">
+              <input id="ts-femail" type="email" placeholder="Your college email" aria-label="Your college email" />
+              <MagneticButton strength={0.2}>
                 <button className="btn btn-p" style={{ padding: "12px 20px", fontSize: 14 }}>Book a demo</button>
-              </div>
-              <small>hello@talentsnaps.in · Coimbatore, Tamil Nadu</small>
+              </MagneticButton>
             </div>
+            <small>hello@talentsnaps.in · Coimbatore, Tamil Nadu</small>
           </div>
+        </motion.div>
 
-          <div className="fcols">
-            {FOOTER_COLS.map(({ head, items }) => (
-              <div key={head}>
-                <h4>{head}</h4>
-                <ul>{items.map((i) => <li key={i}>{i}</li>)}</ul>
-              </div>
-            ))}
-          </div>
-
-          <div className="fbar">
-            <span>© 2026 TalentSnaps. All rights reserved.</span>
-            <div className="m">
-              <span>Offer letters verified by the placement cell</span>
-              <span>NIRF ready, three year rolling data</span>
-              <span>Your data stays yours</span>
+        <div className="fcols">
+          {FOOTER_COLS.map(({ head, items }) => (
+            <div key={head}>
+              <h4>{head}</h4>
+              <ul>
+                {items.map((i) =>
+                  typeof i === "string" ? (
+                    <li key={i}>{i}</li>
+                  ) : (
+                    <li key={i.href}><Link href={i.href}>{i.label}</Link></li>
+                  )
+                )}
+              </ul>
             </div>
+          ))}
+        </div>
+
+        <div className="fbar">
+          <span>© 2026 TalentSnaps. All rights reserved.</span>
+          <div className="m">
+            <span>Offer letters verified by the placement cell</span>
+            <span>NIRF ready, three year rolling data</span>
+            <span>Your data stays yours</span>
           </div>
         </div>
-      </footer>
-    </BandScene>
+      </div>
+    </footer>
+  );
+}
+
+function ClosingScene() {
+  return (
+    <motion.div
+      className="scene closing-scene"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 1 }}
+    >
+      <LandscapeArt />
+    </motion.div>
   );
 }
 
@@ -621,6 +907,7 @@ export default function TalentSnapsLanding() {
       <Faq />
       <CtaBand />
       <Footer />
+      <ClosingScene />
     </div>
   );
 }

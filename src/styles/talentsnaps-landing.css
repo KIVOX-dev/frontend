@@ -55,7 +55,7 @@
   h3 { font-size: 17px; letter-spacing: -.01em; }
   p { margin: 0; }
   .wrap { max-width: 1320px; margin: 0 auto; padding-inline: 24px; }
-  .btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; border-radius: 5px; padding: 14px 24px; font: 600 15px "Inter", sans-serif; cursor: pointer; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; border-radius: 0; padding: 14px 24px; font: 600 15px "Inter", sans-serif; cursor: pointer; }
   .btn-p { background: var(--ts-green); color: #fff; }
   .btn-g { background: transparent; color: var(--ts-ink); border-color: var(--ts-rule); }
   .btn:focus-visible { outline: 2px solid var(--ts-green); outline-offset: 2px; }
@@ -87,7 +87,10 @@
   @media (max-width: 1080px) { .shot { width: calc(100% - 48px); top: 2%; } }
 
   .hero-scene { padding: 206px 0 104px; overflow: hidden; }
-  .hero-scene .art { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* Extends 60px past the container's bottom edge so the parallax
+     translate (up to -60px) never uncovers a gap underneath it. */
+  .hero-scene-art-wrap { position: absolute; top: 0; left: 0; right: 0; bottom: -60px; width: 100%; }
+  .hero-scene-art-wrap .art { display: block; width: 100%; height: 100%; }
   .hero-scene .shot { position: relative; left: auto; top: auto; transform: none; margin-inline: auto; }
   @media (max-width: 1080px) { .hero-scene { padding: 120px 0 64px; } }
   @media (max-width: 640px) { .hero-scene { padding: 74px 0 44px; } }
@@ -142,12 +145,39 @@
   .sec { padding-block: 80px; }
   .center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
   .center p { max-width: 62ch; color: var(--ts-body); font-size: 16px; }
+  .ts-mw-17ch { max-width: 17ch; }
   .flowlabel { display: flex; align-items: center; gap: 14px; margin-top: 52px; color: var(--ts-muted); font-size: 11.5px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; }
   .flowlabel::after { content: ""; flex: 1; height: 1px; background: var(--ts-rule); }
   .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 26px; position: relative; }
   .flow::before {
     content: ""; position: absolute; top: 27px; left: 10%; right: 10%; height: 2px;
     background: linear-gradient(90deg, var(--ts-green), var(--ts-leaf)); opacity: .28;
+  }
+  /* Animated fill drawn on top of the faint static track above — scales in
+     from the left on scroll so the drive path reads as being traced out. */
+  .flow-progress {
+    position: absolute; top: 27px; left: 10%; right: 10%; height: 2px;
+    background: linear-gradient(90deg, var(--ts-green), var(--ts-leaf));
+    transform-origin: left center;
+  }
+  /* A light travels the drive path left to right, ducking behind each node
+     it passes under (nodes sit later in the DOM, so they stack above it) —
+     reads as the flow actually moving/sending, not just a static diagram. */
+  .pulse {
+    position: absolute; top: 27px; left: 10%; width: 8px; height: 8px; margin-top: -4px;
+    border-radius: 50%; background: var(--ts-green);
+    box-shadow: 0 0 10px 2px color-mix(in srgb, var(--ts-green) 65%, transparent);
+    opacity: 0; animation: ts-flow-h 3.6s cubic-bezier(.45, 0, .2, 1) infinite;
+  }
+  .pulse:nth-child(2) { animation-delay: 1.8s; }
+  @keyframes ts-flow-h {
+    0% { left: 10%; opacity: 0; }
+    8% { opacity: 1; }
+    88% { opacity: 1; }
+    100% { left: 90%; opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pulse { display: none; }
   }
   .step { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 11px; padding-inline: 14px; position: relative; }
   .node {
@@ -165,6 +195,14 @@
   @media (max-width: 900px) {
     .flow { grid-template-columns: 1fr; gap: 22px; }
     .flow::before { top: 10%; bottom: 10%; left: 27px; right: auto; width: 2px; height: auto; background: linear-gradient(180deg, var(--ts-green), var(--ts-leaf)); }
+    .flow-progress { top: 10%; bottom: 10%; left: 27px; right: auto; width: 2px; height: auto; background: linear-gradient(180deg, var(--ts-green), var(--ts-leaf)); transform-origin: top center; }
+    .pulse { top: 10%; left: 27px; width: 8px; height: 8px; margin-top: 0; margin-left: -4px; animation-name: ts-flow-v; }
+    @keyframes ts-flow-v {
+      0% { top: 10%; opacity: 0; }
+      8% { opacity: 1; }
+      88% { opacity: 1; }
+      100% { top: 90%; opacity: 0; }
+    }
     .step { flex-direction: row; text-align: left; align-items: flex-start; gap: 16px; padding-inline: 0; }
     .step .txt { display: flex; flex-direction: column; gap: 5px; padding-top: 6px; }
     .step p { max-width: none; }
@@ -206,7 +244,7 @@
   .rail { display: flex; align-items: center; gap: 8px; }
   .rail s { flex: 1; height: 10px; border-radius: 3px; background: var(--ts-rule); display: block; }
   .rail s.on { background: var(--ts-green); }
-  .rail b { width: 30px; height: 30px; border-radius: 50%; background: var(--ts-olive); color: #20280F; display: grid; place-items: center; font-size: 14px; flex: none; }
+  .rail b { width: 30px; height: 30px; display: grid; place-items: center; flex: none; }
   .rlab { display: flex; gap: 8px; padding-block: 8px 14px; font-size: 11.5px; color: var(--ts-muted); }
   .rlab span { flex: 1; }
 
@@ -233,8 +271,8 @@
     .spec p { max-width: none; }
   }
   .export {
-    position: absolute; left: 50%; transform: translateX(-50%); top: -70px;
-    width: min(440px, calc(100% - 40px));
+    margin: 44px auto 0;
+    width: min(440px, 100%);
     background: var(--ts-surface); border: 1px solid var(--ts-rule); border-radius: 12px; padding: 20px 22px; box-shadow: var(--ts-shadow); text-align: left;
   }
   .export .eh { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 14px; }
@@ -243,8 +281,8 @@
   .export .row { display: flex; justify-content: space-between; gap: 16px; padding-block: 9px; border-top: 1px solid var(--ts-rule); font-size: 13.5px; }
   .export .row span { color: var(--ts-body); }
   .export .row b { font-weight: 600; font-variant-numeric: tabular-nums; }
-  .export .cta { margin-top: 15px; width: 100%; border: 0; border-radius: 5px; padding: 12px; background: var(--ts-green); color: #fff; font: 600 14px "Inter", sans-serif; cursor: pointer; }
-  @media (max-width: 640px) { .export { top: -44px; padding: 16px 18px; } }
+  .export .cta { margin-top: 15px; width: 100%; border: 0; border-radius: 0; padding: 12px; background: var(--ts-green); color: #fff; font: 600 14px "Inter", sans-serif; cursor: pointer; }
+  @media (max-width: 640px) { .export { padding: 16px 18px; } }
 
   /* numbers */
   .nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; padding-block: 60px; }
@@ -258,7 +296,12 @@
   /* faq */
   .faq { max-width: 880px; margin: 28px auto 0; }
   .faq > div { border-bottom: 1px solid var(--ts-rule); padding-block: 20px; }
-  .faq .q { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 16.5px; font-weight: 500; }
+  .faq .q {
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    font: 500 16.5px "Inter", sans-serif; color: var(--ts-ink);
+    width: 100%; background: none; border: 0; padding: 0; margin: 0; text-align: left; cursor: pointer;
+  }
+  .faq .q:focus-visible { outline: 2px solid var(--ts-green); outline-offset: 4px; }
   .faq .q em { font-style: normal; color: var(--ts-muted); font-size: 19px; }
   .faq p { margin-top: 12px; max-width: 70ch; color: var(--ts-body); font-size: 15px; line-height: 1.62; }
 
@@ -269,15 +312,6 @@
   .ctab .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
   .ctab .w { background: #fff; color: #12784C; }
   .ctab .o { background: transparent; color: #fff; border: 1px solid #9BE0BF; }
-
-  /* footer-as-landscape: the mountain band scene now backs the real
-     footer instead of floating mid-page — art stretches to fill
-     whatever height the footer content ends up needing, same "absolute
-     art + relative content" stacking trick as .hero-scene / .shot. */
-  .footer-scene { margin-top: 96px; }
-  .footer-scene .art { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .footer-scene footer { position: relative; }
-  .footer-scene .export { top: -34px; }
 
   /* footer */
   footer { border-top: 1px solid var(--ts-rule); padding-block: 60px 26px; }
@@ -293,6 +327,14 @@
   @media (max-width: 900px) { .fcols { grid-template-columns: 1fr 1fr; gap: 30px; } }
   .fcols h4 { margin: 0 0 13px; font-size: 11px; font-weight: 600; letter-spacing: .14em; color: var(--ts-muted); }
   .fcols ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 11px; font-size: 14px; color: var(--ts-body); }
+  .fcols ul a { color: inherit; text-decoration: none; }
+  .fcols ul a:hover { color: var(--ts-ink); text-decoration: underline; }
   .fbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; padding-top: 22px; border-top: 1px solid var(--ts-rule); font-size: 13px; color: var(--ts-muted); }
   .fbar .m { display: flex; gap: 22px; flex-wrap: wrap; color: var(--ts-body); }
+
+  /* closing landscape: a clean standalone image after the footer, at its
+     own natural (undistorted) aspect ratio, reaching the true bottom of
+     the page — kept separate from the footer's text so nothing sits on
+     top of busy mountain shapes. */
+  .closing-scene { margin-top: 0; }
 }
