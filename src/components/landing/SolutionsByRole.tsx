@@ -3,11 +3,47 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { motion, useInView } from "framer-motion";
-import { Briefcase, GraduationCap, Users, Buildings, Check, ArrowRight } from "@phosphor-icons/react";
+import { Briefcase, GraduationCap, Users, Buildings, Check, ArrowRight, MagnifyingGlass, ChartBar } from "@phosphor-icons/react";
 import { Card } from "@/components/ui/Card";
 import { Button, ButtonIconChip } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { RevealHeading } from "./RevealHeading";
+import type { AudienceKey } from "./audiences";
+
+// The 3 HR-specific "tracks" — sourcing, screening, insights — shown
+// instead of the generic 4-role grid below when this section renders on
+// the HR-specific landing page. Each maps to a real part of HRShowcase's
+// dashboard (Post a Vacancy / Applicants / Talent Board & Candidate
+// Analytics), so "explore" always lands somewhere real, not a stub page.
+const hrTracks = [
+  {
+    id: "sourcing",
+    icon: Briefcase,
+    eyebrow: "Sourcing",
+    title: "Talent Discovery Track",
+    description: "Post vacancies in minutes and reach every student on the platform actively practicing for placement.",
+    cta: "Post a vacancy",
+    href: "/hr",
+  },
+  {
+    id: "screening",
+    icon: MagnifyingGlass,
+    eyebrow: "Screening",
+    title: "AI Screening Track",
+    description: "Every applicant arrives pre-scored by AI against the role, so shortlisting takes minutes, not days.",
+    cta: "See how scoring works",
+    href: "/hr",
+  },
+  {
+    id: "insights",
+    icon: ChartBar,
+    eyebrow: "Insights",
+    title: "Hiring Analytics Track",
+    description: "A global talent leaderboard and hiring analytics dashboard, so you know exactly who to reach out to.",
+    cta: "Explore analytics",
+    href: "/hr",
+  },
+];
 
 const roles = [
   {
@@ -139,9 +175,60 @@ const roles = [
   },
 ];
 
-export default function SolutionsByRole() {
+export default function SolutionsByRole({ audience }: { audience: AudienceKey }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
+
+  // HR gets its own focused "tracks" pitch instead of the generic 4-role
+  // grid — the other roles' workspaces aren't relevant to someone visiting
+  // the HR-specific page to evaluate hiring, not the whole institution.
+  if (audience === "hr") {
+    return (
+      <section ref={ref} id="solutions" className="bg-white ui-section border-t border-line">
+        <div className="ui-container">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-2xl mb-14"
+          >
+            <RevealHeading className="text-heading-l">
+              Each track offers a focused, measurable path — powered by one connected platform.
+            </RevealHeading>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-3 gap-5">
+            {hrTracks.map((t, i) => (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={inView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.08 * i, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <Card className="h-full flex flex-col">
+                  <span className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0 mb-4">
+                    <t.icon className="size-[18px]" />
+                  </span>
+                  <span className="text-caption font-bold uppercase tracking-wide text-ink-faint mb-2">
+                    {t.eyebrow}
+                  </span>
+                  <h3 className="text-section-title mb-2">{t.title}</h3>
+                  <p className="text-small mb-5 flex-1">{t.description}</p>
+                  <Link
+                    href={t.href}
+                    className="group inline-flex items-center gap-1.5 text-small font-semibold text-primary"
+                  >
+                    {t.cta}
+                    <ArrowRight className="size-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+                  </Link>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section ref={ref} id="solutions" className="bg-white ui-section border-t border-line">

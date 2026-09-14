@@ -53,8 +53,8 @@ export function LandingPageBody({ audience }: { audience: AudienceKey }) {
           )}
           <TrustedByColleges />
           <PlatformStats />
-          <SolutionsByRole />
-          <ProductShowcase />
+          <SolutionsByRole audience={audience} />
+          <ProductShowcase audience={audience} />
           <FeatureGrid />
           <ProcessSection />
           <BenefitsSection />
