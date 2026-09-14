@@ -108,6 +108,19 @@ export function PlatformChat() {
 
   const { status: socketStatus, send: sendSocketMessage } = useReconnectingSocket(wsUrl, wsProtocols, handleIncomingMessage);
 
+  // A connection that's still "connecting" after several seconds reads as
+  // broken (nothing on screen changes) even though it's very often just a
+  // slow first request — e.g. a Cloud Run instance cold-starting from zero.
+  // Surface that once it's been long enough to notice, instead of leaving
+  // the status dot as the only signal.
+  const [slowConnect, setSlowConnect] = useState(false);
+  useEffect(() => {
+    setSlowConnect(false);
+    if (socketStatus !== "connecting" && socketStatus !== "reconnecting") return;
+    const timer = setTimeout(() => setSlowConnect(true), 8000);
+    return () => clearTimeout(timer);
+  }, [socketStatus]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -323,6 +336,9 @@ export function PlatformChat() {
                     animation: socketStatus === "reconnecting" || socketStatus === "connecting" ? "pc-pulse 1.2s ease-in-out infinite" : undefined,
                   }}></span>
                   {SOCKET_STATUS_DISPLAY[socketStatus].label}
+                  {slowConnect && (socketStatus === "connecting" || socketStatus === "reconnecting") && (
+                    <span>— taking longer than usual, still trying</span>
+                  )}
                 </div>
               </div>
 
