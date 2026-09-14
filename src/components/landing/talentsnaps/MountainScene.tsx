@@ -15,9 +15,9 @@ import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion
 // peaks. Reusing one detailed scene (rather than a separate short "band"
 // asset) is what keeps it from needing an extreme zoom/crop that would
 // turn the mountains into flat, distorted color blocks.
-export function LandscapeArt() {
+export function LandscapeArt({ className = "ts-art" }: { className?: string } = {}) {
   return (
-    <svg className="ts-art" viewBox="0 0 1440 840" preserveAspectRatio="xMidYMax slice" role="img" aria-label="A green mountain valley: layered snow capped peaks, forested slopes, meadows and a pale winding path">
+    <svg className={className} viewBox="0 0 1440 840" preserveAspectRatio="xMidYMax slice" role="img" aria-label="A green mountain valley: layered snow capped peaks, forested slopes, meadows and a pale winding path">
         <rect width="1440" height="840" fill="#F6FBF3"/>
         <path d="M0 0 H1440 V196 C 1120 236 900 176 600 216 C 380 246 180 206 0 236 Z" fill="#EDF6E9"/>
         <path d="M0 236 C 220 206 420 246 660 216 C 900 186 1160 236 1440 206 L1440 430 L0 430 Z" fill="#E4F0DF"/>

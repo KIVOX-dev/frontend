@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { ChartLineUp, Trophy, MagnifyingGlass, ChartBar, ClipboardText, UsersThree } from "@phosphor-icons/react";
-import type { AuthSeason } from "@/components/layout/AuthMountains";
 
 export type AudienceKey = "learner" | "hr" | "institutional";
 
@@ -27,10 +26,11 @@ export type AudienceConfig = {
   /** Real app route this audience logs into / explores. */
   href: string;
   photo: { src: string; alt: string; badges: [PhotoBadge, PhotoBadge] };
-  /** When set, the hero's photo panel renders this mountain scene instead
-      of `photo` — ties the audience page into the same illustrated brand
-      system as the login screens and footer, rather than a stock photo. */
-  heroSeason?: AuthSeason;
+  /** When true, the hero's photo panel renders the same detailed mountain
+      scene as the root landing page's hero (LandscapeArt), with a monsoon
+      storm overlay, instead of `photo` — ties the page into the site's
+      illustrated brand system rather than a stock photo. */
+  heroMonsoon?: boolean;
 };
 
 // Single source of truth for the 3 audience-specific marketing pages
@@ -88,7 +88,7 @@ export const AUDIENCES: Record<AudienceKey, AudienceConfig> = {
     ],
     ctaLabel: "Explore HR Platform",
     href: "/hr",
-    heroSeason: "monsoon",
+    heroMonsoon: true,
     photo: {
       src: "/images/audience/hr.jpg",
       alt: "A happy, diverse team of company staff celebrating together in an office",
