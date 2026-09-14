@@ -4,6 +4,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { HrLogin } from "@/components/hr/HrLogin";
 import { HrShell } from "@/components/layout/HrShell";
+import { MyActivity } from "@/components/shared/MyActivity";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
@@ -633,7 +634,9 @@ export default function HrPage() {
 
 
 
-      {currentScreen !== "hr-dash" && currentScreen !== "hr-vac" && currentScreen !== "hr-app" && currentScreen !== "hr-lb" && currentScreen !== "hr-analytics" && (
+      {currentScreen === "my-activity" && <MyActivity />}
+
+      {currentScreen !== "hr-dash" && currentScreen !== "hr-vac" && currentScreen !== "hr-app" && currentScreen !== "hr-lb" && currentScreen !== "hr-analytics" && currentScreen !== "my-activity" && (
         <div style={{ padding: "40px", textAlign: "center", color: "var(--muted)" }}>
           <h2>{currentScreen.replace("hr-", "").toUpperCase()} Screen</h2>
           <p>This module is currently being migrated to React.</p>

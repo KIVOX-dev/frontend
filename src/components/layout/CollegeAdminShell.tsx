@@ -4,6 +4,7 @@ import React from "react";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Logo } from "@/components/shared/Logo";
+import { ProfileMenu } from "@/components/shared/ProfileMenu";
 
 export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
   const {
@@ -115,13 +116,11 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
                 </div>
               )}
             </div>
-            <div className="uc">
-              <div className="uav">{user?.name?.charAt(0) || "A"}</div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span className="un">{user?.name || "Institution Admin"}</span>
-                <span className="ur">Institution Admin</span>
-              </div>
-            </div>
+            <ProfileMenu
+              avatar={user?.name?.charAt(0) || "A"}
+              name={user?.name || "Institution Admin"}
+              roleLabel="Institution Admin"
+            />
             <button type="button" className="ib" onClick={logout} aria-label="Log out">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />

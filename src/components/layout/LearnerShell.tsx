@@ -5,6 +5,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
+import { ProfileMenu } from "@/components/shared/ProfileMenu";
 
 export function LearnerShell({ children }: { children: React.ReactNode }) {
   const {
@@ -137,15 +138,11 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
                 <path d="M13.73 21a2 2 0 01-3.46 0" />
               </svg>
             </div>
-            <div className="uc">
-              <div className="uav">{user?.name?.charAt(0) || "S"}</div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span className="un">{user?.name || "Student"}</span>
-                <span className="ur">
-                  {user?.role === "faculty" ? "Faculty Portal" : "Learner Portal"}
-                </span>
-              </div>
-            </div>
+            <ProfileMenu
+              avatar={user?.name?.charAt(0) || "S"}
+              name={user?.name || "Student"}
+              roleLabel={user?.role === "faculty" ? "Faculty Portal" : "Learner Portal"}
+            />
             <button type="button" className="ib" onClick={logout} aria-label="Log out">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />

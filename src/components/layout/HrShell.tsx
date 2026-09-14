@@ -4,6 +4,7 @@ import React from "react";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Logo } from "@/components/shared/Logo";
+import { ProfileMenu } from "@/components/shared/ProfileMenu";
 
 export function HrShell({ children }: { children: React.ReactNode }) {
   const {
@@ -117,13 +118,13 @@ export function HrShell({ children }: { children: React.ReactNode }) {
               </svg>
               <div className="nd"></div>
             </div>
-            <div className="uc">
-              <div className="uav" style={{ background: "linear-gradient(135deg,var(--purple),var(--pink))" }}>HR</div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span className="un">{user?.name || "HR Manager"}</span>
-                <span className="ur">{(user as any)?.company_name || (user as any)?.company }</span>
-              </div>
-            </div>
+            <ProfileMenu
+              avatar="HR"
+              avatarStyle={{ background: "linear-gradient(135deg,var(--purple),var(--pink))" }}
+              name={user?.name || "HR Manager"}
+              roleLabel={(user as any)?.company_name || (user as any)?.company}
+              showSettings={false}
+            />
             <button type="button" className="ib" onClick={logout} aria-label="Log out">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />

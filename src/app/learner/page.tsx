@@ -24,6 +24,7 @@ const TestHistory = dynamic(() => import("@/components/learner/TestHistory").the
 const PlacementOpportunities = dynamic(() => import("@/components/learner/PlacementOpportunities").then((m) => m.PlacementOpportunities));
 const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").then((m) => m.PlatformChat));
 const SettingsPanel = dynamic(() => import("@/components/shared/SettingsPanel").then((m) => m.SettingsPanel));
+const MyActivity = dynamic(() => import("@/components/shared/MyActivity").then((m) => m.MyActivity));
 
 // Separate component so useSearchParams is inside a Suspense boundary
 function LearnerContent() {
@@ -67,6 +68,7 @@ function LearnerContent() {
       case "subs": return <Subscription />;
       case "chat": return <PlatformChat />;
       case "settings": return <SettingsPanel />;
+      case "my-activity": return <MyActivity />;
       default:
         return (
           <div style={{ padding: "40px", textAlign: "center", color: "var(--muted)" }}>

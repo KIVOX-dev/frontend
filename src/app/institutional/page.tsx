@@ -17,6 +17,7 @@ const FacultyLogin = dynamic(() => import("@/components/auth/FacultyLogin").then
 const InstitutionalStudentLogin = dynamic(() => import("@/components/auth/InstitutionalStudentLogin").then((m) => m.InstitutionalStudentLogin));
 const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").then((m) => m.PlatformChat));
 const SettingsPanel = dynamic(() => import("@/components/shared/SettingsPanel").then((m) => m.SettingsPanel));
+const MyActivity = dynamic(() => import("@/components/shared/MyActivity").then((m) => m.MyActivity));
 const CollegeAdminDashboard = dynamic(() => import("@/components/institutional/CollegeAdminDashboard").then((m) => m.CollegeAdminDashboard));
 const FacultyDashboard = dynamic(() => import("@/components/institutional/FacultyDashboard").then((m) => m.FacultyDashboard));
 const InstitutionalApproval = dynamic(() => import("@/components/institutional/InstitutionalApproval").then((m) => m.InstitutionalApproval));
@@ -210,6 +211,8 @@ export default function InstitutionalPage() {
         return <PlatformChat />;
       case "settings":
         return <SettingsPanel />;
+      case "my-activity":
+        return <MyActivity />;
       default:
         return (
           <div style={{ padding: "40px", textAlign: "center", color: "var(--muted)" }}>
