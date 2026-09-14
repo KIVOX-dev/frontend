@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
 import { motion } from "framer-motion";
 import {
-  Users, TrendingUp, Briefcase, Building2, IndianRupee, Award, CalendarClock,
+  TrendingUp, Briefcase, Building2, IndianRupee,
   FileSpreadsheet, RefreshCw, Download, Plus, ArrowUpRight, ArrowDownRight,
   Clock, CheckCircle2, UserPlus, Send, ExternalLink,
 } from "lucide-react";
@@ -32,6 +32,18 @@ const GREEN_MED = "#5B9DFC";
 const GREEN_TINT = "rgba(0, 86, 210, .10)";
 const RED = "#dc2626";
 const SLATE = "#94a3b8";
+
+// A distinct color per KPI card — one glance tells them apart, instead of
+// eight identical blue chips. Each has a matching ~10%-alpha tint for the
+// icon backdrop.
+const KPI_COLORS = {
+  blue: { accent: "#0056D2", tint: "rgba(0, 86, 210, .12)" },
+  emerald: { accent: "#16A34A", tint: "rgba(22, 163, 74, .12)" },
+  amber: { accent: "#D97706", tint: "rgba(217, 119, 6, .12)" },
+  violet: { accent: "#7C3AED", tint: "rgba(124, 58, 237, .12)" },
+  teal: { accent: "#0D9488", tint: "rgba(13, 148, 136, .12)" },
+  rose: { accent: "#E11D48", tint: "rgba(225, 29, 72, .12)" },
+};
 
 const PACKAGE_BANDS = [
   { label: "0–3", min: 0, max: 3 },
@@ -102,7 +114,7 @@ function fmtRelative(iso?: string): string {
 type KpiDelta = { direction: "up" | "down"; text: string } | null;
 
 function KpiCard({
-  icon: Icon, label, value, caption, delta, sparkline, accent = GREEN,
+  icon: Icon, label, value, caption, delta, sparkline, accent = GREEN, tint = GREEN_TINT,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
@@ -111,6 +123,10 @@ function KpiCard({
   delta?: KpiDelta;
   sparkline?: number[];
   accent?: string;
+  /** Soft background wash behind the icon — a distinct color per card is
+      what makes a grid of KPI cards read as "colorful" instead of a wall
+      of identical blue chips. */
+  tint?: string;
 }) {
   return (
     <motion.div
@@ -119,11 +135,11 @@ function KpiCard({
       whileHover={{ y: -3, boxShadow: "0 12px 28px rgba(15, 23, 20, 0.10)" }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       className="card"
-      style={{ padding: "18px", borderRadius: "14px", cursor: "default" }}
+      style={{ padding: "18px", borderRadius: "14px", cursor: "default", borderTop: `3px solid ${accent}` }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "12px" }}>
-        <div style={{ width: 38, height: 38, borderRadius: "10px", background: GREEN_TINT, color: accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Icon size={18} />
+        <div style={{ width: 42, height: 42, borderRadius: "12px", background: tint, color: accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icon size={20} />
         </div>
         {sparkline && sparkline.some(v => v > 0) && (
           <div style={{ width: 72, height: 32 }}>
@@ -456,7 +472,6 @@ export function PlacementDashboard({
 
   // ── Export ──
   const handleExportExcel = async () => {
-    if (placements.length === 0 && applications.length === 0) return;
     setIsExporting("excel");
     try {
       const XLSX = await import("xlsx");
@@ -472,12 +487,17 @@ export function PlacementDashboard({
         { Metric: "Upcoming Drives", Value: upcomingDrives.length },
       ]), "Summary");
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(
-        placements.map(p => ({ Company: p.company_name, Role: p.role, "Salary (LPA)": p.salary_lpa, Status: p.verification_status }))
+        placements.length
+          ? placements.map(p => ({ Company: p.company_name, Role: p.role, "Salary (LPA)": p.salary_lpa, Status: p.verification_status }))
+          : [{ Company: "No placements recorded yet" }]
       ), "Placements");
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(
-        companyLeaderboard.map(c => ({ Company: c.company, "Students Hired": c.count, "Avg Package (LPA)": c.avgPackage }))
+        companyLeaderboard.length
+          ? companyLeaderboard.map(c => ({ Company: c.company, "Students Hired": c.count, "Avg Package (LPA)": c.avgPackage }))
+          : [{ Company: "No companies recruiting yet" }]
       ), "Companies");
       XLSX.writeFile(workbook, "placement-dashboard.xlsx");
+      toast.success("Exported placement-dashboard.xlsx");
     } catch (err) {
       console.error(err);
       toast.error("Failed to export Excel file");
@@ -557,16 +577,41 @@ export function PlacementDashboard({
         </div>
       )}
 
-      {/* ── KPI cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4" style={{ gap: "14px", marginBottom: "20px" }}>
-        <KpiCard icon={CheckCircle2} label="Students Placed" value={String(placements.length)} delta={deltaFor(placements)} sparkline={placementsSpark} />
-        <KpiCard icon={TrendingUp} label="Placement Rate" value={`${placementRate.toFixed(1)}%`} caption={`${placements.length} of ${totalStudents} students`} />
-        <KpiCard icon={FileSpreadsheet} label="Applications Received" value={String(applications.length)} delta={deltaFor(applications)} sparkline={applicationsSpark} />
-        <KpiCard icon={Building2} label="Companies Recruiting" value={String(companiesRecruiting.size)} caption="Distinct recruiters" />
-        <KpiCard icon={Briefcase} label="Active Drives" value={String(activeDrives.length)} caption="Currently open" />
-        <KpiCard icon={IndianRupee} label="Average Package" value={fmtLPA(avgPackage)} caption="Across all placements" />
-        <KpiCard icon={Award} label="Highest Package" value={fmtLPA(highestPackage)} caption="All-time best offer" />
-        <KpiCard icon={CalendarClock} label="Upcoming Drives" value={String(upcomingDrives.length)} caption="Deadline not yet passed" />
+      {/* ── KPI cards ── six, not eight: Highest Package folds into Average
+          Package's caption and Upcoming Drives folds into Active Drives',
+          since each pair told half of one story anyway. Each card gets its
+          own color (see KPI_COLORS) instead of one repeated blue chip. */}
+      <div className="grid grid-cols-2 lg:grid-cols-3" style={{ gap: "14px", marginBottom: "20px" }}>
+        <KpiCard
+          icon={CheckCircle2} label="Students Placed" value={String(placements.length)}
+          delta={deltaFor(placements)} sparkline={placementsSpark}
+          accent={KPI_COLORS.blue.accent} tint={KPI_COLORS.blue.tint}
+        />
+        <KpiCard
+          icon={TrendingUp} label="Placement Rate" value={`${placementRate.toFixed(1)}%`}
+          caption={`${placements.length} of ${totalStudents} students`}
+          accent={KPI_COLORS.emerald.accent} tint={KPI_COLORS.emerald.tint}
+        />
+        <KpiCard
+          icon={FileSpreadsheet} label="Applications Received" value={String(applications.length)}
+          delta={deltaFor(applications)} sparkline={applicationsSpark}
+          accent={KPI_COLORS.amber.accent} tint={KPI_COLORS.amber.tint}
+        />
+        <KpiCard
+          icon={Building2} label="Companies Recruiting" value={String(companiesRecruiting.size)}
+          caption="Distinct recruiters"
+          accent={KPI_COLORS.violet.accent} tint={KPI_COLORS.violet.tint}
+        />
+        <KpiCard
+          icon={IndianRupee} label="Average Package" value={fmtLPA(avgPackage)}
+          caption={`Highest ${fmtLPA(highestPackage)}`}
+          accent={KPI_COLORS.teal.accent} tint={KPI_COLORS.teal.tint}
+        />
+        <KpiCard
+          icon={Briefcase} label="Active Drives" value={String(activeDrives.length)}
+          caption={`${upcomingDrives.length} upcoming`}
+          accent={KPI_COLORS.rose.accent} tint={KPI_COLORS.rose.tint}
+        />
       </div>
 
       {/* ── Placement Trend + Package Trend ── */}
