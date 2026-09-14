@@ -272,6 +272,19 @@ body.mobile-view .lp-snow {
   50% { opacity: 1; transform: scale(1.7) }
 }
 
+.lp-rain {
+  animation-name: lp-rain-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite
+}
+
+@keyframes lp-rain-fall {
+  0% { transform: translateY(-20px); opacity: 0 }
+  10% { opacity: .9 }
+  90% { opacity: .9 }
+  100% { transform: translateY(360px); opacity: 0 }
+}
+
 .lp-shoot {
   opacity: 0;
   animation-name: lp-shoot-move;

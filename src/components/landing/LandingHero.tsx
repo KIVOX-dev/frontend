@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Check } from "@phosphor-icons/react";
 import { Button, ButtonIconChip } from "@/components/ui/Button";
+import { AuthMountains } from "@/components/layout/AuthMountains";
 import { MagneticButton } from "./MagneticButton";
 import { AUDIENCES, type AudienceKey } from "./audiences";
 
@@ -73,14 +74,18 @@ export default function LandingHero({ audience: audienceKey }: { audience: Audie
 
             <div className="relative rounded-[2rem] bg-white p-2 shadow-xl ring-1 ring-ink/5">
               <div className="relative aspect-video overflow-hidden rounded-[calc(2rem-0.5rem)] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-                <Image
-                  src={audience.photo.src}
-                  alt={audience.photo.alt}
-                  fill
-                  sizes="(min-width: 1024px) 420px, 100vw"
-                  className="object-cover"
-                  priority
-                />
+                {audience.heroSeason ? (
+                  <AuthMountains season={audience.heroSeason} className="absolute inset-0 size-full" />
+                ) : (
+                  <Image
+                    src={audience.photo.src}
+                    alt={audience.photo.alt}
+                    fill
+                    sizes="(min-width: 1024px) 420px, 100vw"
+                    className="object-cover"
+                    priority
+                  />
+                )}
               </div>
             </div>
 

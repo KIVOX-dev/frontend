@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { GithubLogo, LinkedinLogo, TwitterLogo } from "@phosphor-icons/react";
 import { Logo } from "@/components/shared/Logo";
 
+// Every link here is a real route or a real in-page section id — no "#"
+// placeholders. Blog/Help Center/API Docs/Cookie Policy/social accounts
+// were dropped rather than left as dead links: TalentSnaps is an early-stage
+// team (see /about-us) with none of those yet, and Data Protection (a real
+// page) already covers what "Security" would have promised.
 const footerLinks = {
   Product: [
     { label: "Platform Overview", href: "#platform" },
@@ -19,28 +23,19 @@ const footerLinks = {
   ],
   Resources: [
     { label: "FAQ", href: "#faq" },
-    { label: "Blog", href: "#" },
-    { label: "Help Center", href: "#" },
-    { label: "API Docs", href: "#" },
+    { label: "Partner Colleges", href: "/partner-colleges" },
   ],
   Company: [
+    { label: "About Us", href: "/about-us" },
+    { label: "Careers", href: "/careers" },
     { label: "Contact Us", href: "#contact" },
-    { label: "Careers", href: "#" },
-    { label: "About Us", href: "#" },
   ],
   Legal: [
-    { label: "Privacy Policy", href: "#" },
-    { label: "Terms of Service", href: "#" },
-    { label: "Cookie Policy", href: "#" },
-    { label: "Security", href: "#" },
+    { label: "Privacy Policy", href: "/privacy-policy" },
+    { label: "Terms of Service", href: "/terms-of-service" },
+    { label: "Data Protection", href: "/data-protection" },
   ],
 };
-
-const socials = [
-  { label: "Twitter", href: "#", Icon: TwitterLogo },
-  { label: "LinkedIn", href: "#", Icon: LinkedinLogo },
-  { label: "GitHub", href: "#", Icon: GithubLogo },
-];
 
 export default function LandingFooter() {
   return (
@@ -56,19 +51,12 @@ export default function LandingFooter() {
               One intelligent platform connecting HR, students, faculty, and administrators across
               your institution.
             </p>
-            {/* Socials */}
-            <div className="flex gap-2">
-              {socials.map(({ label, href, Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  className="w-9 h-9 rounded-lg bg-white border border-line flex items-center justify-center text-ink-muted hover:text-white hover:bg-ink hover:border-ink transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                >
-                  <Icon className="size-4" />
-                </a>
-              ))}
-            </div>
+            <a
+              href="mailto:admin@talentsnaps.com"
+              className="text-ink-muted text-sm font-medium hover:text-primary transition-colors duration-200"
+            >
+              admin@talentsnaps.com
+            </a>
           </div>
 
           {/* Link columns */}

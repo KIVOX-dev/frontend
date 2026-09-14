@@ -8,6 +8,7 @@ const SEASON_BG: Record<AuthSeason, string> = {
   autumn: "linear-gradient(150deg, #6B2A10 0%, #B54A18 45%, #D97B2B 80%, #F0B860 100%)",
   winter: "linear-gradient(150deg, #17324A 0%, #3E6B96 45%, #6FA3C7 80%, #C8E6F5 100%)",
   night: "linear-gradient(150deg, #002457 0%, #0B408B 45%, #0056D2 80%, #5B9DFC 100%)",
+  monsoon: "linear-gradient(150deg, #1F2C2A 0%, #35504A 45%, #4C6F63 80%, #8FAA98 100%)",
 };
 
 export function AuthSplitLayout({

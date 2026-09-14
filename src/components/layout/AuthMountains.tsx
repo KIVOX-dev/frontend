@@ -4,7 +4,7 @@
 // hills for spring/summer, clustered tree-canopy hills for autumn — so the
 // five login screens read as five different places, not one scene recolored
 // five times.
-export type AuthSeason = "spring" | "summer" | "autumn" | "winter" | "night";
+export type AuthSeason = "spring" | "summer" | "autumn" | "winter" | "night" | "monsoon";
 
 type Palette = {
   /** Background gradient for AuthSplitLayout's `.lp-left` panel. */
@@ -19,11 +19,14 @@ type Palette = {
   midOpacity: number;
   snow: string;
   snowOpacity: number;
-  /** "day" shows a real sun; "night" shows a moon, stars, and clouds. */
-  sky: "day" | "night";
+  /** "day" shows a real sun; "night" shows a moon, stars, and clouds; "storm"
+      (monsoon) shows heavy rain clouds with the sun barely visible behind
+      them, plus falling rain. */
+  sky: "day" | "night" | "storm";
   sun: string;
   sunCore: string;
-  /** Small drifting accents: stars (night), petals/leaves/pollen (day). */
+  /** Small drifting accents: stars (night), petals/leaves/pollen (day),
+      rain streaks (storm). */
   accent: string;
   accentOpacity: number;
 };
@@ -73,6 +76,15 @@ const PALETTES: Record<AuthSeason, Palette> = {
     snow: "#E8F0FF", snowOpacity: 0.5,
     sky: "night", sun: "#EAF2FF", sunCore: "#FFFFFF",
     accent: "#fff", accentOpacity: 0.75,
+  },
+  monsoon: {
+    bg: "linear-gradient(150deg, #1F2C2A 0%, #35504A 45%, #4C6F63 80%, #8FAA98 100%)",
+    skyTop: "#1F2C2A",
+    far: "#6C8B7C", mid: "#3F5F52", near: "#233B31",
+    farOpacity: 0.55, midOpacity: 0.82,
+    snow: "#E4EFE7", snowOpacity: 0.3,
+    sky: "storm", sun: "#B9C9BD", sunCore: "#D6E3D9",
+    accent: "#D7E6EC", accentOpacity: 0.55,
   },
 };
 
@@ -126,6 +138,14 @@ const SHAPES: Record<AuthSeason, Shape> = {
     mid: "M0 292 C 18 266 35 280 52 270 C 69 260 86 278 103 268 C 120 258 137 278 154 268 C 171 258 188 278 205 268 C 222 258 239 278 256 268 C 273 258 290 276 307 266 C 324 256 341 272 358 262 C 375 252 392 266 409 258 L420 262 L420 380 L0 380 Z",
     near: "M0 335 C 20 306 38 322 56 310 C 74 298 92 320 110 308 C 128 296 146 320 164 308 C 182 296 200 320 218 308 C 236 296 254 320 272 308 C 290 296 308 318 326 306 C 344 294 362 312 380 302 C 392 295 402 300 410 298 L420 302 L420 380 L0 380 Z",
   },
+  // Low, lush, rolling hills — the Western Ghats foothill profile rather
+  // than alpine peaks, since this is a wet-season lowland scene (rain
+  // clouds sit low over hills, not sharp snow-line summits).
+  monsoon: {
+    far: "M0 260 C 30 225 60 215 95 222 C 130 229 150 255 185 248 C 220 241 245 205 285 210 C 325 215 345 248 385 244 C 405 242 415 235 420 232 L420 380 L0 380 Z",
+    mid: "M0 288 C 35 255 70 245 108 252 C 146 259 168 282 205 276 C 242 270 262 238 302 244 C 342 250 358 278 398 274 L420 270 L420 380 L0 380 Z",
+    near: "M0 320 C 40 288 80 280 120 288 C 160 296 182 318 222 312 C 262 306 280 276 322 282 C 364 288 380 314 420 310 L420 380 L0 380 Z",
+  },
 };
 
 // The night sky's star field — fixed positions and fixed twinkle timing
@@ -164,6 +184,32 @@ const STARS = [
   { cx: 175, cy: 155, r: 1.2, o: 0.55, dur: 2.8, delay: -1.7 },
   { cx: 250, cy: 70, r: 1, o: 0.5, dur: 3.4, delay: -2.8 },
   { cx: 300, cy: 20, r: 1.1, o: 0.6, dur: 3.9, delay: -1, },
+];
+
+// Falling rain for the monsoon scene — fixed x position + fixed fall timing
+// (not Math.random()) for the same server/client-parity reason as the star
+// field and snowflakes above. Each streak loops independently via CSS.
+const RAIN_STREAKS = [
+  { x: 12, y: 10, duration: 0.7, delay: -0.1 },
+  { x: 34, y: 40, duration: 0.8, delay: -0.5 },
+  { x: 58, y: 5, duration: 0.65, delay: -0.3 },
+  { x: 82, y: 55, duration: 0.9, delay: -0.7 },
+  { x: 106, y: 20, duration: 0.75, delay: -0.2 },
+  { x: 130, y: 60, duration: 0.85, delay: -0.6 },
+  { x: 154, y: 15, duration: 0.7, delay: -0.4 },
+  { x: 178, y: 45, duration: 0.95, delay: -0.15 },
+  { x: 202, y: 0, duration: 0.8, delay: -0.55 },
+  { x: 226, y: 35, duration: 0.68, delay: -0.35 },
+  { x: 250, y: 50, duration: 0.9, delay: -0.05 },
+  { x: 274, y: 10, duration: 0.77, delay: -0.65 },
+  { x: 298, y: 60, duration: 0.83, delay: -0.25 },
+  { x: 322, y: 25, duration: 0.72, delay: -0.45 },
+  { x: 346, y: 45, duration: 0.88, delay: -0.1 },
+  { x: 370, y: 5, duration: 0.66, delay: -0.5 },
+  { x: 394, y: 55, duration: 0.92, delay: -0.3 },
+  { x: 20, y: 65, duration: 0.78, delay: -0.6 },
+  { x: 200, y: 25, duration: 0.7, delay: -0.05 },
+  { x: 380, y: 30, duration: 0.8, delay: -0.2 },
 ];
 
 // Fixed-position, fixed-timing streaks (not Math.random()) so server and
@@ -244,12 +290,22 @@ function Cloud({ x, y, s = 1, fill, opacity }: { x: number; y: number; s?: numbe
   );
 }
 
-export function AuthMountains({ season = "night" }: { season?: AuthSeason }) {
+export function AuthMountains({
+  season = "night",
+  className = "lp-mountains",
+}: {
+  season?: AuthSeason;
+  /** Defaults to the login-panel positioning class (`.lp-mountains` —
+      absolute, masked, sized to `.lp-left`). Callers reusing this scene
+      outside that context (e.g. a landing-page hero card) should pass their
+      own sizing className instead. */
+  className?: string;
+}) {
   const p = PALETTES[season];
   const s = SHAPES[season];
   return (
     <svg
-      className="lp-mountains"
+      className={className}
       viewBox="0 0 420 380"
       preserveAspectRatio="xMidYMax slice"
       aria-hidden="true"
@@ -312,6 +368,40 @@ export function AuthMountains({ season = "night" }: { season?: AuthSeason }) {
           <Cloud x={90} y={210} s={1.15} fill="#fff" opacity={0.14} />
           <Cloud x={300} y={175} s={0.85} fill="#fff" opacity={0.12} />
           <Cloud x={190} y={245} s={0.7} fill="#fff" opacity={0.1} />
+        </>
+      ) : p.sky === "storm" ? (
+        <>
+          {/* the sun, barely visible behind heavy cloud cover */}
+          <circle cx="300" cy="90" r="34" fill={p.sun} opacity=".28" />
+
+          {/* thick, low, rolling rain clouds — layered for depth, all in the
+              sky's own dark top colour rather than white, since a storm sky
+              reads as dark clouds, not bright cartoon puffs */}
+          <Cloud x={80} y={90} s={1.7} fill={p.skyTop} opacity={0.38} />
+          <Cloud x={230} y={55} s={2} fill={p.skyTop} opacity={0.42} />
+          <Cloud x={350} y={100} s={1.5} fill={p.skyTop} opacity={0.34} />
+          <Cloud x={150} y={130} s={1.35} fill={p.skyTop} opacity={0.3} />
+          <Cloud x={300} y={160} s={1.15} fill={p.skyTop} opacity={0.26} />
+
+          {/* rain, falling continuously */}
+          {RAIN_STREAKS.map((r, i) => (
+            <line
+              key={i}
+              x1={r.x} y1={r.y} x2={r.x + 6} y2={r.y + 22}
+              stroke={p.accent}
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              opacity={p.accentOpacity}
+              className="lp-rain"
+              style={{
+                animationDuration: `${r.duration}s`,
+                animationDelay: `${r.delay}s`,
+              }}
+            />
+          ))}
+
+          {/* mist clinging low over the hilltops */}
+          <rect x="0" y="195" width="420" height="45" fill="#fff" opacity="0.09" />
         </>
       ) : (
         <>
