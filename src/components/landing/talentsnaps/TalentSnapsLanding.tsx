@@ -852,7 +852,7 @@ function Footer() {
                 <button className="ts-btn ts-btn-p" style={{ padding: "12px 20px", fontSize: 14 }}>Book a demo</button>
               </MagneticButton>
             </div>
-            <small>hello@talentsnaps.in · Coimbatore, Tamil Nadu</small>
+            <small>admin@talentsnaps.com · Coimbatore, Tamil Nadu</small>
           </div>
         </motion.div>
 

@@ -53,7 +53,7 @@ export default function AboutUsPage() {
         <h2 id="get-in-touch">Get in touch</h2>
         <p>
           Questions about TalentSnaps, or want to talk before onboarding your college? Reach us at{" "}
-          <a href="mailto:hello@talentsnaps.in">hello@talentsnaps.in</a>.
+          <a href="mailto:admin@talentsnaps.com">admin@talentsnaps.com</a>.
         </p>
       </section>
     </SitePageLayout>

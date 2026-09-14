@@ -81,7 +81,7 @@ export default function TermsOfServicePage() {
         <h2 id="contact">7. Contact</h2>
         <p>
           Questions about these terms can be sent to{" "}
-          <a href="mailto:hello@talentsnaps.in">hello@talentsnaps.in</a>.
+          <a href="mailto:admin@talentsnaps.com">admin@talentsnaps.com</a>.
         </p>
       </section>
     </SitePageLayout>

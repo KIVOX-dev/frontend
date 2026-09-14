@@ -46,7 +46,7 @@ export default function CareersPage() {
         <h2 id="reach-out">Reach out</h2>
         <p>
           Send what you&apos;re interested in working on to{" "}
-          <a href="mailto:hello@talentsnaps.in">hello@talentsnaps.in</a> — a resume alone doesn&apos;t
+          <a href="mailto:admin@talentsnaps.com">admin@talentsnaps.com</a> — a resume alone doesn&apos;t
           tell us much at this stage, so tell us what you&apos;d actually want to build.
         </p>
       </section>

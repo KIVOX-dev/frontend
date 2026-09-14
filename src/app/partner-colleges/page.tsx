@@ -71,7 +71,7 @@ export default function PartnerCollegesPage() {
       <section>
         <h2 id="interested">Interested in onboarding your college?</h2>
         <p>
-          Talk to us at <a href="mailto:hello@talentsnaps.in">hello@talentsnaps.in</a>, or use the{" "}
+          Talk to us at <a href="mailto:admin@talentsnaps.com">admin@talentsnaps.com</a>, or use the{" "}
           <Link href="/#ts-contact-form">contact form</Link> on the homepage.
         </p>
       </section>

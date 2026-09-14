@@ -68,7 +68,7 @@ export default function DataProtectionPage() {
         <h2 id="reporting-a-concern">6. Reporting a concern</h2>
         <p>
           If you believe your data has been accessed inappropriately, or you have a security
-          concern, contact <a href="mailto:hello@talentsnaps.in">hello@talentsnaps.in</a> and we&apos;ll
+          concern, contact <a href="mailto:admin@talentsnaps.com">admin@talentsnaps.com</a> and we&apos;ll
           investigate.
         </p>
       </section>

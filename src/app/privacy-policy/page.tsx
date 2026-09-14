@@ -71,7 +71,7 @@ export default function PrivacyPolicyPage() {
         <h2 id="contact">6. Contact</h2>
         <p>
           Questions about this policy or a specific data request can be sent to{" "}
-          <a href="mailto:hello@talentsnaps.in">hello@talentsnaps.in</a>.
+          <a href="mailto:admin@talentsnaps.com">admin@talentsnaps.com</a>.
         </p>
       </section>
     </SitePageLayout>
