@@ -28,6 +28,15 @@ function apiOrigin() {
 // two relaxed — see PROJECT_AUDIT_REPORT.md P2-23.
 function securityHeaders() {
   const origin = apiOrigin();
+  // The chat WebSocket (src/components/shared/PlatformChat.tsx) connects to
+  // this same API origin with wss: instead of https:. Browsers are NOT
+  // consistent about an https: connect-src source also authorizing the
+  // matching wss: connection — Chrome allows it, Firefox/Safari have
+  // historically not (https://bugzilla.mozilla.org/show_bug.cgi?id=1345615)
+  // — so relying on that implicit upgrade silently breaks the chat socket in
+  // some browsers with no visible CSP error, just a connection that never
+  // opens. List both schemes explicitly instead of assuming the upgrade.
+  const wsOrigin = origin ? origin.replace(/^https:/, "wss:") : null;
   // Cloudflare Turnstile (src/components/auth/Turnstile.tsx) loads
   // api.js from this origin, renders its actual challenge in an iframe
   // from it, and the widget itself calls back to it (token refresh/retry)
@@ -37,7 +46,9 @@ function securityHeaders() {
   // the login/register forms required a token from a challenge that CSP
   // never let load in the first place.
   const turnstileOrigin = "https://challenges.cloudflare.com";
-  const connectSrc = ["'self'", "https://accounts.google.com", turnstileOrigin, origin].filter(Boolean).join(" ");
+  const connectSrc = ["'self'", "https://accounts.google.com", turnstileOrigin, origin, wsOrigin]
+    .filter(Boolean)
+    .join(" ");
 
   return [
     { key: "X-Content-Type-Options", value: "nosniff" },
