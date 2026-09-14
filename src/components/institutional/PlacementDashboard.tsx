@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import {
   TrendingUp, Briefcase, Building2, IndianRupee,
   FileSpreadsheet, RefreshCw, Download, Plus, ArrowUpRight, ArrowDownRight,
-  Clock, CheckCircle2, UserPlus, Send, ExternalLink,
+  Clock, CheckCircle2, UserPlus, ExternalLink,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import {
@@ -177,6 +177,37 @@ function KpiCard({
 // Placement funnel — custom (ApexCharts has no first-class funnel type);
 // decreasing-width bars with conversion % labels between stages.
 // ─────────────────────────────────────────────────────────────────────────
+
+// A tabbed card — switches between several related charts/views inside one
+// box instead of giving each its own permanent card. This is the actual
+// "too many cards" fix: nine always-visible chart cards folds down to four
+// tabbed ones, so every chart is still reachable, just not all on screen
+// competing for attention at once.
+function TabCard({ tabs, defaultTab = 0 }: { tabs: { label: string; content: React.ReactNode }[]; defaultTab?: number }) {
+  const [active, setActive] = useState(defaultTab);
+  return (
+    <div className="card" style={{ padding: "20px" }}>
+      <div style={{ display: "flex", gap: "6px", marginBottom: "18px", flexWrap: "wrap" }}>
+        {tabs.map((t, i) => (
+          <button
+            key={t.label}
+            type="button"
+            onClick={() => setActive(i)}
+            style={{
+              padding: "6px 14px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer",
+              background: active === i ? "var(--ink)" : "var(--bg)",
+              color: active === i ? "#fff" : "var(--muted)",
+              transition: "all 0.15s",
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tabs[active].content}
+    </div>
+  );
+}
 
 function PlacementFunnel({ stages }: { stages: { label: string; value: number }[] }) {
   const max = Math.max(1, ...stages.map(s => s.value));
@@ -529,8 +560,6 @@ export function PlacementDashboard({
     }
   };
 
-  const cardTitleStyle: React.CSSProperties = { fontSize: "15px", fontWeight: 700, color: "var(--text)", marginBottom: "16px" };
-
   return (
     <div ref={dashboardRef}>
       {/* ── Header ── */}
@@ -550,6 +579,12 @@ export function PlacementDashboard({
           </p>
         </div>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button className="btn btn-p" onClick={onCreateDrive}>
+            <Plus size={14} /> Create Drive
+          </button>
+          <button className="btn" onClick={onViewAllDrives}>
+            <ExternalLink size={14} /> View All Drives
+          </button>
           <button className="btn" onClick={onRefresh} disabled={loading}>
             <RefreshCw size={14} style={loading ? { animation: "spin 1s linear infinite" } : undefined} /> Refresh
           </button>
@@ -614,303 +649,293 @@ export function PlacementDashboard({
         />
       </div>
 
-      {/* ── Placement Trend + Package Trend ── */}
+      {/* ── Four tabbed cards instead of nine permanent ones — every chart
+          below is still one click away, just not all competing for space
+          on screen at once. ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "14px", marginBottom: "14px" }}>
-        <div className="card" style={{ padding: "20px" }}>
-          <h3 style={cardTitleStyle}>Placement Trend</h3>
-          {placementTrend.length === 0 ? (
-            <ChartEmptyState message="Trend appears once placements are recorded." />
-          ) : (
-            <ApexChart
-              type="line"
-              height={240}
-              series={[{ name: "Placements", data: placementTrend.map(t => t.count) }]}
-              options={{
-                ...BASE_CHART_OPTIONS,
-                chart: { ...BASE_CHART_OPTIONS.chart, type: "line" },
-                colors: [GREEN],
-                stroke: { curve: "smooth", width: 3 },
-                fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.25, opacityTo: 0, stops: [0, 90, 100] } },
-                markers: { size: 4, colors: [GREEN], strokeWidth: 0 },
-                xaxis: { categories: placementTrend.map(t => t.month), labels: { style: { fontSize: "12px" } }, axisBorder: { color: "#C3C2B7" } },
-                yaxis: { labels: { style: { fontSize: "12px" } }, forceNiceScale: true, min: 0 },
-                tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v} placement${v === 1 ? "" : "s"}` } },
-              }}
-            />
-          )}
-        </div>
-
-        <div className="card" style={{ padding: "20px" }}>
-          <h3 style={cardTitleStyle}>Package Trend</h3>
-          {packageTrend.length === 0 ? (
-            <ChartEmptyState message="Trend appears once placements are recorded." />
-          ) : (
-            <ApexChart
-              type="area"
-              height={240}
-              series={[
-                { name: "Average (LPA)", data: packageTrend.map(t => t.avg) },
-                { name: "Highest (LPA)", data: packageTrend.map(t => t.max) },
-              ]}
-              options={{
-                ...BASE_CHART_OPTIONS,
-                chart: { ...BASE_CHART_OPTIONS.chart, type: "area" },
-                colors: [GREEN, GREEN_DARK],
-                stroke: { curve: "smooth", width: 2 },
-                fill: { type: "gradient", gradient: { opacityFrom: 0.3, opacityTo: 0.02 } },
-                legend: { show: true, position: "top", horizontalAlign: "right", fontSize: "12px" },
-                xaxis: { categories: packageTrend.map(t => t.month), labels: { style: { fontSize: "12px" } }, axisBorder: { color: "#C3C2B7" } },
-                yaxis: { labels: { style: { fontSize: "12px" }, formatter: (v: number) => `${v}` }, forceNiceScale: true, min: 0 },
-                tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v} LPA` } },
-              }}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* ── Department Performance + Company Leaderboard ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "14px", marginBottom: "14px" }}>
-        <div className="card" style={{ padding: "20px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h3 style={{ ...cardTitleStyle, marginBottom: 0 }}>Department Performance</h3>
-            <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: "8px", padding: "2px" }}>
-              {(["rate", "count", "package"] as const).map(mode => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setDeptSort(mode)}
-                  style={{
-                    padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, border: "none", cursor: "pointer",
-                    background: deptSort === mode ? "var(--ink)" : "transparent",
-                    color: deptSort === mode ? "#fff" : "var(--muted)",
+        <TabCard
+          tabs={[
+            {
+              label: "Placements",
+              content: placementTrend.length === 0 ? (
+                <ChartEmptyState message="Trend appears once placements are recorded." />
+              ) : (
+                <ApexChart
+                  type="line"
+                  height={240}
+                  series={[{ name: "Placements", data: placementTrend.map(t => t.count) }]}
+                  options={{
+                    ...BASE_CHART_OPTIONS,
+                    chart: { ...BASE_CHART_OPTIONS.chart, type: "line" },
+                    colors: [GREEN],
+                    stroke: { curve: "smooth", width: 3 },
+                    fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.25, opacityTo: 0, stops: [0, 90, 100] } },
+                    markers: { size: 4, colors: [GREEN], strokeWidth: 0 },
+                    xaxis: { categories: placementTrend.map(t => t.month), labels: { style: { fontSize: "12px" } }, axisBorder: { color: "#C3C2B7" } },
+                    yaxis: { labels: { style: { fontSize: "12px" } }, forceNiceScale: true, min: 0 },
+                    tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v} placement${v === 1 ? "" : "s"}` } },
                   }}
-                >
-                  {mode === "rate" ? "Rate" : mode === "count" ? "Placed" : "Package"}
-                </button>
-              ))}
-            </div>
-          </div>
-          {departmentStats.length === 0 ? (
-            <ChartEmptyState message="Appears once a placed student's department is known." />
-          ) : (
-            <ApexChart
-              type="bar"
-              height={240}
-              series={[{ name: deptSort === "rate" ? "Placement %" : deptSort === "count" ? "Students placed" : "Avg package (LPA)", data: departmentStats.map(d => deptSort === "rate" ? d.rate : deptSort === "count" ? d.placed : d.avgPackage) }]}
-              options={{
-                ...BASE_CHART_OPTIONS,
-                chart: { ...BASE_CHART_OPTIONS.chart, type: "bar" },
-                colors: [GREEN],
-                plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "55%" } },
-                dataLabels: { enabled: true, style: { colors: ["#0F1512"], fontSize: "12px", fontWeight: 600 }, formatter: (v: number) => deptSort === "rate" ? `${v}%` : deptSort === "package" ? `${v}` : `${v}`, offsetX: 6, background: { enabled: false } },
-                xaxis: { categories: departmentStats.map(d => d.department), labels: { style: { fontSize: "12px" } }, axisBorder: { color: "#C3C2B7" } },
-                yaxis: { labels: { style: { fontSize: "12px" } } },
-                tooltip: {
-                  ...BASE_CHART_OPTIONS.tooltip,
-                  y: { formatter: (v: number, opts) => {
-                    const d = opts ? departmentStats[opts.dataPointIndex] : undefined;
-                    return d ? `${d.placed}/${d.total} placed · ${d.rate}% · avg ${d.avgPackage} LPA` : `${v}`;
-                  } },
-                },
-              }}
-            />
-          )}
-        </div>
+                />
+              ),
+            },
+            {
+              label: "Packages",
+              content: packageTrend.length === 0 ? (
+                <ChartEmptyState message="Trend appears once placements are recorded." />
+              ) : (
+                <ApexChart
+                  type="area"
+                  height={240}
+                  series={[
+                    { name: "Average (LPA)", data: packageTrend.map(t => t.avg) },
+                    { name: "Highest (LPA)", data: packageTrend.map(t => t.max) },
+                  ]}
+                  options={{
+                    ...BASE_CHART_OPTIONS,
+                    chart: { ...BASE_CHART_OPTIONS.chart, type: "area" },
+                    colors: [GREEN, GREEN_DARK],
+                    stroke: { curve: "smooth", width: 2 },
+                    fill: { type: "gradient", gradient: { opacityFrom: 0.3, opacityTo: 0.02 } },
+                    legend: { show: true, position: "top", horizontalAlign: "right", fontSize: "12px" },
+                    xaxis: { categories: packageTrend.map(t => t.month), labels: { style: { fontSize: "12px" } }, axisBorder: { color: "#C3C2B7" } },
+                    yaxis: { labels: { style: { fontSize: "12px" }, formatter: (v: number) => `${v}` }, forceNiceScale: true, min: 0 },
+                    tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v} LPA` } },
+                  }}
+                />
+              ),
+            },
+            {
+              label: "Applications",
+              content: monthlyApplications.length === 0 ? (
+                <ChartEmptyState message="Appears once students start applying to drives." />
+              ) : (
+                <ApexChart
+                  type="area"
+                  height={240}
+                  series={[
+                    { name: "In progress", data: monthlyApplications.map(m => m.inProgress) },
+                    { name: "Selected", data: monthlyApplications.map(m => m.selected) },
+                    { name: "Rejected", data: monthlyApplications.map(m => m.rejected) },
+                  ]}
+                  options={{
+                    ...BASE_CHART_OPTIONS,
+                    chart: { ...BASE_CHART_OPTIONS.chart, type: "area", stacked: true },
+                    colors: [SLATE, GREEN, RED],
+                    stroke: { curve: "smooth", width: 1.5 },
+                    fill: { type: "gradient", gradient: { opacityFrom: 0.5, opacityTo: 0.15 } },
+                    legend: { show: true, position: "top", horizontalAlign: "right", fontSize: "12px" },
+                    xaxis: { categories: monthlyApplications.map(m => m.month), labels: { style: { fontSize: "12px" } }, axisBorder: { color: "#C3C2B7" } },
+                    yaxis: { labels: { style: { fontSize: "12px" } }, forceNiceScale: true, min: 0 },
+                    tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v}` } },
+                  }}
+                />
+              ),
+            },
+          ]}
+        />
 
-        <div className="card" style={{ padding: "20px" }}>
-          <h3 style={cardTitleStyle}>Top Recruiting Companies</h3>
-          {companyLeaderboard.length === 0 ? (
-            <ChartEmptyState message="No students placed yet." />
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {companyLeaderboard.map((c, i) => (
-                <div key={c.company} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <span style={{ width: "18px", fontSize: "12px", fontWeight: 700, color: "var(--muted)" }}>{i + 1}</span>
-                  <CompanyLogo name={c.company} size={26} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.company}</div>
-                    <div style={{ height: "6px", background: "var(--bg)", borderRadius: "3px", overflow: "hidden", marginTop: "3px" }}>
-                      <div style={{ height: "100%", width: `${(c.count / companyLeaderboard[0].count) * 100}%`, background: `linear-gradient(90deg, ${GREEN_DARK}, ${GREEN})`, borderRadius: "3px" }} />
+        <TabCard
+          tabs={[
+            {
+              label: "Departments",
+              content: (
+                <>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "12px" }}>
+                    <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: "8px", padding: "2px" }}>
+                      {(["rate", "count", "package"] as const).map(mode => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setDeptSort(mode)}
+                          style={{
+                            padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, border: "none", cursor: "pointer",
+                            background: deptSort === mode ? "var(--ink)" : "transparent",
+                            color: deptSort === mode ? "#fff" : "var(--muted)",
+                          }}
+                        >
+                          {mode === "rate" ? "Rate" : mode === "count" ? "Placed" : "Package"}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)" }}>{c.count} hired</div>
-                    <div style={{ fontSize: "11px", color: "var(--muted)" }}>{c.avgPackage} LPA avg</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Funnel + Status donut ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "14px", marginBottom: "14px" }}>
-        <div className="card" style={{ padding: "20px" }}>
-          <h3 style={cardTitleStyle}>Placement Funnel</h3>
-          {applications.length === 0 ? (
-            <ChartEmptyState message="Appears once students start applying to drives." />
-          ) : (
-            <PlacementFunnel stages={funnelStages} />
-          )}
-        </div>
-
-        <div className="card" style={{ padding: "20px" }}>
-          <h3 style={cardTitleStyle}>Placement Status</h3>
-          {applications.length === 0 ? (
-            <ChartEmptyState message="Appears once students start applying to drives." />
-          ) : (
-            <ApexChart
-              type="donut"
-              height={240}
-              series={statusDistribution.map(s => s.value)}
-              options={{
-                labels: statusDistribution.map(s => s.label),
-                colors: statusDistribution.map(s => s.color),
-                legend: { show: true, position: "bottom", fontSize: "12px" },
-                dataLabels: { enabled: true, style: { fontSize: "11px", fontWeight: 600 } },
-                stroke: { show: true, width: 2, colors: ["var(--surface)"] },
-                tooltip: { y: { formatter: (v: number) => `${v} application${v === 1 ? "" : "s"}` } },
-                plotOptions: { pie: { donut: { labels: { show: true, total: { show: true, label: "Total", fontSize: "13px" } } } } },
-              }}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* ── Package Distribution + Monthly Applications ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "14px", marginBottom: "14px" }}>
-        <div className="card" style={{ padding: "20px" }}>
-          <h3 style={cardTitleStyle}>Package Distribution</h3>
-          {placements.length === 0 ? (
-            <ChartEmptyState message="Appears once placements are recorded." />
-          ) : (
-            <ApexChart
-              type="bar"
-              height={240}
-              series={[{ name: "Students", data: packageDistribution.map(b => b.count) }]}
-              options={{
-                ...BASE_CHART_OPTIONS,
-                chart: { ...BASE_CHART_OPTIONS.chart, type: "bar" },
-                colors: [GREEN],
-                plotOptions: { bar: { columnWidth: "55%", borderRadius: 4 } },
-                dataLabels: { enabled: true, style: { colors: ["#0F1512"], fontSize: "12px", fontWeight: 600 }, offsetY: -20, background: { enabled: false } },
-                xaxis: { categories: packageDistribution.map(b => `${b.label} LPA`), labels: { style: { fontSize: "12px" } }, axisBorder: { color: "#C3C2B7" } },
-                yaxis: { labels: { style: { fontSize: "12px" } }, forceNiceScale: true, min: 0 },
-                tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v} student${v === 1 ? "" : "s"}` } },
-              }}
-            />
-          )}
-        </div>
-
-        <div className="card" style={{ padding: "20px" }}>
-          <h3 style={cardTitleStyle}>Monthly Applications</h3>
-          {monthlyApplications.length === 0 ? (
-            <ChartEmptyState message="Appears once students start applying to drives." />
-          ) : (
-            <ApexChart
-              type="area"
-              height={240}
-              series={[
-                { name: "In progress", data: monthlyApplications.map(m => m.inProgress) },
-                { name: "Selected", data: monthlyApplications.map(m => m.selected) },
-                { name: "Rejected", data: monthlyApplications.map(m => m.rejected) },
-              ]}
-              options={{
-                ...BASE_CHART_OPTIONS,
-                chart: { ...BASE_CHART_OPTIONS.chart, type: "area", stacked: true },
-                colors: [SLATE, GREEN, RED],
-                stroke: { curve: "smooth", width: 1.5 },
-                fill: { type: "gradient", gradient: { opacityFrom: 0.5, opacityTo: 0.15 } },
-                legend: { show: true, position: "top", horizontalAlign: "right", fontSize: "12px" },
-                xaxis: { categories: monthlyApplications.map(m => m.month), labels: { style: { fontSize: "12px" } }, axisBorder: { color: "#C3C2B7" } },
-                yaxis: { labels: { style: { fontSize: "12px" } }, forceNiceScale: true, min: 0 },
-                tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v}` } },
-              }}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* ── Upcoming Drives + Recent Activities ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "14px", marginBottom: "14px" }}>
-        <div className="card" style={{ padding: "20px" }}>
-          <h3 style={cardTitleStyle}>Upcoming Drives</h3>
-          {upcomingDrives.length === 0 ? (
-            <ChartEmptyState message="No drives with an open deadline right now." />
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", fontSize: "13px" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "12px" }}>
-                    <th style={{ padding: "8px" }}>Company</th>
-                    <th style={{ padding: "8px" }}>Role</th>
-                    <th style={{ padding: "8px" }}>Deadline</th>
-                    <th style={{ padding: "8px" }}>Registrations</th>
-                    <th style={{ padding: "8px" }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {upcomingDrives.slice(0, 6).map(d => (
-                    <tr key={d.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td style={{ padding: "8px", fontWeight: 600 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <CompanyLogo name={d.company_name} size={20} />
-                          {d.company_name}
+                  {departmentStats.length === 0 ? (
+                    <ChartEmptyState message="Appears once a placed student's department is known." />
+                  ) : (
+                    <ApexChart
+                      type="bar"
+                      height={240}
+                      series={[{ name: deptSort === "rate" ? "Placement %" : deptSort === "count" ? "Students placed" : "Avg package (LPA)", data: departmentStats.map(d => deptSort === "rate" ? d.rate : deptSort === "count" ? d.placed : d.avgPackage) }]}
+                      options={{
+                        ...BASE_CHART_OPTIONS,
+                        chart: { ...BASE_CHART_OPTIONS.chart, type: "bar" },
+                        colors: [GREEN],
+                        plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "55%" } },
+                        dataLabels: { enabled: true, style: { colors: ["#0F1512"], fontSize: "12px", fontWeight: 600 }, formatter: (v: number) => deptSort === "rate" ? `${v}%` : deptSort === "package" ? `${v}` : `${v}`, offsetX: 6, background: { enabled: false } },
+                        xaxis: { categories: departmentStats.map(d => d.department), labels: { style: { fontSize: "12px" } }, axisBorder: { color: "#C3C2B7" } },
+                        yaxis: { labels: { style: { fontSize: "12px" } } },
+                        tooltip: {
+                          ...BASE_CHART_OPTIONS.tooltip,
+                          y: { formatter: (v: number, opts) => {
+                            const d = opts ? departmentStats[opts.dataPointIndex] : undefined;
+                            return d ? `${d.placed}/${d.total} placed · ${d.rate}% · avg ${d.avgPackage} LPA` : `${v}`;
+                          } },
+                        },
+                      }}
+                    />
+                  )}
+                </>
+              ),
+            },
+            {
+              label: "Companies",
+              content: companyLeaderboard.length === 0 ? (
+                <ChartEmptyState message="No students placed yet." />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {companyLeaderboard.map((c, i) => (
+                    <div key={c.company} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span style={{ width: "18px", fontSize: "12px", fontWeight: 700, color: "var(--muted)" }}>{i + 1}</span>
+                      <CompanyLogo name={c.company} size={26} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.company}</div>
+                        <div style={{ height: "6px", background: "var(--bg)", borderRadius: "3px", overflow: "hidden", marginTop: "3px" }}>
+                          <div style={{ height: "100%", width: `${(c.count / companyLeaderboard[0].count) * 100}%`, background: `linear-gradient(90deg, ${GREEN_DARK}, ${GREEN})`, borderRadius: "3px" }} />
                         </div>
-                      </td>
-                      <td style={{ padding: "8px", color: "var(--muted)" }}>{d.title}</td>
-                      <td style={{ padding: "8px", color: "var(--muted)" }}>{new Date(d.application_deadline!).toLocaleDateString()}</td>
-                      <td style={{ padding: "8px" }}>{d.applicant_count}</td>
-                      <td style={{ padding: "8px" }}>
-                        <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: GREEN_TINT, color: GREEN_DARK, textTransform: "capitalize" }}>{d.status}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        <div className="card" style={{ padding: "20px" }}>
-          <h3 style={cardTitleStyle}>Recent Activity</h3>
-          {recentActivities.length === 0 ? (
-            <ChartEmptyState message="Activity appears as drives, applications, and placements happen." />
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              {recentActivities.map(a => (
-                <div key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "8px", background: GREEN_TINT, color: GREEN_DARK, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <a.icon size={14} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "13px", color: "var(--text)" }}>{a.text}</div>
-                    <div style={{ fontSize: "11px", color: "var(--muted)", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
-                      <Clock size={10} /> {fmtRelative(a.created_at)}
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)" }}>{c.count} hired</div>
+                        <div style={{ fontSize: "11px", color: "var(--muted)" }}>{c.avgPackage} LPA avg</div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              ),
+            },
+          ]}
+        />
       </div>
 
-      {/* ── Quick Actions ── */}
-      <div className="card" style={{ padding: "20px", marginBottom: "8px" }}>
-        <h3 style={cardTitleStyle}>Quick Actions</h3>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-          <button className="btn btn-p" onClick={onCreateDrive}>
-            <Plus size={14} /> Create Placement Drive
-          </button>
-          <button className="btn" onClick={handleExportExcel} disabled={isExporting !== null}>
-            <Send size={14} /> Export Report
-          </button>
-          <button className="btn" onClick={onViewAllDrives}>
-            <ExternalLink size={14} /> View All Drives
-          </button>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: "14px", marginBottom: "14px" }}>
+        <TabCard
+          tabs={[
+            {
+              label: "Funnel",
+              content: applications.length === 0 ? (
+                <ChartEmptyState message="Appears once students start applying to drives." />
+              ) : (
+                <PlacementFunnel stages={funnelStages} />
+              ),
+            },
+            {
+              label: "Status",
+              content: applications.length === 0 ? (
+                <ChartEmptyState message="Appears once students start applying to drives." />
+              ) : (
+                <ApexChart
+                  type="donut"
+                  height={240}
+                  series={statusDistribution.map(s => s.value)}
+                  options={{
+                    labels: statusDistribution.map(s => s.label),
+                    colors: statusDistribution.map(s => s.color),
+                    legend: { show: true, position: "bottom", fontSize: "12px" },
+                    dataLabels: { enabled: true, style: { fontSize: "11px", fontWeight: 600 } },
+                    stroke: { show: true, width: 2, colors: ["var(--surface)"] },
+                    tooltip: { y: { formatter: (v: number) => `${v} application${v === 1 ? "" : "s"}` } },
+                    plotOptions: { pie: { donut: { labels: { show: true, total: { show: true, label: "Total", fontSize: "13px" } } } } },
+                  }}
+                />
+              ),
+            },
+            {
+              label: "By Package",
+              content: placements.length === 0 ? (
+                <ChartEmptyState message="Appears once placements are recorded." />
+              ) : (
+                <ApexChart
+                  type="bar"
+                  height={240}
+                  series={[{ name: "Students", data: packageDistribution.map(b => b.count) }]}
+                  options={{
+                    ...BASE_CHART_OPTIONS,
+                    chart: { ...BASE_CHART_OPTIONS.chart, type: "bar" },
+                    colors: [GREEN],
+                    plotOptions: { bar: { columnWidth: "55%", borderRadius: 4 } },
+                    dataLabels: { enabled: true, style: { colors: ["#0F1512"], fontSize: "12px", fontWeight: 600 }, offsetY: -20, background: { enabled: false } },
+                    xaxis: { categories: packageDistribution.map(b => `${b.label} LPA`), labels: { style: { fontSize: "12px" } }, axisBorder: { color: "#C3C2B7" } },
+                    yaxis: { labels: { style: { fontSize: "12px" } }, forceNiceScale: true, min: 0 },
+                    tooltip: { ...BASE_CHART_OPTIONS.tooltip, y: { formatter: (v: number) => `${v} student${v === 1 ? "" : "s"}` } },
+                  }}
+                />
+              ),
+            },
+          ]}
+        />
+
+        <TabCard
+          tabs={[
+            {
+              label: "Upcoming Drives",
+              content: upcomingDrives.length === 0 ? (
+                <ChartEmptyState message="No drives with an open deadline right now." />
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", fontSize: "13px" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "12px" }}>
+                        <th style={{ padding: "8px" }}>Company</th>
+                        <th style={{ padding: "8px" }}>Role</th>
+                        <th style={{ padding: "8px" }}>Deadline</th>
+                        <th style={{ padding: "8px" }}>Registrations</th>
+                        <th style={{ padding: "8px" }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {upcomingDrives.slice(0, 6).map(d => (
+                        <tr key={d.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                          <td style={{ padding: "8px", fontWeight: 600 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <CompanyLogo name={d.company_name} size={20} />
+                              {d.company_name}
+                            </div>
+                          </td>
+                          <td style={{ padding: "8px", color: "var(--muted)" }}>{d.title}</td>
+                          <td style={{ padding: "8px", color: "var(--muted)" }}>{new Date(d.application_deadline!).toLocaleDateString()}</td>
+                          <td style={{ padding: "8px" }}>{d.applicant_count}</td>
+                          <td style={{ padding: "8px" }}>
+                            <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: GREEN_TINT, color: GREEN_DARK, textTransform: "capitalize" }}>{d.status}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ),
+            },
+            {
+              label: "Recent Activity",
+              content: recentActivities.length === 0 ? (
+                <ChartEmptyState message="Activity appears as drives, applications, and placements happen." />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {recentActivities.map(a => (
+                    <div key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+                      <div style={{ width: 28, height: 28, borderRadius: "8px", background: GREEN_TINT, color: GREEN_DARK, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <a.icon size={14} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "13px", color: "var(--text)" }}>{a.text}</div>
+                        <div style={{ fontSize: "11px", color: "var(--muted)", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                          <Clock size={10} /> {fmtRelative(a.created_at)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ),
+            },
+          ]}
+        />
       </div>
     </div>
   );

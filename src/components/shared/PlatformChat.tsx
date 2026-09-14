@@ -32,6 +32,13 @@ type Message = {
   content: string;
   timestamp?: string;
   isMe?: boolean;
+  /** Shown locally the instant Send is clicked, before the server's own
+      WebSocket echo confirms it — otherwise a normal 1-on-1 message only
+      ever appears once that round-trip completes, so any latency (or the
+      echo simply not arriving) makes clicking Send look like it did
+      nothing. Cleared once the matching echo lands (see
+      handleIncomingMessage). */
+  pending?: boolean;
 };
 
 const SOCKET_STATUS_DISPLAY: Record<import("@/hooks/useReconnectingSocket").SocketStatus, { label: string; color: string }> = {
@@ -69,9 +76,21 @@ export function PlatformChat() {
     );
     if (!isRelevant) return;
     setMessages((prev) => {
-      const exists = prev.find(p => p.timestamp === msg.timestamp && p.content === msg.content && String(p.sender_id) === String(msg.sender_id));
+      const exists = prev.find(p => !p.pending && p.timestamp === msg.timestamp && p.content === msg.content && String(p.sender_id) === String(msg.sender_id));
       if (exists) return prev;
-      return [...prev, { ...msg, isMe: String(msg.sender_id) === String(currentUserId) }];
+      const confirmed = { ...msg, isMe: String(msg.sender_id) === String(currentUserId) };
+      // The server's echo of a message we just sent optimistically — replace
+      // the first matching pending placeholder instead of appending a
+      // second copy of the same message.
+      if (confirmed.isMe) {
+        const pendingIndex = prev.findIndex(p => p.pending && p.content === confirmed.content && String(p.receiver_id) === String(confirmed.receiver_id));
+        if (pendingIndex !== -1) {
+          const next = [...prev];
+          next[pendingIndex] = confirmed;
+          return next;
+        }
+      }
+      return [...prev, confirmed];
     });
   }, []);
 
@@ -170,7 +189,17 @@ export function PlatformChat() {
         isMe: true
       }]);
     } else {
-      // Normal 1-on-1 mode
+      // Normal 1-on-1 mode — show it immediately rather than waiting on the
+      // server's echo (see the `pending` field on Message for why).
+      setMessages(prev => [...prev, {
+        sender_id: user?.id,
+        sender_name: user?.name,
+        receiver_id: selectedContact.id,
+        content: input,
+        timestamp: new Date().toISOString(),
+        isMe: true,
+        pending: true,
+      }]);
       sendSocketMessage({ receiver_id: selectedContact.id, content: input });
     }
 
@@ -304,10 +333,10 @@ export function PlatformChat() {
                   </div>
                 )}
                 {messages.map((m, i) => (
-                  <div key={i} style={{ alignSelf: m.isMe ? "flex-end" : "flex-start", maxWidth: "70%" }}>
+                  <div key={i} style={{ alignSelf: m.isMe ? "flex-end" : "flex-start", maxWidth: "70%", opacity: m.pending ? 0.6 : 1 }}>
                     <div style={{ fontSize: "11px", color: "var(--muted)", marginBottom: "3px", textAlign: m.isMe ? "right" : "left" }}>
                       {m.sender_name || (m.isMe ? "You" : selectedContact.name)}
-                      {m.timestamp && <span style={{ marginLeft: "6px", opacity: 0.6 }}>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                      {m.timestamp && <span style={{ marginLeft: "6px", opacity: 0.6 }}>{m.pending ? "Sending…" : new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
                     </div>
                     <div style={{
                       padding: "10px 14px",
