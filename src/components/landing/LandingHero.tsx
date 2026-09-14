@@ -5,67 +5,12 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Check } from "@phosphor-icons/react";
 import { Button, ButtonIconChip } from "@/components/ui/Button";
-import { LandscapeArt } from "@/components/landing/talentsnaps/MountainScene";
+import { LandscapeArt, MonsoonOverlay } from "@/components/landing/talentsnaps/MountainScene";
 import { RevealHeading } from "./RevealHeading";
 import { MagneticButton } from "./MagneticButton";
 import { AUDIENCES, type AudienceKey } from "./audiences";
 
 const entrance = { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const };
-
-// Fixed positions + fixed fall timing (not Math.random()) so server and
-// client render identical markup — same reasoning as the login screens'
-// snowfall/rain (see AuthMountains.tsx).
-const HERO_RAIN = [
-  { left: 4, duration: 0.9, delay: -0.1 }, { left: 11, duration: 1.1, delay: -0.6 },
-  { left: 18, duration: 0.8, delay: -0.3 }, { left: 25, duration: 1.2, delay: -0.8 },
-  { left: 32, duration: 0.95, delay: -0.2 }, { left: 39, duration: 1.05, delay: -0.5 },
-  { left: 46, duration: 0.85, delay: -0.4 }, { left: 53, duration: 1.15, delay: -0.15 },
-  { left: 60, duration: 0.9, delay: -0.65 }, { left: 67, duration: 1, delay: -0.35 },
-  { left: 74, duration: 0.8, delay: -0.05 }, { left: 81, duration: 1.1, delay: -0.7 },
-  { left: 88, duration: 0.95, delay: -0.25 }, { left: 95, duration: 1.05, delay: -0.5 },
-];
-
-// A dark, low storm-cloud wash plus falling rain, layered over the same
-// detailed mountain scene the root landing page uses — monsoon atmosphere
-// on the same art, rather than a smaller, plainer scene that reads as
-// generic rolling hills once cropped into a wide hero card.
-function MonsoonOverlay() {
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-      <div
-        className="absolute inset-0"
-        style={{ background: "linear-gradient(to bottom, rgba(31,44,42,.55), rgba(31,44,42,.12) 45%, transparent 72%)" }}
-      />
-      {HERO_RAIN.map((r, i) => (
-        <span
-          key={i}
-          className="hero-rain-streak"
-          style={{ left: `${r.left}%`, animationDuration: `${r.duration}s`, animationDelay: `${r.delay}s` }}
-        />
-      ))}
-      <style jsx>{`
-        .hero-rain-streak {
-          position: absolute;
-          top: -10%;
-          width: 2px;
-          height: 7%;
-          border-radius: 999px;
-          background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6));
-          transform: rotate(10deg);
-          animation-name: hero-rain-fall;
-          animation-timing-function: linear;
-          animation-iteration-count: infinite;
-        }
-        @keyframes hero-rain-fall {
-          0% { top: -10%; opacity: 0; }
-          10% { opacity: 0.85; }
-          90% { opacity: 0.7; }
-          100% { top: 110%; opacity: 0; }
-        }
-      `}</style>
-    </div>
-  );
-}
 
 export default function LandingHero({ audience: audienceKey }: { audience: AudienceKey }) {
   const reduceMotion = useReducedMotion();
