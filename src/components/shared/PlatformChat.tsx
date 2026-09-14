@@ -41,6 +41,20 @@ type Message = {
   pending?: boolean;
 };
 
+// Mirrors node-api's VALID_BROADCAST_SCOPES (chat.controller.js) — the
+// virtual, client-only contact ids admins see for "compose to a group".
+// No message is ever persisted with one of these as receiver_id (see
+// message.model.js) — a broadcast fans out into real per-recipient copies,
+// each stamped with the matching scope here plus a shared broadcast_id, so
+// the sender's own history view can be reconstructed via
+// GET /chat/broadcast-history/:scope instead of the (always-empty)
+// GET /chat/history/-1.
+const BROADCAST_SCOPE_BY_ID: Record<number, "student" | "faculty" | "everyone"> = {
+  [-1]: "student",
+  [-2]: "faculty",
+  [-3]: "everyone",
+};
+
 const SOCKET_STATUS_DISPLAY: Record<import("@/hooks/useReconnectingSocket").SocketStatus, { label: string; color: string }> = {
   open: { label: "Live", color: "#22c55e" },
   connecting: { label: "Connecting…", color: "#f59e0b" },
@@ -59,16 +73,43 @@ export function PlatformChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const selectedContactRef = useRef<Contact | null>(null);
   const userIdRef = useRef<string | number | undefined>(user?.id);
+  const contactsRef = useRef<Contact[]>([]);
 
   // Keep refs in sync — read from inside the socket's onMessage callback,
   // which is set up once and shouldn't itself change on every render.
   useEffect(() => { selectedContactRef.current = selectedContact; }, [selectedContact]);
   useEffect(() => { userIdRef.current = user?.id; }, [user?.id]);
+  useEffect(() => { contactsRef.current = contacts; }, [contacts]);
 
   const handleIncomingMessage = useCallback((raw: unknown) => {
     const msg = raw as Message;
-    const sc = selectedContactRef.current;
     const currentUserId = userIdRef.current;
+    const otherPartyId = String(msg.sender_id) === String(currentUserId) ? msg.receiver_id : msg.sender_id;
+
+    // A message from/to someone not yet in the contact list (e.g. an
+    // institution admin's first broadcast to a student — see
+    // GET /chat/threads, fetched once on mount, which this live socket
+    // message can arrive ahead of) would otherwise have nowhere to appear:
+    // there'd be no button in the sidebar the user could ever click to see
+    // it. Synthesize a contact entry from the message itself rather than
+    // silently dropping it — sender_name/sender_role are always present on
+    // a message we're the receiver of (see chatServer.js), which is exactly
+    // the case that needs this (a message we sent already has its contact
+    // selected locally, per handleSend's optimistic-append).
+    if (otherPartyId != null && !contactsRef.current.some((c) => String(c.id) === String(otherPartyId))) {
+      const isFromOther = String(msg.sender_id) !== String(currentUserId);
+      setContacts((prev) => [
+        {
+          id: otherPartyId,
+          name: (isFromOther && msg.sender_name) || "Unknown",
+          email: "",
+          role: (isFromOther && msg.sender_role) || "",
+        },
+        ...prev,
+      ]);
+    }
+
+    const sc = selectedContactRef.current;
     // Only show messages from/to the currently selected contact
     const isRelevant = sc && (
       (String(msg.sender_id) === String(sc.id) && String(msg.receiver_id) === String(currentUserId)) ||
@@ -140,6 +181,24 @@ export function PlatformChat() {
           .map(toContact)
           .filter((c) => String(c.id) !== String(user?.id));
 
+        // People this user has an actual conversation with, regardless of
+        // the role-directory scoping above — this is the only way, e.g., a
+        // student ever sees the institution admin who broadcast to them:
+        // GET /students never returns staff, so without this the admin has
+        // no way to be a selectable contact for the student at all, even
+        // though the message itself was delivered and persisted correctly.
+        // Best-effort: a directory hiccup here shouldn't block the page.
+        try {
+          const threadsRes = await api.get("/chat/threads");
+          const threadContacts = ((threadsRes.data.partners || []) as Record<string, unknown>[])
+            .map(toContact)
+            .filter((c) => String(c.id) !== String(user?.id));
+          const existingIds = new Set(allUsers.map((c) => String(c.id)));
+          allUsers = [...threadContacts.filter((c) => !existingIds.has(String(c.id))), ...allUsers];
+        } catch {
+          // ignore — the role-directory contacts above still work fine
+        }
+
         // Add virtual broadcast contacts for admins
         if (isAdmin) {
           allUsers = [
@@ -162,7 +221,9 @@ export function PlatformChat() {
     if (!selectedContact) { setMessages([]); return; }
     const fetchHistory = async () => {
       try {
-        const res = await api.get(`/chat/history/${selectedContact.id}`);
+        const scope = typeof selectedContact.id === "number" ? BROADCAST_SCOPE_BY_ID[selectedContact.id] : undefined;
+        const url = scope ? `/chat/broadcast-history/${scope}` : `/chat/history/${selectedContact.id}`;
+        const res = await api.get(url);
         const history = (res.data.messages || []).map((m: any) => ({
           ...m,
           isMe: String(m.sender_id) === String(user?.id)
@@ -188,8 +249,20 @@ export function PlatformChat() {
         return false;
       });
 
+      // Shared across every fanned-out copy of this one send — lets the
+      // backend reconstruct "one broadcast event" out of N per-recipient
+      // messages later (see GET /chat/broadcast-history/:scope). Falls back
+      // to Math.random() only if crypto.randomUUID is unavailable (very old
+      // browser / non-HTTPS context) — worst case then is this send just
+      // doesn't group with itself in history, not a functional break.
+      const broadcastId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `bc-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const broadcastScope = BROADCAST_SCOPE_BY_ID[selectedContact.id as number];
+
       targets.forEach(t => {
-        sendSocketMessage({ receiver_id: t.id, content: input });
+        sendSocketMessage({ receiver_id: t.id, content: input, broadcast_id: broadcastId, broadcast_scope: broadcastScope });
       });
 
       // Also add it locally so the admin sees what they broadcasted

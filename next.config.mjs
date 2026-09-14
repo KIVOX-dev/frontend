@@ -26,7 +26,7 @@ function apiOrigin() {
 // else here (object-src, frame-ancestors, base-uri, the explicit origin
 // allowlists) still meaningfully narrows the attack surface even with those
 // two relaxed — see PROJECT_AUDIT_REPORT.md P2-23.
-function securityHeaders() {
+function securityHeaders({ allowEval = false } = {}) {
   const origin = apiOrigin();
   // The chat WebSocket (src/components/shared/PlatformChat.tsx) connects to
   // this same API origin with wss: instead of https:. Browsers are NOT
@@ -60,7 +60,18 @@ function securityHeaders() {
       key: "Content-Security-Policy",
       value: [
         "default-src 'self'",
-        `script-src 'self' 'unsafe-inline' https://accounts.google.com ${turnstileOrigin}`,
+        // html2pdf.js (Resume Builder's Export PDF, src/components/learner/ResumeBuilder.tsx)
+        // pulls in jsPDF, which uses eval() internally for font handling —
+        // https://github.com/eKoopmans/html2pdf.js/issues/215. Without
+        // 'unsafe-eval', that throws immediately in production (CSP isn't
+        // applied in dev at all, which is why this went unnoticed locally),
+        // and can leave html2canvas's off-screen DOM clone stuck mid-render,
+        // which is what actually froze the page — not just the visible
+        // error toast. Scoped to allowEval routes only (see headers() below)
+        // rather than loosened everywhere, since this weakens CSP's XSS
+        // mitigation meaningfully and only one feature, on authenticated
+        // dashboard routes, actually needs it.
+        `script-src 'self' 'unsafe-inline' ${allowEval ? "'unsafe-eval' " : ""}https://accounts.google.com ${turnstileOrigin}`,
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https://unavatar.io https://upscaler-ai.com https://via.placeholder.com https://t3.gstatic.com",
         "font-src 'self' data:",
@@ -111,7 +122,16 @@ const nextConfig = {
   },
   async headers() {
     if (process.env.NODE_ENV !== "production") return [];
-    return [{ source: "/:path*", headers: securityHeaders() }];
+    return [
+      // Order matters: Next.js applies later matching entries' headers on
+      // top of earlier ones for the same key on the same path, so the
+      // eval-permitting CSP below must come AFTER the strict default to
+      // actually take effect on /learner and /institutional (verified by
+      // curling a built server — see the redeploy notes for this change).
+      { source: "/:path*", headers: securityHeaders() },
+      { source: "/learner/:path*", headers: securityHeaders({ allowEval: true }) },
+      { source: "/institutional/:path*", headers: securityHeaders({ allowEval: true }) },
+    ];
   },
 };
 
