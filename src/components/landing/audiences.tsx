@@ -26,11 +26,16 @@ export type AudienceConfig = {
   /** Real app route this audience logs into / explores. */
   href: string;
   photo: { src: string; alt: string; badges: [PhotoBadge, PhotoBadge] };
-  /** When true, the hero's photo panel renders the same detailed mountain
-      scene as the root landing page's hero (LandscapeArt), with a monsoon
-      storm overlay, instead of `photo` — ties the page into the site's
-      illustrated brand system rather than a stock photo. */
+  /** When true, the hero is restructured to match the root landing page's
+      own pattern (see TalentSnapsLanding.tsx's Hero+HeroScene): a centered
+      text block on a plain background, followed by a separate full-bleed
+      mountain-scenery section (LandscapeArt + a monsoon storm overlay) —
+      instead of the two-column copy+stock-photo layout. */
   heroMonsoon?: boolean;
+  /** Small pill above the centered headline, only used when `heroMonsoon`
+      is set — mirrors the root hero's "Built in Coimbatore, for Indian
+      colleges" chip. */
+  heroChip?: string;
 };
 
 // Single source of truth for the 3 audience-specific marketing pages
@@ -89,6 +94,7 @@ export const AUDIENCES: Record<AudienceKey, AudienceConfig> = {
     ctaLabel: "Explore HR Platform",
     href: "/hr",
     heroMonsoon: true,
+    heroChip: "Built in Coimbatore, for campus recruiting teams",
     photo: {
       src: "/images/audience/hr.jpg",
       alt: "A happy, diverse team of company staff celebrating together in an office",
