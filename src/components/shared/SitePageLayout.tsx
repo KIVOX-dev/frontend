@@ -6,6 +6,14 @@ import { ResponsiveLogo } from "@/components/shared/Logo";
 
 const NAV_GROUPS = [
   {
+    head: "Product",
+    items: [
+      { slug: "verification", label: "Verification" },
+      { slug: "profile-setup", label: "Profile Setup" },
+      { slug: "changelog", label: "Changelog" },
+    ],
+  },
+  {
     head: "Company",
     items: [
       { slug: "about-us", label: "About Us" },
