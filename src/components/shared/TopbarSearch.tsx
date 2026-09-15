@@ -24,12 +24,12 @@ export function TopbarSearch({ placeholder }: { placeholder: string }) {
 
   return (
     <div className="sw">
-      <span className="si">
+      <button type="button" className="si" onClick={submit} aria-label="Search" style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
-      </span>
+      </button>
       <input
         type="text"
         placeholder={placeholder}

@@ -1438,7 +1438,7 @@ export function CollegeAdminDashboard() {
               <button className="btn btn-p" onClick={() => setShowCreateAssessment(true)}>+ Create Assessment</button>
               <button
                 type="button"
-                className="btn"
+                className="btn btn-o"
                 onClick={handleToggleResults}
                 aria-pressed={showResultsPanel}
                 style={showResultsPanel ? { background: "var(--ink)", color: "#fff", borderColor: "var(--ink)" } : undefined}
@@ -1524,14 +1524,15 @@ export function CollegeAdminDashboard() {
 
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
                   {/* Table / Cards toggle */}
-                  <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: "8px", padding: "2px" }}>
+                  <div style={{ display: "flex", border: "1px solid var(--border2)", borderRadius: "var(--r2)", padding: "2px" }}>
                     <button
                       type="button"
                       onClick={() => setResultsView("table")}
                       aria-pressed={resultsView === "table"}
                       style={{
-                        display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "6px",
-                        fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: "6px", padding: "7px 12px", borderRadius: "8px",
+                        fontSize: "12.5px", fontWeight: 600, border: "none", cursor: "pointer",
+                        transition: "background .18s, color .18s",
                         background: resultsView === "table" ? "var(--ink)" : "transparent",
                         color: resultsView === "table" ? "#fff" : "var(--muted)",
                       }}
@@ -1543,8 +1544,9 @@ export function CollegeAdminDashboard() {
                       onClick={() => setResultsView("cards")}
                       aria-pressed={resultsView === "cards"}
                       style={{
-                        display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", borderRadius: "6px",
-                        fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: "6px", padding: "7px 12px", borderRadius: "8px",
+                        fontSize: "12.5px", fontWeight: 600, border: "none", cursor: "pointer",
+                        transition: "background .18s, color .18s",
                         background: resultsView === "cards" ? "var(--ink)" : "transparent",
                         color: resultsView === "cards" ? "#fff" : "var(--muted)",
                       }}
@@ -1554,7 +1556,7 @@ export function CollegeAdminDashboard() {
                   </div>
 
                   {/* Export buttons */}
-                  <button type="button" className="btn" onClick={handleExportExcel} disabled={isExporting !== null}>
+                  <button type="button" className="btn btn-o" onClick={handleExportExcel} disabled={isExporting !== null}>
                     <FileSpreadsheet size={14} /> {isExporting === "excel" ? "Exporting…" : "Excel"}
                   </button>
                   <button type="button" className="btn btn-p" onClick={handleExportPdf} disabled={isExporting !== null}>
