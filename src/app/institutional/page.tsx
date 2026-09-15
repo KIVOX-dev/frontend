@@ -7,7 +7,8 @@ import { LearnerShell } from "@/components/layout/LearnerShell";
 import { CollegeAdminShell } from "@/components/layout/CollegeAdminShell";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
 // Only one of these renders at a time (role selection / renderScreen switch
 // below) — dynamic-importing them keeps every other role's/screen's code
@@ -18,6 +19,7 @@ const InstitutionalStudentLogin = dynamic(() => import("@/components/auth/Instit
 const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").then((m) => m.PlatformChat));
 const SettingsPanel = dynamic(() => import("@/components/shared/SettingsPanel").then((m) => m.SettingsPanel));
 const MyActivity = dynamic(() => import("@/components/shared/MyActivity").then((m) => m.MyActivity));
+const SearchResults = dynamic(() => import("@/components/shared/SearchResults").then((m) => m.SearchResults));
 const CollegeAdminDashboard = dynamic(() => import("@/components/institutional/CollegeAdminDashboard").then((m) => m.CollegeAdminDashboard));
 const FacultyDashboard = dynamic(() => import("@/components/institutional/FacultyDashboard").then((m) => m.FacultyDashboard));
 const InstitutionalApproval = dynamic(() => import("@/components/institutional/InstitutionalApproval").then((m) => m.InstitutionalApproval));
@@ -51,20 +53,32 @@ const INSTITUTIONAL_ROLES = ["college_admin", "institution_admin", "faculty", "s
 // and renderScreen()'s switch below has no per-case role check of its own, so
 // it renders an admin-only component (CollegeAdminDashboard) for a student —
 // which then 403s fetching /users instead of showing anything sensible.
-const ADMIN_SCREENS = new Set(["dash", "placements", "drives", "users", "security", "assessments", "tracking", "chat", "settings"]);
-const FACULTY_SCREENS = new Set(["dash", "tracking", "add-student", "upload", "chat", "settings"]);
-const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "mnc", "iv", "chat", "settings"];
+const ADMIN_SCREENS = new Set(["dash", "placements", "drives", "users", "security", "assessments", "tracking", "chat", "settings", "my-activity", "search-results"]);
+const FACULTY_SCREENS = new Set(["dash", "tracking", "add-student", "upload", "chat", "settings", "my-activity", "search-results"]);
+const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "mnc", "iv", "chat", "settings", "my-activity"];
 const INSTITUTIONAL_STUDENT_EXTRA_SCREENS = ["placements", "profile", "resume", "lb"];
 
-export default function InstitutionalPage() {
+function InstitutionalContent() {
   const { isAuthenticated, user } = useAuthStore();
   const { activeScreen, setActiveScreen } = useUiStore();
   const [mounted, setMounted] = useState(false);
   const [selectedRole, setSelectedRole] = useState<InstitutionalRole>("none");
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // TopbarSearch.tsx navigates here with ?screen=search-results&q=... —
+  // this is what actually flips useUiStore's activeScreen to match a
+  // freshly-loaded/refreshed URL, since activeScreen otherwise only ever
+  // changes via direct setActiveScreen() calls, never from the URL itself.
+  useEffect(() => {
+    const screen = searchParams.get("screen");
+    if (screen === "search-results" && activeScreen !== "search-results") {
+      setActiveScreen("search-results");
+    }
+  }, [searchParams, activeScreen, setActiveScreen]);
 
   // Guard against a stale activeScreen left over from a different account's
   // session (see ADMIN_SCREENS/FACULTY_SCREENS/BASE_STUDENT_SCREENS comment
@@ -213,6 +227,8 @@ export default function InstitutionalPage() {
         return <SettingsPanel />;
       case "my-activity":
         return <MyActivity />;
+      case "search-results":
+        return <SearchResults />;
       default:
         return (
           <div style={{ padding: "40px", textAlign: "center", color: "var(--muted)" }}>
@@ -231,6 +247,14 @@ export default function InstitutionalPage() {
     <LearnerShell>
       {renderScreen()}
     </LearnerShell>
+  );
+}
+
+export default function InstitutionalPage() {
+  return (
+    <Suspense fallback={null}>
+      <InstitutionalContent />
+    </Suspense>
   );
 }
 

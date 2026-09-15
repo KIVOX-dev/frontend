@@ -5,6 +5,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
+import { TopbarSearch } from "@/components/shared/TopbarSearch";
 
 export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
   const {
@@ -95,15 +96,7 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <div className="sw">
-            <span className="si">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </span>
-            <input type="text" placeholder="Search users, placements, or drives..." />
-          </div>
+          <TopbarSearch placeholder="Search users, placements, or drives..." />
           <div className="tbr">
             <div className="ib" style={{ position: "relative" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

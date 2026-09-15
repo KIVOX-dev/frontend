@@ -97,8 +97,23 @@ export function extractErrorMessage(error: unknown, fallback = "Something went w
     // generic "Validation failed" — `details` is where the actually useful
     // per-field text lives. Every other error type leaves `details` unset,
     // so this falls through to `message` unchanged for those.
+    //
+    // Capped rather than joined in full: a schema validating an object
+    // *pattern* (e.g. one entry per test question, per form field) fails
+    // once per matching key when the input is wrong in one uniform way —
+    // dozens of near-identical "X is not allowed to be empty" messages
+    // joined together reads as a wall of text, not an error message. The
+    // first few are still shown (a handful of genuinely distinct field
+    // errors, e.g. a signup form, is still fully readable), with the rest
+    // summarized by count instead of repeated.
     if (Array.isArray(body.details) && body.details.length) {
-      return body.details.map(String).join(", ");
+      const messages = body.details.map(String);
+      const MAX_SHOWN = 3;
+      if (messages.length > MAX_SHOWN) {
+        const remaining = messages.length - MAX_SHOWN;
+        return `${messages.slice(0, MAX_SHOWN).join(", ")}, and ${remaining} more issue${remaining === 1 ? "" : "s"}.`;
+      }
+      return messages.join(", ");
     }
 
     if (isValidationArray(body.detail)) {

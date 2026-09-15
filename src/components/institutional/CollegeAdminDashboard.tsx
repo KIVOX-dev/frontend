@@ -39,7 +39,7 @@ function istDatetimeLocalToIso(value: string): string {
 
 export function CollegeAdminDashboard() {
   const { user: currentUser } = useAuthStore();
-  const { activeScreen, setActiveScreen } = useUiStore();
+  const { activeScreen, setActiveScreen, searchFocusId, setSearchFocusId } = useUiStore();
   const departmentOptions = getDepartmentOptions(currentUser?.college_name);
   const [users, setUsers] = useState<User[]>([]);
   const [studentRecords, setStudentRecords] = useState<StudentRecord[]>([]);
@@ -184,12 +184,26 @@ export function CollegeAdminDashboard() {
     }
   };
 
-  const resultTestOptions = useMemo(
-    () => Array.from(new Set(results.map((r) => r.test_title))).sort((a, b) => a.localeCompare(b)),
-    [results]
-  );
+  // Grouped/filtered by test_id, not test_title — two different tests can
+  // share the exact same fallback label ("Unknown test (20 pts)" for two
+  // separate deleted 20-question tests, say), and comparing on that string
+  // would silently merge them into one filter option covering attempts from
+  // BOTH. test_id is always present and unique even when the test itself no
+  // longer exists (see test.service.js#collegeResults's fallback comment).
+  const resultTestOptions = useMemo(() => {
+    const byId = new Map<string, { id: string; label: string; count: number }>();
+    for (const r of results) {
+      const existing = byId.get(r.test_id);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        byId.set(r.test_id, { id: r.test_id, label: r.test_title, count: 1 });
+      }
+    }
+    return Array.from(byId.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [results]);
   const filteredResults = useMemo(
-    () => (resultsTestFilter ? results.filter((r) => r.test_title === resultsTestFilter) : results),
+    () => (resultsTestFilter ? results.filter((r) => r.test_id === resultsTestFilter) : results),
     [results, resultsTestFilter]
   );
 
@@ -359,6 +373,41 @@ export function CollegeAdminDashboard() {
   useEffect(() => {
     refreshDashboard();
   }, []);
+
+  // Arriving here from SearchResults.tsx via useUiStore's searchFocusId —
+  // scroll to and briefly highlight whichever row's `row-${id}` matches,
+  // then clear it so revisiting this screen later doesn't re-trigger.
+  // Retries for a few seconds rather than running once immediately: the
+  // matching tab's own fetch (fetchUsers/fetchDrives/fetchPlacements, all
+  // async) hasn't necessarily populated the table yet on the first render
+  // after setActiveScreen() fires. A row hidden by an active
+  // role/department filter (Manage Users) or simply not present on this
+  // page just times out silently — no crash, just no highlight.
+  useEffect(() => {
+    if (!searchFocusId) return;
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const tryFocus = () => {
+      const el = document.getElementById(`row-${searchFocusId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const previousBackground = el.style.backgroundColor;
+        el.style.transition = 'background-color 0.3s';
+        el.style.backgroundColor = 'var(--accent-l, #eef2ff)';
+        setTimeout(() => {
+          el.style.backgroundColor = previousBackground;
+        }, 2000);
+        setSearchFocusId(null);
+        return;
+      }
+      attempts += 1;
+      if (attempts < 20) timer = setTimeout(tryFocus, 150);
+    };
+    tryFocus();
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [searchFocusId, activeScreen, setSearchFocusId]);
 
   const studentsById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
   // Shared by the Shortlist and Add Placement modals below, which used to
@@ -1025,7 +1074,7 @@ export function CollegeAdminDashboard() {
                 .map(p => {
                   const student = userByStudentRecordId.get(p.student_id);
                   return (
-                  <tr key={p.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <tr key={p.id} id={`row-${p.id}`} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "12px 8px", fontWeight: 500 }}>
                       <div style={{ color: "var(--text)" }}>{student?.name || `Student #${p.student_id}`}</div>
                       {student?.email && <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 400 }}>{student.email}</div>}
@@ -1133,7 +1182,7 @@ export function CollegeAdminDashboard() {
               </thead>
               <tbody>
                 {drives.map(d => (
-                  <tr key={d.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <tr key={d.id} id={`row-${d.id}`} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "12px 8px", fontWeight: 500 }}>{d.title}</td>
                     <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -1310,7 +1359,7 @@ export function CollegeAdminDashboard() {
             </thead>
             <tbody>
               {filteredUsers.map(u => (
-                <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                <tr key={u.id} id={`row-${u.id}`} style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={{ padding: "12px 8px", fontWeight: 500 }}>{u.name}</td>
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.role === "student" ? (u.roll_number || "—") : "—"}</td>
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.email}</td>
@@ -1466,9 +1515,9 @@ export function CollegeAdminDashboard() {
                     style={{ maxWidth: "260px" }}
                   >
                     <option value="">All tests ({results.length})</option>
-                    {resultTestOptions.map((title) => (
-                      <option key={title} value={title}>
-                        {title} ({results.filter((r) => r.test_title === title).length})
+                    {resultTestOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.label} ({opt.count})
                       </option>
                     ))}
                   </select>
