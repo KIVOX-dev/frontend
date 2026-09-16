@@ -15,6 +15,12 @@ type CategoryTrend = {
   growth: number | null;
 };
 
+type FocusArea = {
+  // "gap" = never attempted at all; "weak" = attempted but scoring low.
+  severity: "gap" | "weak";
+  text: string;
+};
+
 type ProfileSummary = {
   has_data: boolean;
   executive_summary: string;
@@ -26,6 +32,7 @@ type ProfileSummary = {
   interview_pct: number;
   resume_pct: number;
   category_trends: CategoryTrend[];
+  focus_areas: FocusArea[];
 };
 
 // Mirrors PracticeModule.tsx's CATEGORIES palette so the same 4 aptitude
@@ -89,8 +96,8 @@ export function ProfileSummarizer() {
   return (
     <div className="screen active" style={{ padding: "40px" }}>
       <div style={{ marginBottom: "32px" }}>
-        <h2 style={{ fontSize: "28px", fontWeight: 800, color: "var(--text)" }}>AI Profile Summarizer</h2>
-        <p style={{ color: "var(--muted)", fontSize: "15px" }}>Your performance profile and career readiness score, computed from your real activity.</p>
+        <h2 style={{ fontSize: "28px", fontWeight: 800, color: "var(--text)" }}>Performance Summary</h2>
+        <p style={{ color: "var(--muted)", fontSize: "15px" }}>Your performance profile, career readiness score, and exactly what to focus on next — all computed from your real activity, not generated.</p>
       </div>
 
       {loading && (
@@ -170,6 +177,56 @@ export function ProfileSummarizer() {
                           </span>
                         )}
                       </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="card" style={{ padding: "32px" }}>
+            <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "6px" }}>What To Focus On</h3>
+            <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>
+              Every item below is a real gap in your record, not generic advice.
+            </p>
+            {summary.focus_areas.length === 0 ? (
+              <p style={{ fontSize: "13px", color: "var(--muted)" }}>
+                Nothing outstanding — every category is above 60% and your resume/interview activity is complete.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {summary.focus_areas.map((f, i) => {
+                  const isGap = f.severity === "gap";
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        gap: "10px",
+                        alignItems: "flex-start",
+                        padding: "12px 14px",
+                        borderRadius: "10px",
+                        background: isGap ? "#FFFBEB" : "#FEF2F2",
+                        border: `1px solid ${isGap ? "#FDE68A" : "#FECACA"}`,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          flexShrink: 0,
+                          marginTop: "1px",
+                          background: isGap ? "#FDE68A" : "#FECACA",
+                          color: isGap ? "#92400E" : "#991B1B",
+                        }}
+                      >
+                        {isGap ? "Not started" : "Needs work"}
+                      </span>
+                      <p style={{ fontSize: "13px", color: "var(--text)", lineHeight: 1.5 }}>{f.text}</p>
                     </div>
                   );
                 })}
