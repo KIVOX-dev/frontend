@@ -46,7 +46,21 @@ function securityHeaders({ allowEval = false } = {}) {
   // the login/register forms required a token from a challenge that CSP
   // never let load in the first place.
   const turnstileOrigin = "https://challenges.cloudflare.com";
-  const connectSrc = ["'self'", "https://accounts.google.com", turnstileOrigin, origin, wsOrigin]
+  // MediaPipe Tasks Vision (Mock Interviewer's real-time posture detection,
+  // src/components/learner/LearnerMockInterview.tsx) loads its WASM runtime
+  // from jsdelivr and its pose model file from Google's model store at
+  // runtime — neither ships in this app's own bundle.
+  const mediapipeCdn = "https://cdn.jsdelivr.net";
+  const mediapipeModelStore = "https://storage.googleapis.com";
+  const connectSrc = [
+    "'self'",
+    "https://accounts.google.com",
+    turnstileOrigin,
+    origin,
+    wsOrigin,
+    mediapipeCdn,
+    mediapipeModelStore,
+  ]
     .filter(Boolean)
     .join(" ");
 
@@ -54,7 +68,11 @@ function securityHeaders({ allowEval = false } = {}) {
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "X-Frame-Options", value: "DENY" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-    { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+    // camera/microphone scoped to this app's own origin (not blocked
+    // outright) — the Mock Interviewer's compulsory webcam + speech-to-text
+    // (LearnerMockInterview.tsx) needs getUserMedia to succeed in production,
+    // not just in dev (which ships no Permissions-Policy header at all).
+    { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
     { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
     {
       key: "Content-Security-Policy",
@@ -71,12 +89,23 @@ function securityHeaders({ allowEval = false } = {}) {
         // rather than loosened everywhere, since this weakens CSP's XSS
         // mitigation meaningfully and only one feature, on authenticated
         // dashboard routes, actually needs it.
-        `script-src 'self' 'unsafe-inline' ${allowEval ? "'unsafe-eval' " : ""}https://accounts.google.com ${turnstileOrigin}`,
+        //
+        // 'wasm-unsafe-eval' (narrower than 'unsafe-eval' — permits only
+        // WebAssembly instantiation, not arbitrary eval/Function()) is what
+        // MediaPipe's pose-detection WASM runtime needs, applied everywhere
+        // rather than only allowEval routes since it can't be abused for JS
+        // eval the way 'unsafe-eval' can.
+        `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' ${allowEval ? "'unsafe-eval' " : ""}https://accounts.google.com ${turnstileOrigin} ${mediapipeCdn}`,
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https://unavatar.io https://upscaler-ai.com https://via.placeholder.com https://t3.gstatic.com",
         "font-src 'self' data:",
         `connect-src ${connectSrc}`,
         `frame-src https://accounts.google.com ${turnstileOrigin}`,
+        // MediaPipe's vision task runs its WASM engine off the main thread
+        // via a Worker constructed from a jsdelivr-hosted script; falls back
+        // to script-src without this, which doesn't cover a cross-origin
+        // worker script URL.
+        `worker-src 'self' blob: ${mediapipeCdn}`,
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",

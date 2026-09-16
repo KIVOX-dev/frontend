@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { FilesetResolver, PoseLandmarker, type PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { useUiStore } from "@/stores/uiStore";
@@ -11,6 +12,73 @@ interface Question {
   text: string;
   time_limit_seconds: number;
   type: string;
+}
+
+// Loaded from Google's model store / jsdelivr's CDN at runtime, not bundled —
+// see next.config.mjs's CSP connect-src/worker-src for why those two origins
+// are allow-listed. "lite" variant: accurate enough for a coarse posture
+// heuristic (shoulder tilt, facing-camera) at a fraction of the "full"/"heavy"
+// variants' download size and per-frame inference cost.
+const POSE_MODEL_URL =
+  "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+const MEDIAPIPE_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
+
+// Indices into MediaPipe Pose's 33-point BlazePose landmark layout — only
+// the few this component's posture heuristic actually uses.
+const POSE_LANDMARK = { NOSE: 0, LEFT_SHOULDER: 11, RIGHT_SHOULDER: 12 } as const;
+
+// A candidate must persist this long before it's shown — raw per-frame
+// landmark jitter (and momentary head turns to glance at the question) would
+// otherwise flash the warning banner on and off constantly.
+const POSTURE_WARNING_DEBOUNCE_MS = 1500;
+
+function evaluatePosture(result: PoseLandmarkerResult): string | null {
+  const landmarks = result.landmarks[0];
+  const nose = landmarks?.[POSE_LANDMARK.NOSE];
+  const leftShoulder = landmarks?.[POSE_LANDMARK.LEFT_SHOULDER];
+  const rightShoulder = landmarks?.[POSE_LANDMARK.RIGHT_SHOULDER];
+  if (!nose || !leftShoulder || !rightShoulder) return "Please stay in frame — we can't see you.";
+
+  // Landmark x/y are normalized to [0, 1] against the video frame, so these
+  // thresholds are resolution-independent.
+  const shoulderTilt = Math.abs(leftShoulder.y - rightShoulder.y);
+  if (shoulderTilt > 0.08) return "Sit up straight and face the camera.";
+
+  const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+  if (Math.abs(nose.x - shoulderMidX) > 0.12) return "Please face the camera.";
+
+  return null;
+}
+
+// Minimal shape for the Web Speech API's SpeechRecognition — not in
+// lib.dom.d.ts (it's still non-standard/vendor-prefixed on most browsers),
+// so this declares only what toggleListening() below actually reads/sets.
+interface SpeechRecognitionResultLike {
+  readonly isFinal: boolean;
+  readonly [index: number]: { transcript: string };
+}
+interface SpeechRecognitionEventLike extends Event {
+  readonly resultIndex: number;
+  readonly results: { readonly length: number; [index: number]: SpeechRecognitionResultLike };
+}
+interface SpeechRecognitionLike extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+}
+
+function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
 interface InterviewRecord {
@@ -81,6 +149,204 @@ export function LearnerMockInterview() {
     answersRef.current = answers;
   }, [answers]);
 
+  // --- Camera + real-time posture detection ---
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const poseLandmarkerRef = useRef<PoseLandmarker | null>(null);
+  const poseLoopRef = useRef<number | null>(null);
+  const postureIssueSinceRef = useRef<number | null>(null);
+  const [mediaStatus, setMediaStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
+  const [poseModelReady, setPoseModelReady] = useState(false);
+  const [postureWarning, setPostureWarning] = useState<string | null>(null);
+  const [cameraDisconnected, setCameraDisconnected] = useState(false);
+
+  // --- Speech-to-text ---
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const shouldListenRef = useRef(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const [listening, setListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+
+  // Loads the posture model in the background as soon as this screen mounts
+  // (not gated on camera permission — the download/init can overlap with the
+  // user reading the setup screen and clicking "Enable Camera").
+  useEffect(() => {
+    setSpeechSupported(Boolean(getSpeechRecognitionCtor()));
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const fileset = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
+        const landmarker = await PoseLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetPath: POSE_MODEL_URL, delegate: "GPU" },
+          runningMode: "VIDEO",
+          numPoses: 1,
+        });
+        if (cancelled) {
+          landmarker.close();
+          return;
+        }
+        poseLandmarkerRef.current = landmarker;
+        setPoseModelReady(true);
+      } catch (err) {
+        // Posture detection degrades to "unavailable" rather than blocking
+        // the interview — camera + speech-to-text still work without it.
+        console.error("Failed to load posture-detection model:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      poseLandmarkerRef.current?.close();
+      poseLandmarkerRef.current = null;
+    };
+  }, []);
+
+  // Reattaches the live stream to whichever <video> element is actually
+  // mounted — the setup screen's preview and the live-interview screen's
+  // preview are two different DOM nodes (separate `return`s below), so a
+  // single `videoRef` needs its `srcObject` re-set whenever `setup` flips.
+  useEffect(() => {
+    if (videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [setup]);
+
+  // Stops the camera/mic hardware for good on unmount — leaving tracks live
+  // after the user navigates away would keep the browser's recording
+  // indicator on with nothing actually using the feed.
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      shouldListenRef.current = false;
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  const requestMedia = async () => {
+    setMediaStatus("requesting");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      streamRef.current = stream;
+      setCameraDisconnected(false);
+      // Fires if the user revokes camera access mid-interview (e.g. via the
+      // browser's own recording indicator) rather than at the start — the
+      // "camera compulsory" requirement means that has to be surfaced, not
+      // silently ignored.
+      stream.getVideoTracks()[0]?.addEventListener("ended", () => setCameraDisconnected(true));
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+      }
+      setMediaStatus("granted");
+    } catch (err) {
+      console.error("Camera/microphone permission denied:", err);
+      setMediaStatus("denied");
+    }
+  };
+
+  // Runs a requestAnimationFrame pose-detection loop for as long as the live
+  // interview screen is showing and both the stream and model are ready.
+  useEffect(() => {
+    if (setup || interviewComplete || mediaStatus !== "granted" || !poseModelReady) return;
+
+    const detect = () => {
+      const video = videoRef.current;
+      const landmarker = poseLandmarkerRef.current;
+      if (video && landmarker && video.readyState >= 2) {
+        const result = landmarker.detectForVideo(video, performance.now());
+        const issue = evaluatePosture(result);
+        const now = Date.now();
+        if (issue) {
+          if (postureIssueSinceRef.current == null) postureIssueSinceRef.current = now;
+          if (now - postureIssueSinceRef.current > POSTURE_WARNING_DEBOUNCE_MS) {
+            setPostureWarning(issue);
+          }
+        } else {
+          postureIssueSinceRef.current = null;
+          setPostureWarning(null);
+        }
+      }
+      poseLoopRef.current = requestAnimationFrame(detect);
+    };
+    poseLoopRef.current = requestAnimationFrame(detect);
+
+    return () => {
+      if (poseLoopRef.current) cancelAnimationFrame(poseLoopRef.current);
+      postureIssueSinceRef.current = null;
+      setPostureWarning(null);
+    };
+  }, [setup, interviewComplete, mediaStatus, poseModelReady]);
+
+  // A recognition session is scoped to one question — stops it (rather than
+  // letting it keep dictating) the moment the question changes, so a
+  // still-listening mic from question N never attributes a stray final
+  // result to question N+1's answer.
+  useEffect(() => {
+    shouldListenRef.current = false;
+    recognitionRef.current?.stop();
+    setListening(false);
+    setInterimTranscript("");
+  }, [currentQuestionIndex]);
+
+  const toggleListening = useCallback(() => {
+    if (listening) {
+      shouldListenRef.current = false;
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const Ctor = getSpeechRecognitionCtor();
+    const question = questions[currentQuestionIndex];
+    if (!Ctor || !question) return;
+
+    const recognition = new Ctor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result[0].transcript;
+        if (result.isFinal) {
+          setAnswers((prev) => {
+            const existing = (prev[question.id] || "").trim();
+            const next = existing ? `${existing} ${transcript.trim()}` : transcript.trim();
+            return { ...prev, [question.id]: next };
+          });
+        } else {
+          interim += transcript;
+        }
+      }
+      setInterimTranscript(interim);
+    };
+    recognition.onerror = () => setInterimTranscript("");
+    // Chrome's continuous mode still ends on its own after a silence
+    // timeout — auto-restart unless the user explicitly clicked Stop
+    // (shouldListenRef, not React state, since this runs inside a
+    // callback that closed over `listening`'s value at start() time).
+    recognition.onend = () => {
+      setInterimTranscript("");
+      if (shouldListenRef.current) {
+        try {
+          recognition.start();
+        } catch {
+          // Already starting — a redundant start() call throws, safe to ignore.
+        }
+      } else {
+        setListening(false);
+      }
+    };
+
+    shouldListenRef.current = true;
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  }, [listening, questions, currentQuestionIndex]);
+
   const startInterview = async () => {
     setLoading(true);
     try {
@@ -109,6 +375,14 @@ export function LearnerMockInterview() {
   // every keystroke — see answersRef's own comment above.
   const finishInterview = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
+
+    // Turn the camera/mic off the moment the interview ends, synchronously,
+    // rather than waiting on the API call below — no reason the recording
+    // indicator should stay lit while this awaits a network response.
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    shouldListenRef.current = false;
+    recognitionRef.current?.stop();
 
     // Submit to backend
     try {
@@ -228,14 +502,59 @@ export function LearnerMockInterview() {
                 You will have exactly 60 seconds to answer each of the 10 questions. Plagiarism checks are active.
               </div>
             </div>
-            
-            <button 
-              className="btn btn-p" 
-              style={{ width: "100%", padding: "14px" }} 
+
+            <div style={{ background: "var(--bg-card, #fff)", padding: "20px", borderRadius: "12px", border: "1px solid var(--border)", marginBottom: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px" }}>
+                <div>
+                  <strong style={{ fontSize: "14px" }}>Camera &amp; Microphone Check</strong>
+                  <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
+                    Required to start — this interview monitors your posture in real time and can transcribe spoken answers.
+                  </p>
+                </div>
+                {mediaStatus !== "granted" && (
+                  <button
+                    type="button"
+                    className="btn btn-o"
+                    onClick={requestMedia}
+                    disabled={mediaStatus === "requesting"}
+                    style={{ flexShrink: 0, whiteSpace: "nowrap" }}
+                  >
+                    {mediaStatus === "requesting" ? "Requesting…" : mediaStatus === "denied" ? "Try Again" : "Enable Camera"}
+                  </button>
+                )}
+              </div>
+              {mediaStatus === "denied" && (
+                <p style={{ fontSize: "12px", color: "var(--red)", marginTop: "12px" }}>
+                  Camera/microphone access was denied. Allow it for this site in your browser settings, then try again — it&apos;s required to start the interview.
+                </p>
+              )}
+              {mediaStatus === "granted" && (
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "14px" }}>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    style={{ width: "120px", height: "90px", borderRadius: "8px", background: "#000", objectFit: "cover", transform: "scaleX(-1)" }}
+                  />
+                  <span style={{ fontSize: "12px", color: "var(--teal)", fontWeight: 600 }}>
+                    ✓ Camera ready{poseModelReady ? "" : " — loading posture check…"}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <button
+              className="btn btn-p"
+              style={{ width: "100%", padding: "14px" }}
               onClick={startInterview}
-              disabled={loading}
+              disabled={loading || mediaStatus !== "granted"}
             >
-              {loading ? "Preparing AI Engine..." : "Start Interview Engine"}
+              {loading
+                ? "Preparing AI Engine..."
+                : mediaStatus !== "granted"
+                ? "Enable your camera to continue"
+                : "Start Interview Engine"}
             </button>
           </div>
         )}
@@ -313,6 +632,13 @@ export function LearnerMockInterview() {
           </div>
         </div>
         <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            style={{ width: "56px", height: "56px", borderRadius: "8px", objectFit: "cover", background: "#000", transform: "scaleX(-1)", flexShrink: 0 }}
+          />
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "2px" }}>Time Remaining</div>
             <div style={{ fontSize: "18px", fontWeight: 700, color: timeLeft < 15 ? "var(--red)" : "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
@@ -322,6 +648,12 @@ export function LearnerMockInterview() {
           <button className="btn btn-g" onClick={() => {if(confirm("End interview early?")) finishInterview()}}>End Session</button>
         </div>
       </div>
+
+      {(postureWarning || cameraDisconnected) && (
+        <div style={{ background: "rgba(239,68,68,0.1)", color: "var(--red)", padding: "10px 24px", fontSize: "13px", fontWeight: 600, textAlign: "center", borderBottom: "1px solid var(--border)" }}>
+          ⚠ {cameraDisconnected ? "Camera disconnected — please reconnect your webcam to continue." : postureWarning}
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -355,7 +687,27 @@ export function LearnerMockInterview() {
             <h1 style={{ fontSize: "22px", fontWeight: 600, lineHeight: 1.5 }}>{currentQ.text}</h1>
           </div>
 
-          <textarea 
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "10px" }}>
+            <span style={{ fontSize: "12px", color: "var(--muted)" }}>
+              {interimTranscript
+                ? `Listening: "${interimTranscript}"`
+                : speechSupported
+                ? "Type your answer, or use the mic to speak it."
+                : "Speech-to-text isn't supported in this browser — please type your answer."}
+            </span>
+            {speechSupported && (
+              <button
+                type="button"
+                onClick={toggleListening}
+                className={listening ? "btn btn-p" : "btn btn-o"}
+                style={{ padding: "6px 14px", fontSize: "12px", flexShrink: 0, whiteSpace: "nowrap" }}
+              >
+                {listening ? "● Stop" : "🎤 Speak Answer"}
+              </button>
+            )}
+          </div>
+
+          <textarea
             style={{
               flex: 1, width: "100%", padding: "20px", borderRadius: "12px",
               border: "1px solid var(--border)", background: "var(--bg)",
