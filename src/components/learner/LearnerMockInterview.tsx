@@ -68,7 +68,7 @@ interface SpeechRecognitionLike extends EventTarget {
   start(): void;
   stop(): void;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
   onend: (() => void) | null;
 }
 
@@ -155,6 +155,7 @@ export function LearnerMockInterview() {
   const poseLandmarkerRef = useRef<PoseLandmarker | null>(null);
   const poseLoopRef = useRef<number | null>(null);
   const postureIssueSinceRef = useRef<number | null>(null);
+  const lastPoseTimestampRef = useRef(0);
   const [mediaStatus, setMediaStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
   const [poseModelReady, setPoseModelReady] = useState(false);
   const [postureWarning, setPostureWarning] = useState<string | null>(null);
@@ -163,9 +164,15 @@ export function LearnerMockInterview() {
   // --- Speech-to-text ---
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const shouldListenRef = useRef(false);
+  // Snapshot of whatever was already in the box when this listening session
+  // started (typed manually, or left from an earlier session on this same
+  // question) — speech gets appended after it, never overwrites it.
+  const speechBaseRef = useRef("");
+  // Accumulated *finalized* speech for the current listening session only —
+  // separate from speechBaseRef so a stop/restart doesn't double it up.
+  const speechFinalRef = useRef("");
   const [speechSupported, setSpeechSupported] = useState(true);
   const [listening, setListening] = useState(false);
-  const [interimTranscript, setInterimTranscript] = useState("");
 
   // Loads the posture model in the background as soon as this screen mounts
   // (not gated on camera permission — the download/init can overlap with the
@@ -177,8 +184,14 @@ export function LearnerMockInterview() {
     (async () => {
       try {
         const fileset = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
+        // CPU, not GPU — the WebGL-based GPU delegate fails silently or
+        // throws mid-session on a lot of real machines (VMs, remote desktop
+        // sessions, hardware acceleration disabled) in ways that never show
+        // up in normal local testing. CPU is slower per frame but the "lite"
+        // model at 1 pose is well within real-time budget, and it works
+        // identically everywhere.
         const landmarker = await PoseLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: POSE_MODEL_URL, delegate: "GPU" },
+          baseOptions: { modelAssetPath: POSE_MODEL_URL, delegate: "CPU" },
           runningMode: "VIDEO",
           numPoses: 1,
         });
@@ -270,7 +283,15 @@ export function LearnerMockInterview() {
         const video = videoRef.current;
         const landmarker = poseLandmarkerRef.current;
         if (video && landmarker && video.readyState >= 2) {
-          const result = landmarker.detectForVideo(video, performance.now());
+          // detectForVideo requires a STRICTLY increasing timestamp on every
+          // call in VIDEO mode — it throws otherwise. Two requestAnimationFrame
+          // ticks can land on the same performance.now() value under Chrome/
+          // Firefox's reduced timer-precision privacy protections (or on
+          // high-refresh displays), which would otherwise throw on every
+          // subsequent call from that point on, not just once.
+          const timestamp = Math.max(performance.now(), lastPoseTimestampRef.current + 1);
+          lastPoseTimestampRef.current = timestamp;
+          const result = landmarker.detectForVideo(video, timestamp);
           consecutiveErrors = 0;
           const issue = evaluatePosture(result);
           const now = Date.now();
@@ -314,7 +335,6 @@ export function LearnerMockInterview() {
     shouldListenRef.current = false;
     recognitionRef.current?.stop();
     setListening(false);
-    setInterimTranscript("");
   }, [currentQuestionIndex]);
 
   const toggleListening = useCallback(() => {
@@ -334,30 +354,41 @@ export function LearnerMockInterview() {
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
+    speechBaseRef.current = answers[question.id] || "";
+    speechFinalRef.current = "";
+
+    // Fires repeatedly WHILE the candidate is still mid-sentence (interim
+    // results, `isFinal: false`), not just once they pause — the textarea
+    // has to be updated here, on every event, or the box only ever catches
+    // up once a sentence finishes, which is what "not livly converting" was
+    // actually describing: previously only a completed sentence ever reached
+    // the box, interim words only reached a separate caption line above it.
     recognition.onresult = (event) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const transcript = result[0].transcript;
         if (result.isFinal) {
-          setAnswers((prev) => {
-            const existing = (prev[question.id] || "").trim();
-            const next = existing ? `${existing} ${transcript.trim()}` : transcript.trim();
-            return { ...prev, [question.id]: next };
-          });
+          speechFinalRef.current = speechFinalRef.current
+            ? `${speechFinalRef.current} ${transcript.trim()}`
+            : transcript.trim();
         } else {
           interim += transcript;
         }
       }
-      setInterimTranscript(interim);
+      const combined = [speechBaseRef.current.trim(), speechFinalRef.current, interim.trim()]
+        .filter(Boolean)
+        .join(" ");
+      setAnswers((prev) => ({ ...prev, [question.id]: combined }));
     };
-    recognition.onerror = () => setInterimTranscript("");
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+    };
     // Chrome's continuous mode still ends on its own after a silence
     // timeout — auto-restart unless the user explicitly clicked Stop
     // (shouldListenRef, not React state, since this runs inside a
     // callback that closed over `listening`'s value at start() time).
     recognition.onend = () => {
-      setInterimTranscript("");
       if (shouldListenRef.current) {
         try {
           recognition.start();
@@ -373,7 +404,7 @@ export function LearnerMockInterview() {
     recognitionRef.current = recognition;
     recognition.start();
     setListening(true);
-  }, [listening, questions, currentQuestionIndex]);
+  }, [listening, questions, currentQuestionIndex, answers]);
 
   const startInterview = async () => {
     setLoading(true);
@@ -717,8 +748,8 @@ export function LearnerMockInterview() {
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "10px" }}>
             <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-              {interimTranscript
-                ? `Listening: "${interimTranscript}"`
+              {listening
+                ? "Listening — speak your answer, it fills the box as you talk."
                 : speechSupported
                 ? "Type your answer, or use the mic to speak it."
                 : "Speech-to-text isn't supported in this browser — please type your answer."}
@@ -727,10 +758,33 @@ export function LearnerMockInterview() {
               <button
                 type="button"
                 onClick={toggleListening}
-                className={listening ? "btn btn-p" : "btn btn-o"}
-                style={{ padding: "6px 14px", fontSize: "12px", flexShrink: 0, whiteSpace: "nowrap" }}
+                className={`btn btn-sm ${listening ? "btn-red" : "btn-o"}`}
+                style={{ flexShrink: 0, whiteSpace: "nowrap" }}
               >
-                {listening ? "● Stop" : "🎤 Speak Answer"}
+                {listening ? (
+                  <>
+                    <span
+                      style={{
+                        width: "7px",
+                        height: "7px",
+                        borderRadius: "50%",
+                        background: "var(--red)",
+                        animation: "pulse 1.2s ease-in-out infinite",
+                        flexShrink: 0,
+                      }}
+                    />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="2" width="6" height="12" rx="3" />
+                      <path d="M5 10a7 7 0 0 0 14 0" />
+                      <line x1="12" y1="19" x2="12" y2="22" />
+                    </svg>
+                    Speak Answer
+                  </>
+                )}
               </button>
             )}
           </div>
