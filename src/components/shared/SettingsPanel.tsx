@@ -37,6 +37,13 @@ type StudentProfile = {
   leetcode_username?: string | null;
   hackerrank_username?: string | null;
   dribbble_username?: string | null;
+  linkedin_name?: string | null;
+  linkedin_avatar_url?: string | null;
+  linkedin_connected_at?: string | null;
+  stackoverflow_display_name?: string | null;
+  stackoverflow_reputation?: number | null;
+  stackoverflow_profile_url?: string | null;
+  stackoverflow_connected_at?: string | null;
 };
 
 type Department = { id: string; name: string };
@@ -77,6 +84,71 @@ function DribbbleIcon({ className }: { className?: string }) {
   return (
     <div className={cn("flex items-center justify-center rounded-full text-xs font-bold text-white", className)} style={{ background: "#EA4C89" }} aria-hidden="true">
       Dr
+    </div>
+  );
+}
+
+function LinkedInIcon({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-center justify-center rounded-lg text-xs font-bold text-white", className)} style={{ background: "#0A66C2" }} aria-hidden="true">
+      in
+    </div>
+  );
+}
+function StackOverflowIcon({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-center justify-center rounded-lg text-xs font-bold text-white", className)} style={{ background: "#F48024" }} aria-hidden="true">
+      SO
+    </div>
+  );
+}
+
+// Shared by GitHub/LinkedIn/Stack Overflow — every one of them is a real
+// OAuth connection (see githubAuth/linkedinAuth/stackexchangeAuth service.js
+// on the backend), so unlike SocialIntegrationRow above, connecting always
+// means a full browser redirect to the provider's own consent screen, never
+// a typed-in username.
+function OAuthIntegrationRow({
+  icon: Icon,
+  label,
+  blurb,
+  connectedLabel,
+  connecting,
+  disconnecting,
+  onConnect,
+  onDisconnect,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  blurb: string;
+  connectedLabel?: string | null;
+  connecting: boolean;
+  disconnecting: boolean;
+  onConnect: () => void;
+  onDisconnect: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-md border border-line p-4">
+      <div className="flex items-center gap-3 min-w-0">
+        <Icon className="size-8 shrink-0" />
+        <div className="min-w-0">
+          <p className="font-semibold text-ink">{label}</p>
+          <p className="text-small truncate">{connectedLabel || blurb}</p>
+        </div>
+      </div>
+      {connectedLabel ? (
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge tone="success">Connected</Badge>
+          <Button variant="secondary" size="sm" onClick={onDisconnect} loading={disconnecting}>
+            <Unlink className="size-3.5" />
+            Disconnect
+          </Button>
+        </div>
+      ) : (
+        <Button size="sm" onClick={onConnect} loading={connecting} className="shrink-0">
+          Connect
+        </Button>
+      )}
     </div>
   );
 }
@@ -243,6 +315,12 @@ export function SettingsPanel() {
   const [connectingGithub, setConnectingGithub] = useState(false);
   const [disconnectingGithub, setDisconnectingGithub] = useState(false);
   const [githubMsg, setGithubMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [connectingLinkedin, setConnectingLinkedin] = useState(false);
+  const [disconnectingLinkedin, setDisconnectingLinkedin] = useState(false);
+  const [linkedinMsg, setLinkedinMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [connectingStackoverflow, setConnectingStackoverflow] = useState(false);
+  const [disconnectingStackoverflow, setDisconnectingStackoverflow] = useState(false);
+  const [stackoverflowMsg, setStackoverflowMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [pwdForm, setPwdForm] = useState({ current_password: "", new_password: "" });
   const [pwdMsg, setPwdMsg] = useState("");
@@ -286,16 +364,22 @@ export function SettingsPanel() {
       .finally(() => setProfileLoading(false));
   }, [isStudent]);
 
-  // Lands here once, right after the GitHub OAuth callback redirect sends
-  // the browser back with `?tab=integrations&github=connected|error`. Reads
-  // it, surfaces a message, then strips the query string so refreshing or
+  // Lands here once, right after an OAuth callback redirect (GitHub/
+  // LinkedIn/Stack Overflow — see their respective *AuthService.js on the
+  // backend) sends the browser back with
+  // `?tab=integrations&<provider>=connected|error&reason=...`. Reads it,
+  // surfaces a message, then strips the query string so refreshing or
   // re-sharing the URL doesn't replay the same success/error message.
   useEffect(() => {
     const tab = searchParams.get("tab");
     const github = searchParams.get("github");
-    if (!tab && !github) return;
+    const linkedin = searchParams.get("linkedin");
+    const stackoverflow = searchParams.get("stackoverflow");
+    if (!tab && !github && !linkedin && !stackoverflow) return;
 
     if (tab === "integrations") setActiveTab("integrations");
+
+    const reason = searchParams.get("reason") || "";
     if (github === "connected") {
       setGithubMsg({ type: "success", text: "GitHub connected." });
     } else if (github === "error") {
@@ -305,8 +389,31 @@ export function SettingsPanel() {
         expired: "That connection attempt expired — please try again.",
         no_profile: "Set up your student profile before connecting GitHub.",
       };
-      setGithubMsg({ type: "error", text: reasons[searchParams.get("reason") || ""] || "Couldn't connect GitHub — please try again." });
+      setGithubMsg({ type: "error", text: reasons[reason] || "Couldn't connect GitHub — please try again." });
     }
+    if (linkedin === "connected") {
+      setLinkedinMsg({ type: "success", text: "LinkedIn connected." });
+    } else if (linkedin === "error") {
+      const reasons: Record<string, string> = {
+        denied: "LinkedIn authorization was cancelled.",
+        already_linked: "That LinkedIn account is already connected to another student.",
+        expired: "That connection attempt expired — please try again.",
+        no_profile: "Set up your student profile before connecting LinkedIn.",
+      };
+      setLinkedinMsg({ type: "error", text: reasons[reason] || "Couldn't connect LinkedIn — please try again." });
+    }
+    if (stackoverflow === "connected") {
+      setStackoverflowMsg({ type: "success", text: "Stack Overflow connected." });
+    } else if (stackoverflow === "error") {
+      const reasons: Record<string, string> = {
+        denied: "Stack Overflow authorization was cancelled.",
+        already_linked: "That Stack Overflow account is already connected to another student.",
+        expired: "That connection attempt expired — please try again.",
+        no_profile: "Set up your student profile before connecting Stack Overflow.",
+      };
+      setStackoverflowMsg({ type: "error", text: reasons[reason] || "Couldn't connect Stack Overflow — please try again." });
+    }
+
     router.replace(window.location.pathname, { scroll: false });
     // Only ever meant to process the redirect's own query string once, on
     // arrival — re-running on every searchParams identity change would loop
@@ -339,6 +446,58 @@ export function SettingsPanel() {
       setGithubMsg({ type: "error", text: extractErrorMessage(err, "Couldn't disconnect GitHub") });
     } finally {
       setDisconnectingGithub(false);
+    }
+  };
+
+  const handleConnectLinkedin = async () => {
+    setConnectingLinkedin(true);
+    setLinkedinMsg(null);
+    try {
+      const res = await api.get<{ url: string }>("/auth/linkedin/connect", { cache: false } as ApiRequestConfig);
+      window.location.href = res.data.url;
+    } catch (err: unknown) {
+      setLinkedinMsg({ type: "error", text: extractErrorMessage(err, "Couldn't start the LinkedIn connection") });
+      setConnectingLinkedin(false);
+    }
+  };
+
+  const handleDisconnectLinkedin = async () => {
+    if (!window.confirm("Disconnect your LinkedIn account?")) return;
+    setDisconnectingLinkedin(true);
+    setLinkedinMsg(null);
+    try {
+      const res = await api.delete<StudentProfile>("/auth/linkedin/disconnect");
+      setStudentProfile(res.data);
+    } catch (err: unknown) {
+      setLinkedinMsg({ type: "error", text: extractErrorMessage(err, "Couldn't disconnect LinkedIn") });
+    } finally {
+      setDisconnectingLinkedin(false);
+    }
+  };
+
+  const handleConnectStackoverflow = async () => {
+    setConnectingStackoverflow(true);
+    setStackoverflowMsg(null);
+    try {
+      const res = await api.get<{ url: string }>("/auth/stackexchange/connect", { cache: false } as ApiRequestConfig);
+      window.location.href = res.data.url;
+    } catch (err: unknown) {
+      setStackoverflowMsg({ type: "error", text: extractErrorMessage(err, "Couldn't start the Stack Overflow connection") });
+      setConnectingStackoverflow(false);
+    }
+  };
+
+  const handleDisconnectStackoverflow = async () => {
+    if (!window.confirm("Disconnect your Stack Overflow account?")) return;
+    setDisconnectingStackoverflow(true);
+    setStackoverflowMsg(null);
+    try {
+      const res = await api.delete<StudentProfile>("/auth/stackexchange/disconnect");
+      setStudentProfile(res.data);
+    } catch (err: unknown) {
+      setStackoverflowMsg({ type: "error", text: extractErrorMessage(err, "Couldn't disconnect Stack Overflow") });
+    } finally {
+      setDisconnectingStackoverflow(false);
     }
   };
 
@@ -674,39 +833,52 @@ export function SettingsPanel() {
               <h2 className="text-section-title mb-1">Integrations</h2>
               <p className="text-small mb-5">Showcase your work by connecting your accounts.</p>
 
-              {githubMsg && (
-                <p className={cn("text-small mb-4", githubMsg.type === "success" ? "text-success" : "text-danger")}>
-                  {githubMsg.text}
-                </p>
+              {[githubMsg, linkedinMsg, stackoverflowMsg].map(
+                (msg, i) =>
+                  msg && (
+                    <p key={i} className={cn("text-small mb-2", msg.type === "success" ? "text-success" : "text-danger")}>
+                      {msg.text}
+                    </p>
+                  )
               )}
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-4 rounded-md border border-line p-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <GitHubIcon className="size-8 shrink-0 text-ink" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-ink">GitHub</p>
-                      <p className="text-small truncate">
-                        {studentProfile?.github_username
-                          ? `Connected as @${studentProfile.github_username}`
-                          : "Showcase your projects and contributions to recruiters."}
-                      </p>
-                    </div>
-                  </div>
-                  {studentProfile?.github_username ? (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge tone="success">Connected</Badge>
-                      <Button variant="secondary" size="sm" onClick={handleDisconnectGithub} loading={disconnectingGithub}>
-                        <Unlink className="size-3.5" />
-                        Disconnect
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button size="sm" onClick={handleConnectGithub} loading={connectingGithub} className="shrink-0">
-                      Connect
-                    </Button>
-                  )}
-                </div>
+              <div className="space-y-3 mt-3">
+                <OAuthIntegrationRow
+                  icon={(p) => <GitHubIcon {...p} className={cn(p.className, "text-ink")} />}
+                  label="GitHub"
+                  blurb="Showcase your projects and contributions to recruiters."
+                  connectedLabel={studentProfile?.github_username ? `Connected as @${studentProfile.github_username}` : null}
+                  connecting={connectingGithub}
+                  disconnecting={disconnectingGithub}
+                  onConnect={handleConnectGithub}
+                  onDisconnect={handleDisconnectGithub}
+                />
+
+                <OAuthIntegrationRow
+                  icon={LinkedInIcon}
+                  label="LinkedIn"
+                  blurb="Verify your professional identity for recruiters."
+                  connectedLabel={studentProfile?.linkedin_name ? `Connected as ${studentProfile.linkedin_name}` : null}
+                  connecting={connectingLinkedin}
+                  disconnecting={disconnectingLinkedin}
+                  onConnect={handleConnectLinkedin}
+                  onDisconnect={handleDisconnectLinkedin}
+                />
+
+                <OAuthIntegrationRow
+                  icon={StackOverflowIcon}
+                  label="Stack Overflow"
+                  blurb="Show your real reputation and answers."
+                  connectedLabel={
+                    studentProfile?.stackoverflow_display_name
+                      ? `Connected as ${studentProfile.stackoverflow_display_name} (${studentProfile.stackoverflow_reputation ?? 0} rep)`
+                      : null
+                  }
+                  connecting={connectingStackoverflow}
+                  disconnecting={disconnectingStackoverflow}
+                  onConnect={handleConnectStackoverflow}
+                  onDisconnect={handleDisconnectStackoverflow}
+                />
 
                 {SOCIAL_INTEGRATIONS.map((integration) => (
                   <SocialIntegrationRow
