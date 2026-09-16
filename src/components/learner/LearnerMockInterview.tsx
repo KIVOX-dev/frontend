@@ -205,12 +205,18 @@ export function LearnerMockInterview() {
   // Reattaches the live stream to whichever <video> element is actually
   // mounted — the setup screen's preview and the live-interview screen's
   // preview are two different DOM nodes (separate `return`s below), so a
-  // single `videoRef` needs its `srcObject` re-set whenever `setup` flips.
+  // single `videoRef` needs its `srcObject` re-set whenever the mounted
+  // element changes. Two triggers, not one: `setup` flipping (setup screen
+  // -> live screen swaps which <video> exists) AND `mediaStatus` becoming
+  // "granted" (the setup screen's own preview <video> is gated behind that
+  // status, so it doesn't exist yet at the moment requestMedia() resolves —
+  // this effect is what actually attaches the stream to it once it mounts).
   useEffect(() => {
     if (videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
     }
-  }, [setup]);
+  }, [setup, mediaStatus]);
 
   // Stops the camera/mic hardware for good on unmount — leaving tracks live
   // after the user navigates away would keep the browser's recording
@@ -234,10 +240,10 @@ export function LearnerMockInterview() {
       // "camera compulsory" requirement means that has to be surfaced, not
       // silently ignored.
       stream.getVideoTracks()[0]?.addEventListener("ended", () => setCameraDisconnected(true));
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
-      }
+      // Attaching srcObject here is unreliable — the setup screen's preview
+      // <video> only mounts once mediaStatus becomes "granted", which hasn't
+      // happened yet at this point. The [setup, mediaStatus] effect above
+      // handles the actual attachment once that element exists.
       setMediaStatus("granted");
     } catch (err) {
       console.error("Camera/microphone permission denied:", err);
@@ -250,21 +256,43 @@ export function LearnerMockInterview() {
   useEffect(() => {
     if (setup || interviewComplete || mediaStatus !== "granted" || !poseModelReady) return;
 
+    // A thrown detectForVideo() call (dropped WebGL context, a transient GPU
+    // delegate hiccup, etc.) must not kill this loop — without the try/catch,
+    // one bad frame stopped requestAnimationFrame from ever rescheduling,
+    // which froze postureWarning at whatever it last said, permanently, with
+    // no visible error to the user. After a handful of consecutive failures
+    // this gives up for good instead of hammering a broken pipeline forever.
+    let consecutiveErrors = 0;
+    const MAX_CONSECUTIVE_ERRORS = 5;
+
     const detect = () => {
-      const video = videoRef.current;
-      const landmarker = poseLandmarkerRef.current;
-      if (video && landmarker && video.readyState >= 2) {
-        const result = landmarker.detectForVideo(video, performance.now());
-        const issue = evaluatePosture(result);
-        const now = Date.now();
-        if (issue) {
-          if (postureIssueSinceRef.current == null) postureIssueSinceRef.current = now;
-          if (now - postureIssueSinceRef.current > POSTURE_WARNING_DEBOUNCE_MS) {
-            setPostureWarning(issue);
+      try {
+        const video = videoRef.current;
+        const landmarker = poseLandmarkerRef.current;
+        if (video && landmarker && video.readyState >= 2) {
+          const result = landmarker.detectForVideo(video, performance.now());
+          consecutiveErrors = 0;
+          const issue = evaluatePosture(result);
+          const now = Date.now();
+          if (issue) {
+            if (postureIssueSinceRef.current == null) postureIssueSinceRef.current = now;
+            if (now - postureIssueSinceRef.current > POSTURE_WARNING_DEBOUNCE_MS) {
+              setPostureWarning(issue);
+            }
+          } else {
+            postureIssueSinceRef.current = null;
+            setPostureWarning(null);
           }
-        } else {
+        }
+      } catch (err) {
+        console.error("Posture detection frame failed:", err);
+        consecutiveErrors += 1;
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          // Degrade to "no posture detection" rather than leaving a stale
+          // warning on screen with nothing left updating it.
           postureIssueSinceRef.current = null;
           setPostureWarning(null);
+          return;
         }
       }
       poseLoopRef.current = requestAnimationFrame(detect);
