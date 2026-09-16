@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { User, ShieldCheck, GraduationCap, LogOut, Pencil } from "lucide-react";
-import { api } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { User, ShieldCheck, GraduationCap, LogOut, Pencil, Plug, Unlink } from "lucide-react";
+import { api, type ApiRequestConfig } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
 import { Card } from "@/components/ui/Card";
@@ -30,11 +31,36 @@ type StudentProfile = {
   avg_accuracy?: number | null;
   streak_days?: number | null;
   interviews_completed?: number | null;
+  github_username?: string | null;
+  github_avatar_url?: string | null;
+  github_connected_at?: string | null;
 };
 
 type Department = { id: string; name: string };
 
-type Tab = "profile" | "security" | "student";
+type Tab = "profile" | "security" | "student" | "integrations";
+
+// lucide-react ships no brand/logo icons (see githubOAuthState.js's caller
+// for the backend side of this feature) — hand-rolled inline SVG, same
+// pattern as LearnerShell.tsx's custom nav icons.
+function GitHubIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.221-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.026 2.747-1.026.546 1.378.202 2.397.1 2.65.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.31.678.921.678 1.856 0 1.34-.012 2.421-.012 2.751 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" />
+    </svg>
+  );
+}
+
+// Not yet backed by real endpoints — LeetCode/HackerRank have no public
+// OAuth surface and Dribbble's requires manual app approval (unlike GitHub's
+// standard OAuth app flow), so these render as a "coming soon" preview
+// rather than a half-working connect button. See githubAuth.service.js for
+// the one that is fully wired.
+const COMING_SOON_INTEGRATIONS = [
+  { name: "LeetCode", blurb: "Highlight your problem-solving skills." },
+  { name: "HackerRank", blurb: "Prove your expertise through coding badges." },
+  { name: "Dribbble", blurb: "Display your creative design portfolio." },
+];
 
 function capitalize(value?: string | null) {
   if (!value) return undefined;
@@ -78,8 +104,13 @@ function TabButton({
 export function SettingsPanel() {
   const { user, logout } = useAuthStore();
   const isStudent = user?.role === "student";
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [connectingGithub, setConnectingGithub] = useState(false);
+  const [disconnectingGithub, setDisconnectingGithub] = useState(false);
+  const [githubMsg, setGithubMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [pwdForm, setPwdForm] = useState({ current_password: "", new_password: "" });
   const [pwdMsg, setPwdMsg] = useState("");
@@ -123,7 +154,61 @@ export function SettingsPanel() {
       .finally(() => setProfileLoading(false));
   }, [isStudent]);
 
+  // Lands here once, right after the GitHub OAuth callback redirect sends
+  // the browser back with `?tab=integrations&github=connected|error`. Reads
+  // it, surfaces a message, then strips the query string so refreshing or
+  // re-sharing the URL doesn't replay the same success/error message.
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const github = searchParams.get("github");
+    if (!tab && !github) return;
+
+    if (tab === "integrations") setActiveTab("integrations");
+    if (github === "connected") {
+      setGithubMsg({ type: "success", text: "GitHub connected." });
+    } else if (github === "error") {
+      const reasons: Record<string, string> = {
+        denied: "GitHub authorization was cancelled.",
+        already_linked: "That GitHub account is already connected to another student.",
+        expired: "That connection attempt expired — please try again.",
+        no_profile: "Set up your student profile before connecting GitHub.",
+      };
+      setGithubMsg({ type: "error", text: reasons[searchParams.get("reason") || ""] || "Couldn't connect GitHub — please try again." });
+    }
+    router.replace(window.location.pathname, { scroll: false });
+    // Only ever meant to process the redirect's own query string once, on
+    // arrival — re-running on every searchParams identity change would loop
+    // against the replace() above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const departmentName = departments.find((d) => d.id === studentProfile?.department_id)?.name;
+
+  const handleConnectGithub = async () => {
+    setConnectingGithub(true);
+    setGithubMsg(null);
+    try {
+      const res = await api.get<{ url: string }>("/auth/github/connect", { cache: false } as ApiRequestConfig);
+      window.location.href = res.data.url;
+    } catch (err: unknown) {
+      setGithubMsg({ type: "error", text: extractErrorMessage(err, "Couldn't start the GitHub connection") });
+      setConnectingGithub(false);
+    }
+  };
+
+  const handleDisconnectGithub = async () => {
+    if (!window.confirm("Disconnect your GitHub account?")) return;
+    setDisconnectingGithub(true);
+    setGithubMsg(null);
+    try {
+      const res = await api.delete<StudentProfile>("/auth/github/disconnect");
+      setStudentProfile(res.data);
+    } catch (err: unknown) {
+      setGithubMsg({ type: "error", text: extractErrorMessage(err, "Couldn't disconnect GitHub") });
+    } finally {
+      setDisconnectingGithub(false);
+    }
+  };
 
   const startEditingProfile = () => {
     if (!studentProfile) return;
@@ -224,6 +309,11 @@ export function SettingsPanel() {
             {isStudent && (
               <TabButton active={activeTab === "student"} icon={GraduationCap} onClick={() => setActiveTab("student")}>
                 Student Details
+              </TabButton>
+            )}
+            {isStudent && (
+              <TabButton active={activeTab === "integrations"} icon={Plug} onClick={() => setActiveTab("integrations")}>
+                Integrations
               </TabButton>
             )}
           </nav>
@@ -435,6 +525,61 @@ export function SettingsPanel() {
                   </section>
                 </div>
               )}
+            </Card>
+          )}
+
+          {activeTab === "integrations" && isStudent && (
+            <Card>
+              <h2 className="text-section-title mb-1">Integrations</h2>
+              <p className="text-small mb-5">Showcase your work by connecting your accounts.</p>
+
+              {githubMsg && (
+                <p className={cn("text-small mb-4", githubMsg.type === "success" ? "text-success" : "text-danger")}>
+                  {githubMsg.text}
+                </p>
+              )}
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-4 rounded-md border border-line p-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <GitHubIcon className="size-8 shrink-0 text-ink" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-ink">GitHub</p>
+                      <p className="text-small truncate">
+                        {studentProfile?.github_username
+                          ? `Connected as @${studentProfile.github_username}`
+                          : "Showcase your projects and contributions to recruiters."}
+                      </p>
+                    </div>
+                  </div>
+                  {studentProfile?.github_username ? (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge tone="success">Connected</Badge>
+                      <Button variant="secondary" size="sm" onClick={handleDisconnectGithub} loading={disconnectingGithub}>
+                        <Unlink className="size-3.5" />
+                        Disconnect
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button size="sm" onClick={handleConnectGithub} loading={connectingGithub} className="shrink-0">
+                      Connect
+                    </Button>
+                  )}
+                </div>
+
+                {COMING_SOON_INTEGRATIONS.map((integration) => (
+                  <div
+                    key={integration.name}
+                    className="flex items-center justify-between gap-4 rounded-md border border-line p-4 opacity-60"
+                  >
+                    <div>
+                      <p className="font-semibold text-ink">{integration.name}</p>
+                      <p className="text-small">{integration.blurb}</p>
+                    </div>
+                    <Badge tone="neutral">Coming soon</Badge>
+                  </div>
+                ))}
+              </div>
             </Card>
           )}
         </div>

@@ -33,10 +33,22 @@ function LearnerContent() {
   const [mounted, setMounted] = useState(false);
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode") === "signup" ? "signup" : "login";
+  const screenParam = searchParams.get("screen");
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Lands here after the GitHub OAuth callback redirect (see node-api's
+  // githubAuth.service.js) — that round trip has no in-memory uiStore state
+  // to return to, only this URL, so `?screen=settings` is how it tells this
+  // page which screen to open. SettingsPanel.tsx itself reads the remaining
+  // `tab`/`github`/`reason` params and strips the query string afterward.
+  useEffect(() => {
+    if (screenParam === "settings") {
+      useUiStore.getState().setActiveScreen("settings");
+    }
+  }, [screenParam]);
 
   if (!mounted) return null;
 

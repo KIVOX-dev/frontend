@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
@@ -55,7 +55,9 @@ export default function FacultyPage() {
 
   return (
     <LearnerShell>
-      {renderScreen()}
+      {/* SettingsPanel (its "settings" case above) calls useSearchParams —
+          Next requires that hook's nearest ancestor to be a Suspense boundary. */}
+      <Suspense fallback={null}>{renderScreen()}</Suspense>
     </LearnerShell>
   );
 }
