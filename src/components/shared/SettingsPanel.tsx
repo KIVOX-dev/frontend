@@ -34,6 +34,9 @@ type StudentProfile = {
   github_username?: string | null;
   github_avatar_url?: string | null;
   github_connected_at?: string | null;
+  leetcode_username?: string | null;
+  hackerrank_username?: string | null;
+  dribbble_username?: string | null;
 };
 
 type Department = { id: string; name: string };
@@ -51,16 +54,145 @@ function GitHubIcon({ className }: { className?: string }) {
   );
 }
 
-// Not yet backed by real endpoints — LeetCode/HackerRank have no public
-// OAuth surface and Dribbble's requires manual app approval (unlike GitHub's
-// standard OAuth app flow), so these render as a "coming soon" preview
-// rather than a half-working connect button. See githubAuth.service.js for
-// the one that is fully wired.
-const COMING_SOON_INTEGRATIONS = [
-  { name: "LeetCode", blurb: "Highlight your problem-solving skills." },
-  { name: "HackerRank", blurb: "Prove your expertise through coding badges." },
-  { name: "Dribbble", blurb: "Display your creative design portfolio." },
-];
+// None of these three have a public OAuth surface a third party can
+// register against (unlike GitHub) — badges instead of real brand logos
+// (same reasoning as GitHubIcon above), and the profile save itself is
+// best-effort verified server-side (see studentProfile.service.js's
+// _verifyAndNormalize) rather than a real authenticated connection.
+function LeetCodeIcon({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-center justify-center rounded-lg text-xs font-bold text-white", className)} style={{ background: "#FFA116" }} aria-hidden="true">
+      LC
+    </div>
+  );
+}
+function HackerRankIcon({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-center justify-center rounded-lg text-xs font-bold text-white", className)} style={{ background: "#00A551" }} aria-hidden="true">
+      HR
+    </div>
+  );
+}
+function DribbbleIcon({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-center justify-center rounded-full text-xs font-bold text-white", className)} style={{ background: "#EA4C89" }} aria-hidden="true">
+      Dr
+    </div>
+  );
+}
+
+const SOCIAL_INTEGRATIONS = [
+  { field: "leetcodeUsername", profileKey: "leetcode_username", label: "LeetCode", blurb: "Highlight your problem-solving skills.", icon: LeetCodeIcon },
+  { field: "hackerrankUsername", profileKey: "hackerrank_username", label: "HackerRank", blurb: "Prove your expertise through coding badges.", icon: HackerRankIcon },
+  { field: "dribbbleUsername", profileKey: "dribbble_username", label: "Dribbble", blurb: "Display your creative design portfolio.", icon: DribbbleIcon },
+] as const;
+
+function SocialIntegrationRow({
+  icon: Icon,
+  label,
+  blurb,
+  username,
+  suggestedUsername,
+  onSave,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  blurb: string;
+  username?: string | null;
+  // People often reuse the same handle across sites — pre-filling with the
+  // student's already-verified GitHub username saves typing for the common
+  // case, but it's only ever a starting guess: onSave still runs the same
+  // server-side verification as a manually typed one, so a wrong guess is
+  // rejected exactly like any other bad username would be.
+  suggestedUsername?: string | null;
+  onSave: (value: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleConnect = async () => {
+    if (!value.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onSave(value.trim());
+      setEditing(false);
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, `Couldn't connect ${label}`));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!window.confirm(`Disconnect ${label}?`)) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onSave("");
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, `Couldn't disconnect ${label}`));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-line p-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <Icon className="size-8 shrink-0" />
+          <div className="min-w-0">
+            <p className="font-semibold text-ink">{label}</p>
+            {!editing && <p className="text-small truncate">{username ? `Connected as @${username}` : blurb}</p>}
+          </div>
+        </div>
+        {username && !editing ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge tone="success">Connected</Badge>
+            <Button variant="secondary" size="sm" onClick={handleDisconnect} loading={saving}>
+              <Unlink className="size-3.5" />
+              Disconnect
+            </Button>
+          </div>
+        ) : !editing ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setValue(suggestedUsername || "");
+              setError("");
+              setEditing(true);
+            }}
+            className="shrink-0"
+          >
+            Connect
+          </Button>
+        ) : null}
+      </div>
+
+      {editing && (
+        <div className="mt-3">
+          {suggestedUsername && value === suggestedUsername && (
+            <p className="text-caption mb-1.5">Guessed from your GitHub username — confirm or edit it.</p>
+          )}
+          <div className="flex items-center gap-2">
+            <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder={`Your ${label} username`} className="h-9" autoFocus />
+            <Button size="sm" onClick={handleConnect} loading={saving} disabled={!value.trim()}>
+              Save
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setEditing(false)} disabled={saving}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+      {error && <p className="text-small text-danger mt-2">{error}</p>}
+    </div>
+  );
+}
 
 function capitalize(value?: string | null) {
   if (!value) return undefined;
@@ -208,6 +340,15 @@ export function SettingsPanel() {
     } finally {
       setDisconnectingGithub(false);
     }
+  };
+
+  // Shared by LeetCode/HackerRank/Dribbble — an empty value clears the field
+  // (Disconnect), a non-empty one is best-effort verified server-side (see
+  // studentProfile.service.js#_verifyAndNormalize) before saving, so a
+  // rejection here means the site itself said that username doesn't exist.
+  const handleSaveSocial = async (field: string, value: string) => {
+    const res = await api.put<StudentProfile>("/students/profile", { [field]: value });
+    setStudentProfile(res.data);
   };
 
   const startEditingProfile = () => {
@@ -567,17 +708,16 @@ export function SettingsPanel() {
                   )}
                 </div>
 
-                {COMING_SOON_INTEGRATIONS.map((integration) => (
-                  <div
-                    key={integration.name}
-                    className="flex items-center justify-between gap-4 rounded-md border border-line p-4 opacity-60"
-                  >
-                    <div>
-                      <p className="font-semibold text-ink">{integration.name}</p>
-                      <p className="text-small">{integration.blurb}</p>
-                    </div>
-                    <Badge tone="neutral">Coming soon</Badge>
-                  </div>
+                {SOCIAL_INTEGRATIONS.map((integration) => (
+                  <SocialIntegrationRow
+                    key={integration.field}
+                    icon={integration.icon}
+                    label={integration.label}
+                    blurb={integration.blurb}
+                    username={studentProfile?.[integration.profileKey]}
+                    suggestedUsername={studentProfile?.github_username}
+                    onSave={(value) => handleSaveSocial(integration.field, value)}
+                  />
                 ))}
               </div>
             </Card>
