@@ -31,13 +31,17 @@ function levelFor(count: number, max: number): 0 | 1 | 2 | 3 | 4 {
 const LEVEL_COLOR = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"];
 
 /**
- * A GitHub-contributions-style calendar heatmap of this user's own activity
- * (logins, completed practice tests, mock interviews — see node-api's
- * GET /auth/me/activity-heatmap for exactly what's counted). Read-only,
+ * A GitHub-contributions-style calendar heatmap. Shows the student's real
+ * GitHub contribution history when they've connected a GitHub account
+ * (Settings -> Integrations), otherwise falls back to this platform's own
+ * activity (logins, completed practice tests, mock interviews) — the backend
+ * decides which and reports it via `source` (see node-api's
+ * GET /auth/me/activity-heatmap / auth.service.js#activityHeatmap). Read-only,
  * self-contained: fetches its own data, no props needed.
  */
 export function ActivityHeatmap() {
   const [days, setDays] = useState<DayCount[] | null>(null);
+  const [source, setSource] = useState<"github" | "platform">("platform");
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -45,7 +49,9 @@ export function ActivityHeatmap() {
     api
       .get("/auth/me/activity-heatmap")
       .then((res) => {
-        if (!cancelled) setDays(res.data.days || []);
+        if (cancelled) return;
+        setDays(res.data.days || []);
+        setSource(res.data.source === "github" ? "github" : "platform");
       })
       .catch(() => {
         if (!cancelled) setError(true);
@@ -99,11 +105,14 @@ export function ActivityHeatmap() {
   });
 
   const totalActive = days.filter((d) => d.count > 0).length;
+  const totalContributions = days.reduce((sum, d) => sum + d.count, 0);
 
   return (
     <div>
       <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "10px" }}>
-        {totalActive} active day{totalActive === 1 ? "" : "s"} in the last year
+        {source === "github"
+          ? `${totalContributions} GitHub contribution${totalContributions === 1 ? "" : "s"} in the last year`
+          : `${totalActive} active day${totalActive === 1 ? "" : "s"} in the last year`}
       </div>
       <div style={{ overflowX: "auto" }}>
         <div style={{ display: "inline-flex", flexDirection: "column", gap: "3px", minWidth: `${weeks.length * 13}px` }}>
@@ -130,7 +139,13 @@ export function ActivityHeatmap() {
                   return (
                     <div
                       key={di}
-                      title={isFuture ? undefined : `${toDateKey(day.date)}: ${day.count} activit${day.count === 1 ? "y" : "ies"}`}
+                      title={
+                        isFuture
+                          ? undefined
+                          : source === "github"
+                          ? `${toDateKey(day.date)}: ${day.count} contribution${day.count === 1 ? "" : "s"}`
+                          : `${toDateKey(day.date)}: ${day.count} activit${day.count === 1 ? "y" : "ies"}`
+                      }
                       style={{
                         width: "10px",
                         height: "10px",
