@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award, ExternalLink, ShieldCheck } from "lucide-react";
+import { Award, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { cn } from "@/lib/utils";
 
 type SkillBadge = {
   skill_name: string;
@@ -70,8 +70,8 @@ export function SkillsSection() {
             {certificates.map((certificate) => (
               <div key={certificate.id} className="flex items-center justify-between gap-4 rounded-md border border-line p-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex items-center justify-center size-10 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--color-success)_15%,white)] text-success">
-                    <ShieldCheck className="size-5" />
+                  <div className="flex items-center justify-center size-10 shrink-0 rounded-xl bg-[color-mix(in_srgb,var(--color-primary)_12%,white)] text-primary">
+                    <Award className="size-5" />
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-ink">{certificate.skill_name} — TalentSnaps Certified</p>
@@ -106,25 +106,20 @@ export function SkillsSection() {
             {badges.map((badge) => (
               <div
                 key={badge.skill_name}
-                className="flex items-center gap-2 rounded-full border border-line pl-2 pr-3 py-1.5"
+                className={cn(
+                  "flex items-center gap-2 rounded-full border pl-1.5 pr-3.5 py-1.5",
+                  badge.certificate_issued ? "border-success/40" : "border-line"
+                )}
                 title={
                   badge.certificate_issued
                     ? `Certified — ${badge.badge_count} lessons passed`
                     : `${badge.badge_count}/${BADGES_PER_CERTIFICATE} lessons passed`
                 }
               >
-                <span
-                  className={
-                    "flex items-center justify-center size-6 shrink-0 rounded-full " +
-                    (badge.certificate_issued ? "bg-[color-mix(in_srgb,var(--color-success)_18%,white)] text-success" : "bg-paper-tint text-ink-muted")
-                  }
-                >
-                  <Award className="size-3.5" />
+                <span className="flex items-center justify-center size-7 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--color-success)_18%,white)] text-success">
+                  <Award className="size-4" />
                 </span>
                 <span className="text-small font-medium text-ink">{badge.skill_name}</span>
-                <Badge tone={badge.certificate_issued ? "success" : "neutral"}>
-                  {badge.certificate_issued ? "Certified" : `${badge.badge_count}/${BADGES_PER_CERTIFICATE}`}
-                </Badge>
               </div>
             ))}
           </div>

@@ -595,7 +595,7 @@ export function AssessmentWindow() {
 
             {skillProgress && (
               <div className="flex items-center gap-3 rounded-md border border-line p-3 mb-4">
-                <div className="flex items-center justify-center size-9 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--color-primary)_12%,white)] text-primary">
+                <div className="flex items-center justify-center size-9 shrink-0 rounded-xl bg-[color-mix(in_srgb,var(--color-primary)_12%,white)] text-primary">
                   <Award className="size-4" />
                 </div>
                 <p className="text-small">
