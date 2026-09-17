@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, XCircle, Globe, Camera, Monitor, Award } from "lucide-react";
+import { CheckCircle2, XCircle, Globe, Camera, Monitor } from "lucide-react";
+import { SkillBadgeIcon } from "@/components/shared/SkillBadgeIcon";
 import { FilesetResolver, ObjectDetector, PoseLandmarker, type ObjectDetectorResult, type PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
@@ -595,9 +596,7 @@ export function AssessmentWindow() {
 
             {skillProgress && (
               <div className="flex items-center gap-3 rounded-md border border-line p-3 mb-4">
-                <div className="flex items-center justify-center size-9 shrink-0 rounded-xl bg-[color-mix(in_srgb,var(--color-primary)_12%,white)] text-primary">
-                  <Award className="size-4" />
-                </div>
+                <SkillBadgeIcon size={32} className="shrink-0" />
                 <p className="text-small">
                   {skillProgress.certificate_issued ? (
                     <>

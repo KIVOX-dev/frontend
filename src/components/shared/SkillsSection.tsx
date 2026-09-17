@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { SkillBadgeIcon } from "@/components/shared/SkillBadgeIcon";
 import { cn } from "@/lib/utils";
 
 type SkillBadge = {
@@ -70,9 +71,7 @@ export function SkillsSection() {
             {certificates.map((certificate) => (
               <div key={certificate.id} className="flex items-center justify-between gap-4 rounded-md border border-line p-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex items-center justify-center size-10 shrink-0 rounded-xl bg-[color-mix(in_srgb,var(--color-primary)_12%,white)] text-primary">
-                    <Award className="size-5" />
-                  </div>
+                  <SkillBadgeIcon size={40} className="shrink-0" />
                   <div className="min-w-0">
                     <p className="font-semibold text-ink">{certificate.skill_name} — TalentSnaps Certified</p>
                     <p className="text-small">Issued {new Date(certificate.issued_at).toLocaleDateString()}</p>
@@ -116,9 +115,7 @@ export function SkillsSection() {
                     : `${badge.badge_count}/${BADGES_PER_CERTIFICATE} lessons passed`
                 }
               >
-                <span className="flex items-center justify-center size-7 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--color-success)_18%,white)] text-success">
-                  <Award className="size-4" />
-                </span>
+                <SkillBadgeIcon size={28} className="shrink-0" />
                 <span className="text-small font-medium text-ink">{badge.skill_name}</span>
               </div>
             ))}
