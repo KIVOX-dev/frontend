@@ -1,14 +1,13 @@
 "use client";
 
 import { useAuthStore } from "@/stores/authStore";
-import { ActivityHeatmap } from "@/components/shared/ActivityHeatmap";
 import { ConnectedAppsCard } from "@/components/shared/ConnectedAppsCard";
 
 /**
  * The screen behind the profile chip's "My Activity" menu item — account
- * summary plus the GitHub-style activity heatmap. Reused as-is across every
- * role's shell (LearnerShell/CollegeAdminShell/HrShell all route their own
- * "my-activity" screen id here).
+ * summary plus (for students) connected-app status. Reused as-is across
+ * every role's shell (LearnerShell/CollegeAdminShell/HrShell all route their
+ * own "my-activity" screen id here).
  */
 export function MyActivity() {
   const { user } = useAuthStore();
@@ -45,11 +44,6 @@ export function MyActivity() {
             {user?.role?.replace(/_/g, " ") || "—"}
           </div>
         </div>
-      </div>
-
-      <div className="card" style={{ marginBottom: "20px", padding: "20px" }}>
-        <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--text)", marginBottom: "4px" }}>Activity</div>
-        <ActivityHeatmap />
       </div>
 
       {user?.role === "student" && <ConnectedAppsCard />}
