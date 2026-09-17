@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Field, Label, Input, FieldError } from "@/components/ui/Input";
 import { IntegrationsSection } from "@/components/shared/IntegrationsSection";
 import { GoogleAccountRow } from "@/components/shared/GoogleAccountRow";
+import { isGoogleLoginConfigured } from "@/lib/googleIdentity";
 import { cn } from "@/lib/utils";
 
 type SettingsTab = "account" | "integrations";
@@ -109,9 +110,11 @@ export function SettingsPanel() {
                 </form>
               </SettingsRow>
 
-              <SettingsRow title="Connect with social accounts" description="Services that you can use to sign in to your account.">
-                <GoogleAccountRow />
-              </SettingsRow>
+              {isGoogleLoginConfigured && (
+                <SettingsRow title="Connect with social accounts" description="Services that you can use to sign in to your account.">
+                  <GoogleAccountRow />
+                </SettingsRow>
+              )}
             </div>
           )}
 
