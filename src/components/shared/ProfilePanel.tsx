@@ -14,6 +14,7 @@ import { Field, Label, Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PerformanceSummarySection } from "@/components/shared/PerformanceSummarySection";
 import { IntegrationsSection } from "@/components/shared/IntegrationsSection";
+import { SkillsSection } from "@/components/shared/SkillsSection";
 import { cn } from "@/lib/utils";
 
 type StudentProfile = {
@@ -42,7 +43,7 @@ type StudentProfile = {
 
 type Department = { id: string; name: string };
 
-type Tab = "profile" | "career" | "student" | "integrations";
+type Tab = "profile" | "career" | "student" | "skills" | "integrations";
 
 type WorkExperienceEntry = {
   id: string;
@@ -787,6 +788,11 @@ export function ProfilePanel() {
           </ProfileTabButton>
         )}
         {isStudent && (
+          <ProfileTabButton active={activeTab === "skills"} onClick={() => setActiveTab("skills")}>
+            Skills
+          </ProfileTabButton>
+        )}
+        {isStudent && (
           <ProfileTabButton active={activeTab === "integrations"} onClick={() => setActiveTab("integrations")}>
             Integrations
           </ProfileTabButton>
@@ -1130,6 +1136,8 @@ export function ProfilePanel() {
               )}
             </Card>
           )}
+
+          {activeTab === "skills" && isStudent && <SkillsSection />}
 
           {activeTab === "integrations" && isStudent && <IntegrationsSection />}
       </div>

@@ -158,6 +158,11 @@ export function AssessmentWindow() {
   const lastDetectTimestampRef = useRef(0);
   const deviceIssueSinceRef = useRef<number | null>(null);
   const detectLoopRef = useRef<number | null>(null);
+  // Both loading effects and the detection loop below degrade silently by
+  // design (console.error only, assessment still proceeds without that
+  // check) — this makes that failure visible instead, since a silent
+  // failure here is indistinguishable from "nothing to report" otherwise.
+  const [proctoringIssue, setProctoringIssue] = useState<string | null>(null);
 
   const poseLandmarkerRef = useRef<PoseLandmarker | null>(null);
   const [poseModelReady, setPoseModelReady] = useState(false);
@@ -294,6 +299,7 @@ export function AssessmentWindow() {
         setObjectDetectorReady(true);
       } catch (err) {
         console.error("Failed to load device-detection model:", err);
+        if (!cancelled) setProctoringIssue(`Device-detection model failed to load: ${err instanceof Error ? err.message : String(err)}`);
       }
     })();
     return () => {
@@ -325,6 +331,7 @@ export function AssessmentWindow() {
         setPoseModelReady(true);
       } catch (err) {
         console.error("Failed to load framing-detection model:", err);
+        if (!cancelled) setProctoringIssue(`Framing-detection model failed to load: ${err instanceof Error ? err.message : String(err)}`);
       }
     })();
     return () => {
@@ -423,7 +430,10 @@ export function AssessmentWindow() {
       } catch (err) {
         console.error("Proctoring detection frame failed:", err);
         consecutiveErrors += 1;
-        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return;
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          setProctoringIssue(`Proctoring checks stopped after repeated errors: ${err instanceof Error ? err.message : String(err)}`);
+          return;
+        }
       }
       detectLoopRef.current = requestAnimationFrame(detect);
     };
@@ -622,6 +632,10 @@ export function AssessmentWindow() {
         <p className="text-small font-semibold mb-4 rounded-md border p-3 text-[var(--color-warning)] border-[color-mix(in_srgb,var(--color-warning)_30%,white)] bg-[color-mix(in_srgb,var(--color-warning)_8%,white)]">
           Warning {framingWarning.count}/2: {framingWarning.message} One more and the assessment will end.
         </p>
+      )}
+
+      {stage === "quiz" && proctoringIssue && (
+        <p className="text-small text-ink-muted mb-4 rounded-md border border-line bg-paper-tint p-3">{proctoringIssue}</p>
       )}
 
       {result && (
