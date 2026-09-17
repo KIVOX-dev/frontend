@@ -15,6 +15,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PerformanceSummarySection } from "@/components/shared/PerformanceSummarySection";
 import { IntegrationsSection } from "@/components/shared/IntegrationsSection";
 import { SkillsSection } from "@/components/shared/SkillsSection";
+import { FEATURE_FLAGS } from "@/config/featureFlags";
 import { cn } from "@/lib/utils";
 
 type StudentProfile = {
@@ -787,7 +788,7 @@ export function ProfilePanel() {
             Student Details
           </ProfileTabButton>
         )}
-        {isStudent && (
+        {isStudent && FEATURE_FLAGS.youtubeToCourse && (
           <ProfileTabButton active={activeTab === "skills"} onClick={() => setActiveTab("skills")}>
             Skills
           </ProfileTabButton>
@@ -1137,7 +1138,7 @@ export function ProfilePanel() {
             </Card>
           )}
 
-          {activeTab === "skills" && isStudent && <SkillsSection />}
+          {activeTab === "skills" && isStudent && FEATURE_FLAGS.youtubeToCourse && <SkillsSection />}
 
           {activeTab === "integrations" && isStudent && <IntegrationsSection />}
       </div>

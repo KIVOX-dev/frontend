@@ -9,6 +9,7 @@ import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { FEATURE_FLAGS } from "@/config/featureFlags";
 
 // Only one of these renders at a time (role selection / renderScreen switch
 // below) — dynamic-importing them keeps every other role's/screen's code
@@ -190,7 +191,16 @@ function InstitutionalContent() {
 
   // Render the active screen based on sidebar selection
   const renderScreen = () => {
-    switch (activeScreen) {
+    // Hidden behind FEATURE_FLAGS.youtubeToCourse for the current user test
+    // group — redirected to the same "coming soon" default the switch below
+    // already falls back to for any unrecognized screen id. Code/routes are
+    // untouched; this is the only gate, flip the flag back on (also
+    // restores the nav item in LearnerShell.tsx) to re-enable.
+    const screen =
+      !FEATURE_FLAGS.youtubeToCourse && (activeScreen === "learnings" || activeScreen === "youtube-course-import")
+        ? "youtube-course-hidden"
+        : activeScreen;
+    switch (screen) {
       case "dash":
         if (user?.role === "college_admin" || user?.role === "institution_admin") return <CollegeAdminDashboard />;
         if (user?.role === "faculty") return <FacultyDashboard />;
