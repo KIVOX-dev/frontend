@@ -38,6 +38,7 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         { id: "add-student", label: "Add Student", icon: <PracticeIcon /> },
         { id: "upload", label: "Upload Students", icon: <ResumeIcon /> },
         { id: "chat", label: "Messages", icon: <ChatIcon /> },
+        { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
         { id: "settings", label: "Settings", icon: <SettingsIcon /> },
       ]
     : [
@@ -54,6 +55,7 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
           { id: "lb", label: "Top Talent Board", icon: <LeaderboardIcon /> },
         ] : []),
         { id: "chat", label: "Messages", icon: <ChatIcon />, section: isInstitutionalStudent ? undefined : "Professional Profile" },
+        { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
         { id: "settings", label: "Settings", icon: <SettingsIcon /> },
       ];
 

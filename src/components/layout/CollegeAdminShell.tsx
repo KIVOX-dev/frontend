@@ -42,6 +42,7 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
     { id: "assessments", label: "Assessments", icon: <TestsIcon /> },
     { id: "tracking", label: "Student Tracking", icon: <IvIcon /> },
     { id: "chat", label: "Messages", icon: <ChatIcon /> },
+    { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon /> },
   ];
 

@@ -18,6 +18,7 @@ const FacultyLogin = dynamic(() => import("@/components/auth/FacultyLogin").then
 const InstitutionalStudentLogin = dynamic(() => import("@/components/auth/InstitutionalStudentLogin").then((m) => m.InstitutionalStudentLogin));
 const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").then((m) => m.PlatformChat));
 const SettingsPanel = dynamic(() => import("@/components/shared/SettingsPanel").then((m) => m.SettingsPanel));
+const ProfilePanel = dynamic(() => import("@/components/shared/ProfilePanel").then((m) => m.ProfilePanel));
 const MyActivity = dynamic(() => import("@/components/shared/MyActivity").then((m) => m.MyActivity));
 const SearchResults = dynamic(() => import("@/components/shared/SearchResults").then((m) => m.SearchResults));
 const CollegeAdminDashboard = dynamic(() => import("@/components/institutional/CollegeAdminDashboard").then((m) => m.CollegeAdminDashboard));
@@ -53,9 +54,9 @@ const INSTITUTIONAL_ROLES = ["college_admin", "institution_admin", "faculty", "s
 // and renderScreen()'s switch below has no per-case role check of its own, so
 // it renders an admin-only component (CollegeAdminDashboard) for a student —
 // which then 403s fetching /users instead of showing anything sensible.
-const ADMIN_SCREENS = new Set(["dash", "placements", "drives", "users", "security", "assessments", "tracking", "chat", "settings", "my-activity", "search-results"]);
-const FACULTY_SCREENS = new Set(["dash", "tracking", "add-student", "upload", "chat", "settings", "my-activity", "search-results"]);
-const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "mnc", "iv", "chat", "settings", "my-activity"];
+const ADMIN_SCREENS = new Set(["dash", "placements", "drives", "users", "security", "assessments", "tracking", "chat", "profile-info", "settings", "my-activity", "search-results"]);
+const FACULTY_SCREENS = new Set(["dash", "tracking", "add-student", "upload", "chat", "profile-info", "settings", "my-activity", "search-results"]);
+const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "mnc", "iv", "chat", "profile-info", "settings", "my-activity"];
 const INSTITUTIONAL_STUDENT_EXTRA_SCREENS = ["placements", "profile", "resume", "lb"];
 
 function InstitutionalContent() {
@@ -223,6 +224,8 @@ function InstitutionalContent() {
         return <FacultyUpload />;
       case "chat":
         return <PlatformChat />;
+      case "profile-info":
+        return <ProfilePanel />;
       case "settings":
         return <SettingsPanel />;
       case "my-activity":

@@ -16,6 +16,7 @@ const AddStudentPanel = dynamic(() => import("@/components/institutional/AddStud
 const StudentTracking = dynamic(() => import("@/components/institutional/StudentTracking").then((m) => m.StudentTracking));
 const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").then((m) => m.PlatformChat));
 const SettingsPanel = dynamic(() => import("@/components/shared/SettingsPanel").then((m) => m.SettingsPanel));
+const ProfilePanel = dynamic(() => import("@/components/shared/ProfilePanel").then((m) => m.ProfilePanel));
 
 export default function FacultyPage() {
   const { isAuthenticated, user } = useAuthStore();
@@ -48,6 +49,7 @@ export default function FacultyPage() {
       case "add-student": return <AddStudentPanel />;
       case "upload": return <FacultyUpload />;
       case "chat": return <PlatformChat />;
+      case "profile-info": return <ProfilePanel />;
       case "settings": return <SettingsPanel />;
       default: return <FacultyDashboard />;
     }
@@ -55,7 +57,7 @@ export default function FacultyPage() {
 
   return (
     <LearnerShell>
-      {/* SettingsPanel (its "settings" case above) calls useSearchParams —
+      {/* ProfilePanel (its "profile-info" case above) calls useSearchParams —
           Next requires that hook's nearest ancestor to be a Suspense boundary. */}
       <Suspense fallback={null}>{renderScreen()}</Suspense>
     </LearnerShell>

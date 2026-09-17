@@ -24,6 +24,7 @@ const TestHistory = dynamic(() => import("@/components/learner/TestHistory").the
 const PlacementOpportunities = dynamic(() => import("@/components/learner/PlacementOpportunities").then((m) => m.PlacementOpportunities));
 const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").then((m) => m.PlatformChat));
 const SettingsPanel = dynamic(() => import("@/components/shared/SettingsPanel").then((m) => m.SettingsPanel));
+const ProfilePanel = dynamic(() => import("@/components/shared/ProfilePanel").then((m) => m.ProfilePanel));
 const MyActivity = dynamic(() => import("@/components/shared/MyActivity").then((m) => m.MyActivity));
 
 // Separate component so useSearchParams is inside a Suspense boundary
@@ -39,14 +40,15 @@ function LearnerContent() {
     setMounted(true);
   }, []);
 
-  // Lands here after the GitHub OAuth callback redirect (see node-api's
-  // githubAuth.service.js) — that round trip has no in-memory uiStore state
-  // to return to, only this URL, so `?screen=settings` is how it tells this
-  // page which screen to open. SettingsPanel.tsx itself reads the remaining
-  // `tab`/`github`/`reason` params and strips the query string afterward.
+  // Lands here after an OAuth callback redirect (GitHub/LinkedIn/Stack
+  // Overflow — see node-api's githubAuth/linkedinAuth/stackexchangeAuth
+  // service.js) — that round trip has no in-memory uiStore state to return
+  // to, only this URL, so `?screen=profile-info` is how it tells this page
+  // which screen to open. ProfilePanel.tsx itself reads the remaining
+  // `tab`/`<provider>`/`reason` params and strips the query string afterward.
   useEffect(() => {
-    if (screenParam === "settings") {
-      useUiStore.getState().setActiveScreen("settings");
+    if (screenParam) {
+      useUiStore.getState().setActiveScreen(screenParam);
     }
   }, [screenParam]);
 
@@ -79,6 +81,7 @@ function LearnerContent() {
       case "history": return <TestHistory />;
       case "subs": return <Subscription />;
       case "chat": return <PlatformChat />;
+      case "profile-info": return <ProfilePanel />;
       case "settings": return <SettingsPanel />;
       case "my-activity": return <MyActivity />;
       default:

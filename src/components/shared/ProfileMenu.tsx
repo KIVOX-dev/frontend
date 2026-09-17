@@ -96,6 +96,19 @@ export function ProfileMenu({ avatar, avatarStyle, name, roleLabel, showSettings
               type="button"
               role="menuitem"
               onClick={() => {
+                setActiveScreen("profile-info");
+                setOpen(false);
+              }}
+              style={menuItemStyle}
+            >
+              Profile
+            </button>
+          )}
+          {showSettings && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
                 setActiveScreen("settings");
                 setOpen(false);
               }}
