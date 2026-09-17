@@ -601,7 +601,14 @@ export function AssessmentWindow() {
       </div>
 
       {submitError && <p className="text-small text-danger mt-4">{submitError}</p>}
-      {stage === "done" && <p className="text-small mt-5">You can close this window now.</p>}
+      {stage === "done" && (
+        <div className="flex items-center gap-3 mt-5">
+          <Button variant="secondary" onClick={() => (window.location.href = "/learner")}>
+            ← Back to Dashboard
+          </Button>
+          <p className="text-small">You can also just close this window.</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,6 +21,11 @@ type Lesson = {
   has_assessment: boolean;
   status: "not_started" | "in_progress" | "completed";
   watched_seconds: number;
+  // 'blocked': a malpractice attempt (external device detected — see
+  // AssessmentWindow.tsx) permanently disqualifies retaking this lesson's
+  // assessment. Enforced server-side too (course.service.js#getLessonAssessment),
+  // this just drives the UI so the student sees why before even trying.
+  assessment_status: "not_attempted" | "completed" | "blocked";
 };
 
 type CourseDetail = {
@@ -88,6 +93,18 @@ export function CourseViewer({
 
   useEffect(() => {
     fetchCourse();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId]);
+
+  // The assessment (with its own malpractice-detection gate) runs in a
+  // separate browser window/tab (see AssessmentTab.handleOpen below) — this
+  // window has no way to know it finished or was disqualified until the
+  // student comes back to it, so re-fetch whenever that happens instead of
+  // showing a stale "not attempted"/pre-malpractice state.
+  useEffect(() => {
+    const onFocus = () => fetchCourse();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
 
@@ -213,7 +230,7 @@ export function CourseViewer({
           {activeTab === "notes" ? (
             <NotesTab courseId={courseId} lessonId={activeLesson.id} playerRef={playerRef} />
           ) : (
-            <AssessmentTab courseId={courseId} lessonId={activeLesson.id} />
+            <AssessmentTab courseId={courseId} lessonId={activeLesson.id} assessmentStatus={activeLesson.assessment_status} />
           )}
         </div>
 
@@ -243,7 +260,10 @@ export function CourseViewer({
                 )}
                 <div className="min-w-0">
                   <p className="text-small font-medium text-ink line-clamp-2">{lesson.title}</p>
-                  <p className="text-caption">{formatTime(lesson.duration_seconds)}</p>
+                  <p className="text-caption">
+                    {formatTime(lesson.duration_seconds)}
+                    {lesson.assessment_status === "blocked" && <span className="text-danger font-medium"> · Assessment disqualified</span>}
+                  </p>
                 </div>
               </button>
             ))}
@@ -367,12 +387,27 @@ function NotesTab({
 // window/tab — a real separate window is what makes "did they switch away"
 // a meaningful integrity signal, and keeps the proctoring checks isolated
 // from this page's video/notes UI. This tab is just the launcher.
-function AssessmentTab({ courseId, lessonId }: { courseId: string; lessonId: string }) {
+function AssessmentTab({
+  courseId,
+  lessonId,
+  assessmentStatus,
+}: {
+  courseId: string;
+  lessonId: string;
+  assessmentStatus: "not_attempted" | "completed" | "blocked";
+}) {
   const [latestAttempt, setLatestAttempt] = useState<AssessmentAttempt | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Blocked lessons 403 on this endpoint (course.service.js#getLessonAssessment's
+    // block check) — the course-detail payload already told us that via
+    // assessment_status, no need to hit an endpoint we know will refuse.
+    if (assessmentStatus === "blocked") {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError("");
     api
@@ -380,12 +415,20 @@ function AssessmentTab({ courseId, lessonId }: { courseId: string; lessonId: str
       .then((res) => setLatestAttempt(res.data.latest_attempt))
       .catch((err: unknown) => setError(extractErrorMessage(err, "Couldn't load the assessment")))
       .finally(() => setLoading(false));
-  }, [courseId, lessonId]);
+  }, [courseId, lessonId, assessmentStatus]);
 
   const handleOpen = () => {
     const url = `/learner?screen=lesson-assessment&courseId=${encodeURIComponent(courseId)}&lessonId=${encodeURIComponent(lessonId)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
+
+  if (assessmentStatus === "blocked") {
+    return (
+      <p className="text-small text-danger font-semibold rounded-md border border-danger/30 bg-[color-mix(in_srgb,var(--color-danger)_6%,white)] p-3">
+        This assessment was disqualified for malpractice (an external device was detected in your camera) and can&apos;t be retaken.
+      </p>
+    );
+  }
 
   if (loading) return <p className="text-small">Loading…</p>;
   if (error) return <p className="text-small text-danger">{error}</p>;
