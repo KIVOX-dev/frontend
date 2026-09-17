@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, XCircle, Globe, Camera, Monitor } from "lucide-react";
+import { CheckCircle2, XCircle, Globe, Camera, Monitor, Award } from "lucide-react";
 import { FilesetResolver, ObjectDetector, PoseLandmarker, type ObjectDetectorResult, type PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
@@ -14,10 +14,8 @@ type AssessmentQuestion = { question: string; options: string[] };
 type GradedQuestion = AssessmentQuestion & { correct_answer: string; selected: string | null; is_correct: boolean };
 type AssessmentAttempt = { score: number; max_score: number; percentage: number };
 type CheckStatus = "idle" | "checking" | "granted" | "denied";
-
-// 2 minutes/question — roughly matches the reference's ~100s/question pace
-// (15 questions / 25 minutes) for our own 10-question lesson quizzes.
-const SECONDS_PER_QUESTION = 120;
+type SkillProgress = { skill_name: string; badge_count: number; certificate_issued: boolean; badges_remaining: number };
+const BADGES_PER_CERTIFICATE = 5;
 
 // Same CDN/model-store pattern as LearnerMockInterview.tsx's posture
 // detection (already allow-listed in next.config.mjs's CSP) — a second,
@@ -116,6 +114,8 @@ export function AssessmentWindow() {
 
   const [lessonTitle, setLessonTitle] = useState("");
   const [questions, setQuestions] = useState<AssessmentQuestion[] | null>(null);
+  const [durationSeconds, setDurationSeconds] = useState(0);
+  const [skillProgress, setSkillProgress] = useState<SkillProgress | null>(null);
   const [loadError, setLoadError] = useState("");
   const [stage, setStage] = useState<"loading" | "gate" | "quiz" | "done">("loading");
 
@@ -182,12 +182,16 @@ export function AssessmentWindow() {
     }
     Promise.all([
       api.get<{ title: string; lessons: { id: string; title: string }[] }>(`/courses/${courseId}`),
-      api.get<{ questions: AssessmentQuestion[] }>(`/courses/${courseId}/lessons/${lessonId}/assessment`),
+      api.get<{ questions: AssessmentQuestion[]; duration_seconds: number; skill_progress: SkillProgress | null }>(
+        `/courses/${courseId}/lessons/${lessonId}/assessment`
+      ),
     ])
       .then(([courseRes, assessmentRes]) => {
         const lesson = courseRes.data.lessons.find((l) => l.id === lessonId);
         setLessonTitle(lesson?.title || courseRes.data.title);
         setQuestions(assessmentRes.data.questions);
+        setDurationSeconds(assessmentRes.data.duration_seconds);
+        setSkillProgress(assessmentRes.data.skill_progress);
         setAnswers(new Array(assessmentRes.data.questions.length).fill(null));
         setStage("gate");
       })
@@ -270,7 +274,7 @@ export function AssessmentWindow() {
 
   const handleStart = () => {
     if (!readyToStart || !questions) return;
-    setSecondsLeft(questions.length * SECONDS_PER_QUESTION);
+    setSecondsLeft(durationSeconds);
     setCurrentIndex(0);
     setStage("quiz");
   };
@@ -517,7 +521,7 @@ export function AssessmentWindow() {
   }
 
   if (stage === "gate") {
-    const durationMinutes = Math.round((questions.length * SECONDS_PER_QUESTION) / 60);
+    const durationMinutes = Math.round(durationSeconds / 60);
     const passMarks = Math.ceil(questions.length * 0.6);
 
     return (
@@ -588,6 +592,28 @@ export function AssessmentWindow() {
                 <OverviewRow label="Pass Marks" value={`60% (${passMarks} Marks)`} valueClassName="text-success font-semibold" />
               </div>
             </Card>
+
+            {skillProgress && (
+              <div className="flex items-center gap-3 rounded-md border border-line p-3 mb-4">
+                <div className="flex items-center justify-center size-9 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--color-primary)_12%,white)] text-primary">
+                  <Award className="size-4" />
+                </div>
+                <p className="text-small">
+                  {skillProgress.certificate_issued ? (
+                    <>
+                      Passing this counts toward your already-certified <span className="font-semibold text-ink">{skillProgress.skill_name}</span>{" "}
+                      badge.
+                    </>
+                  ) : (
+                    <>
+                      Passing this earns a badge toward <span className="font-semibold text-ink">{skillProgress.skill_name}</span> — currently{" "}
+                      {skillProgress.badge_count}/{BADGES_PER_CERTIFICATE}. {BADGES_PER_CERTIFICATE} distinct lessons passed earns a real,
+                      LinkedIn-addable certificate.
+                    </>
+                  )}
+                </p>
+              </div>
+            )}
 
             <label className="flex items-start gap-2 text-small mb-4 cursor-pointer">
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5" />
