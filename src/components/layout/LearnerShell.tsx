@@ -58,7 +58,9 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
         { id: "history", label: "Test History", icon: <ResumeIcon /> },
         { id: "tests", label: "Aptitude Tests", icon: <TestsIcon /> },
+        { id: "learnings", label: "Learnings", icon: <LearningsIcon /> },
         { id: PRACTICE_TOOLS_GROUP_ID, label: "Practice Tools", icon: <PracticeIcon />, children: practiceToolsChildren },
+        { id: "youtube-course-import", label: "YouTube to Course", icon: <YoutubeToolIcon /> },
         ...(isInstitutionalStudent ? [
           { id: "placements", label: "Placements", section: "Professional Profile", icon: <PlacementIcon /> },
           // Performance Summary (formerly its own "Profile Summarizer" nav
@@ -258,6 +260,24 @@ function PracticeIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+    </svg>
+  );
+}
+
+function LearningsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="23 7 16 12 23 17 23 7" />
+      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+    </svg>
+  );
+}
+
+function YoutubeToolIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M2 12s0-3.5.5-5A2.5 2.5 0 014.6 5.5C6.2 5 12 5 12 5s5.8 0 7.4.5A2.5 2.5 0 0121.5 7c.5 1.5.5 5 .5 5s0 3.5-.5 5a2.5 2.5 0 01-1.9 1.9c-1.6.5-7.4.5-7.4.5s-5.8 0-7.4-.5A2.5 2.5 0 012.5 17c-.5-1.5-.5-5-.5-5z" />
+      <polygon points="10 9 15 12 10 15 10 9" fill="currentColor" stroke="none" />
     </svg>
   );
 }

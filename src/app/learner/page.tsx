@@ -25,6 +25,8 @@ const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").th
 const SettingsPanel = dynamic(() => import("@/components/shared/SettingsPanel").then((m) => m.SettingsPanel));
 const ProfilePanel = dynamic(() => import("@/components/shared/ProfilePanel").then((m) => m.ProfilePanel));
 const MyActivity = dynamic(() => import("@/components/shared/MyActivity").then((m) => m.MyActivity));
+const MyLearnings = dynamic(() => import("@/components/learner/MyLearnings").then((m) => m.MyLearnings));
+const YoutubeCourseImport = dynamic(() => import("@/components/learner/YoutubeCourseImport").then((m) => m.YoutubeCourseImport));
 
 // Separate component so useSearchParams is inside a Suspense boundary
 function LearnerContent() {
@@ -86,6 +88,8 @@ function LearnerContent() {
       case "profile-info": return <ProfilePanel />;
       case "settings": return <SettingsPanel />;
       case "my-activity": return <MyActivity />;
+      case "learnings": return <MyLearnings />;
+      case "youtube-course-import": return <YoutubeCourseImport />;
       default:
         return (
           <div style={{ padding: "40px", textAlign: "center", color: "var(--muted)" }}>
