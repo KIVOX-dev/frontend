@@ -74,8 +74,15 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
   const activeChildGroupId = navItems.find(
     (item) => "children" in item && item.children?.some((c) => `nav-${c.id}` === activeNav)
   )?.id;
-  const [manuallyExpandedGroup, setManuallyExpandedGroup] = React.useState<string | null>(null);
-  const expandedGroupId = manuallyExpandedGroup ?? activeChildGroupId ?? null;
+  // { groupId, expanded } rather than a bare `string | null` — the previous
+  // version stored only "which group is manually expanded", so collapsing
+  // (clearing it back to null) had no effect whenever the active screen was
+  // still one of that group's children: the display fell back to
+  // `manuallyExpandedGroup ?? activeChildGroupId`, and activeChildGroupId
+  // alone re-expanded it every time, making the group permanently stuck open.
+  // Storing the explicit boolean choice means a deliberate "collapsed" survives
+  // that fallback instead of being swallowed by it.
+  const [expandedOverride, setExpandedOverride] = React.useState<{ groupId: string; expanded: boolean } | null>(null);
 
   return (
     <div id="app" className={isMobileSidebarOpen ? "mob-sidebar-open" : ""}>
@@ -92,7 +99,11 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         <div id="snav">
           {navItems.map((item) => {
             const hasChildren = "children" in item && Array.isArray(item.children);
-            const isExpanded = hasChildren && expandedGroupId === item.id;
+            const isExpanded =
+              hasChildren &&
+              (expandedOverride && expandedOverride.groupId === item.id
+                ? expandedOverride.expanded
+                : activeChildGroupId === item.id);
             return (
               <React.Fragment key={item.id}>
                 {item.section && <div className="nav-sec">{item.section}</div>}
@@ -102,7 +113,7 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
                   id={`nav-${item.id}`}
                   onClick={() =>
                     hasChildren
-                      ? setManuallyExpandedGroup((current) => (current === item.id ? null : item.id))
+                      ? setExpandedOverride({ groupId: item.id, expanded: !isExpanded })
                       : setActiveScreen(item.id)
                   }
                   aria-current={!hasChildren && activeNav === `nav-${item.id}` ? "page" : undefined}

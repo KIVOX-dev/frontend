@@ -848,14 +848,22 @@ export function ProfilePanel() {
           <div className="pb-1 min-w-0">
             <h1 className="text-heading-l text-ink leading-tight truncate">{user?.name}</h1>
             <p className="text-small text-ink-muted truncate">{user?.email}</p>
-            {avatarError && <p className="text-small text-danger mt-1">{avatarError}</p>}
-            {uploadingAvatar && <p className="text-small text-ink-muted mt-1">Uploading…</p>}
           </div>
         </div>
         <Badge tone="success" className="capitalize mb-2 shrink-0">
           {user?.role?.replace("_", " ")}
         </Badge>
       </div>
+
+      {/* Kept out of the identity row above on purpose — that row uses
+          items-end (bottom-aligns the fixed-height avatar against the
+          name/email text), so any extra line rendered inside it shifts the
+          alignment math and can visually collide with the name heading. */}
+      {(avatarError || uploadingAvatar) && (
+        <p className={cn("text-small px-2 mb-4 -mt-2", avatarError ? "text-danger" : "text-ink-muted")}>
+          {avatarError || "Uploading photo…"}
+        </p>
+      )}
 
       {/* Horizontal tabs */}
       <div className="flex gap-1 border-b border-line mb-6 overflow-x-auto">
