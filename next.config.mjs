@@ -52,6 +52,11 @@ function securityHeaders({ allowEval = false } = {}) {
   // runtime — neither ships in this app's own bundle.
   const mediapipeCdn = "https://cdn.jsdelivr.net";
   const mediapipeModelStore = "https://storage.googleapis.com";
+  // YouTube to Course's video player (CourseViewer.tsx) — the IFrame Player
+  // API script (lib/youtubePlayer.ts) is loaded directly into this page, and
+  // the player itself is embedded as an iframe pointed at youtube.com, so
+  // both script-src and frame-src need it below, not just connect-src.
+  const youtubeOrigin = "https://www.youtube.com";
   const connectSrc = [
     "'self'",
     "https://accounts.google.com",
@@ -60,6 +65,7 @@ function securityHeaders({ allowEval = false } = {}) {
     wsOrigin,
     mediapipeCdn,
     mediapipeModelStore,
+    youtubeOrigin,
   ]
     .filter(Boolean)
     .join(" ");
@@ -95,14 +101,16 @@ function securityHeaders({ allowEval = false } = {}) {
         // MediaPipe's pose-detection WASM runtime needs, applied everywhere
         // rather than only allowEval routes since it can't be abused for JS
         // eval the way 'unsafe-eval' can.
-        `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' ${allowEval ? "'unsafe-eval' " : ""}https://accounts.google.com ${turnstileOrigin} ${mediapipeCdn}`,
+        `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' ${allowEval ? "'unsafe-eval' " : ""}https://accounts.google.com ${turnstileOrigin} ${mediapipeCdn} ${youtubeOrigin}`,
         "style-src 'self' 'unsafe-inline'",
         // storage.googleapis.com: student-uploaded avatar/cover images (see
         // gcsClient.js — Cloud Run's own filesystem can't persist these).
-        "img-src 'self' data: https://unavatar.io https://upscaler-ai.com https://via.placeholder.com https://t3.gstatic.com https://storage.googleapis.com",
+        // i.ytimg.com/yt3.ggpht.com: YouTube's video/channel thumbnail CDNs
+        // (course/lesson thumbnails — see youtubeClient.js#bestThumbnail).
+        "img-src 'self' data: https://unavatar.io https://upscaler-ai.com https://via.placeholder.com https://t3.gstatic.com https://storage.googleapis.com https://i.ytimg.com https://yt3.ggpht.com",
         "font-src 'self' data:",
         `connect-src ${connectSrc}`,
-        `frame-src https://accounts.google.com ${turnstileOrigin}`,
+        `frame-src https://accounts.google.com ${turnstileOrigin} ${youtubeOrigin}`,
         // MediaPipe's vision task runs its WASM engine off the main thread
         // via a Worker constructed from a jsdelivr-hosted script; falls back
         // to script-src without this, which doesn't cover a cross-origin

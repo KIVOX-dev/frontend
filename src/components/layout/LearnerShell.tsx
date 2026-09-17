@@ -69,9 +69,8 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
           { id: "resume", label: "Resume Builder", icon: <ResumeIcon /> },
           { id: "lb", label: "Top Talent Board", icon: <LeaderboardIcon /> },
         ] : []),
-        // Settings lives in the profile chip's dropdown (ProfileMenu.tsx),
-        // not the sidebar — one entry point instead of two for the same screen.
-        { id: "chat", label: "Messages", icon: <ChatIcon />, section: isInstitutionalStudent ? undefined : "Professional Profile" },
+        // "Messages" (chat) is a faculty-only entry point (see the faculty
+        // branch above) — students don't get it in the sidebar.
       ];
 
   // Auto-expand the group whenever navigation lands on one of its children
