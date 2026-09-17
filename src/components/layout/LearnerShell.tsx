@@ -56,7 +56,9 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
     : [
         { id: "dash", label: "Dashboard", section: "Learning Portal", icon: <DashboardIcon /> },
         { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
-        { id: "history", label: "Test History", icon: <ResumeIcon /> },
+        // Test History lives behind the "History" button inside Aptitude
+        // Tests (AptitudeTests.tsx) now, not the sidebar — one entry point
+        // instead of two for the same screen.
         { id: "tests", label: "Aptitude Tests", icon: <TestsIcon /> },
         { id: "learnings", label: "Learnings", icon: <LearningsIcon /> },
         { id: PRACTICE_TOOLS_GROUP_ID, label: "Practice Tools", icon: <PracticeIcon />, children: practiceToolsChildren },

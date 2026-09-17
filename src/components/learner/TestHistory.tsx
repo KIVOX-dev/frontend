@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useUiStore } from "@/stores/uiStore";
 
 type LessonAssessmentHistoryItem = {
   id: string;
@@ -15,6 +16,7 @@ type LessonAssessmentHistoryItem = {
 };
 
 export function TestHistory() {
+  const setActiveScreen = useUiStore((s) => s.setActiveScreen);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [courseAssessments, setCourseAssessments] = useState<LessonAssessmentHistoryItem[]>([]);
@@ -58,6 +60,28 @@ export function TestHistory() {
   return (
     <div style={{ padding: "40px" }}>
       <div style={{ marginBottom: "30px" }}>
+        <button
+          type="button"
+          onClick={() => setActiveScreen("tests")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            background: "none",
+            border: "none",
+            padding: 0,
+            marginBottom: "12px",
+            color: "var(--muted)",
+            fontSize: "14px",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Aptitude Tests
+        </button>
         <h2 style={{ fontSize: "28px", fontWeight: 800, color: "var(--text)", marginBottom: "8px" }}>
           Test History
         </h2>

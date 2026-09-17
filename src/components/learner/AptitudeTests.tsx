@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/stores/authStore";
+import { useUiStore } from "@/stores/uiStore";
 
 type Question = {
   id: string | number;
@@ -63,6 +64,7 @@ function resolveAnswer(q: Question): string {
 
 export function AptitudeTests() {
   const { user } = useAuthStore();
+  const setActiveScreen = useUiStore((s) => s.setActiveScreen);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -384,9 +386,35 @@ export function AptitudeTests() {
 
   return (
     <div className="screen active" style={{ padding: "40px" }}>
-      <div style={{ marginBottom: "30px" }}>
-        <h2 style={{ fontSize: "28px", fontWeight: 800, color: "var(--text)" }}>Aptitude Tests</h2>
-        <p style={{ color: "var(--muted)" }}>Complete assessments assigned by your institution.</p>
+      <div style={{ marginBottom: "30px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+        <div>
+          <h2 style={{ fontSize: "28px", fontWeight: 800, color: "var(--text)" }}>Aptitude Tests</h2>
+          <p style={{ color: "var(--muted)" }}>Complete assessments assigned by your institution.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setActiveScreen("history")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 16px",
+            background: "var(--bg)",
+            border: "1px solid var(--border)",
+            borderRadius: "10px",
+            color: "var(--text)",
+            fontWeight: 600,
+            fontSize: "14px",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          History
+        </button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px" }}>
