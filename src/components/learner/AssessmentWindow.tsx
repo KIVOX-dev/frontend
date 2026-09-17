@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, XCircle, Globe, Camera, Monitor } from "lucide-react";
-import { FilesetResolver, ObjectDetector, type ObjectDetectorResult } from "@mediapipe/tasks-vision";
+import { FilesetResolver, ObjectDetector, PoseLandmarker, type ObjectDetectorResult, type PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { Card } from "@/components/ui/Card";
@@ -39,6 +39,50 @@ const DEVICE_DETECTION_DEBOUNCE_MS = 600;
 
 function detectsExternalDevice(result: ObjectDetectorResult): boolean {
   return result.detections.some((d) => d.categories.some((c) => DEVICE_CLASSES.has(c.categoryName) && c.score > 0.5));
+}
+
+// Same pose-landmarker model/CDN as LearnerMockInterview.tsx's posture
+// detection — reused here for a different purpose: not posture, but "is
+// there exactly one person, framed from the face down to the chest, facing
+// the camera." `numPoses: 3` is enough headroom to tell "0", "1", and
+// "more than 1" apart without needing a large cap.
+const POSE_MODEL_URL =
+  "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+const POSE_LANDMARK = { NOSE: 0, LEFT_EYE: 2, RIGHT_EYE: 5, LEFT_EAR: 7, RIGHT_EAR: 8, LEFT_SHOULDER: 11, RIGHT_SHOULDER: 12 } as const;
+// MediaPipe Pose reports a per-landmark `visibility` score (0-1, how
+// confident it is that point is actually in frame / not occluded) — real
+// model output, not a guessed heuristic.
+const LANDMARK_VISIBILITY_THRESHOLD = 0.5;
+// Sustained this long before counting as one strike — much more forgiving
+// than device detection's debounce, since normal movement (glancing at
+// notes, adjusting in the chair) briefly trips these checks constantly and
+// shouldn't itself be treated as an offense.
+const FRAMING_WARNING_DEBOUNCE_MS = 2000;
+
+// Returns a human-readable reason once one of "exactly one person" / "facing
+// the camera" / "framed down to the chest" is violated, or null if framing
+// is fine. All three collapse into a single shared 2-strike counter (see the
+// detection loop below) rather than being tracked separately.
+function evaluateFraming(result: PoseLandmarkerResult): string | null {
+  const count = result.landmarks.length;
+  if (count === 0) return "No one is visible in the camera — face the camera to continue.";
+  if (count > 1) return "More than one person is visible in the camera.";
+
+  const lm = result.landmarks[0];
+  const visibility = (i: number) => lm[i]?.visibility ?? 0;
+
+  if (visibility(POSE_LANDMARK.NOSE) < LANDMARK_VISIBILITY_THRESHOLD) {
+    return "Your face isn't clearly visible — face the camera.";
+  }
+  if (visibility(POSE_LANDMARK.LEFT_SHOULDER) < LANDMARK_VISIBILITY_THRESHOLD || visibility(POSE_LANDMARK.RIGHT_SHOULDER) < LANDMARK_VISIBILITY_THRESHOLD) {
+    return "Move back so the camera can see your face and chest.";
+  }
+  const leftSideVisible = visibility(POSE_LANDMARK.LEFT_EYE) > LANDMARK_VISIBILITY_THRESHOLD && visibility(POSE_LANDMARK.LEFT_EAR) > LANDMARK_VISIBILITY_THRESHOLD;
+  const rightSideVisible = visibility(POSE_LANDMARK.RIGHT_EYE) > LANDMARK_VISIBILITY_THRESHOLD && visibility(POSE_LANDMARK.RIGHT_EAR) > LANDMARK_VISIBILITY_THRESHOLD;
+  if (!leftSideVisible || !rightSideVisible) {
+    return "Face the camera directly — don't turn your head to the side.";
+  }
+  return null;
 }
 
 function formatClock(totalSeconds: number) {
@@ -83,7 +127,7 @@ export function AssessmentWindow() {
 
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
-  const violationsRef = useRef({ tab_switches: 0, copy_paste: 0, screen_share_stopped: 0, device_detected: 0 });
+  const violationsRef = useRef({ tab_switches: 0, copy_paste: 0, screen_share_stopped: 0, device_detected: 0, framing_warnings: 0 });
 
   const [answers, setAnswers] = useState<(string | null)[]>([]);
   // handleSubmit is called from two long-lived closures (the countdown timer
@@ -114,6 +158,17 @@ export function AssessmentWindow() {
   const lastDetectTimestampRef = useRef(0);
   const deviceIssueSinceRef = useRef<number | null>(null);
   const detectLoopRef = useRef<number | null>(null);
+
+  const poseLandmarkerRef = useRef<PoseLandmarker | null>(null);
+  const [poseModelReady, setPoseModelReady] = useState(false);
+  const lastPoseTimestampRef = useRef(0);
+  // "Active" tracks whether we're currently inside one sustained violation
+  // (so it's only counted as a fresh strike once, not once per frame while
+  // it persists) — cleared once framing is fine again, so the NEXT separate
+  // occurrence still counts as strike two rather than being swallowed.
+  const framingIssueSinceRef = useRef<number | null>(null);
+  const framingIssueActiveRef = useRef(false);
+  const [framingWarning, setFramingWarning] = useState<{ message: string; count: number } | null>(null);
 
   useEffect(() => {
     if (!courseId || !lessonId) {
@@ -248,6 +303,37 @@ export function AssessmentWindow() {
     };
   }, []);
 
+  // Loads the pose-landmarker model used for the "one person, facing the
+  // camera, framed to the chest" checks — same load-once, degrade-gracefully
+  // shape as the object detector above. If this fails to load, that specific
+  // check just never runs (device detection is independent and unaffected).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const fileset = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
+        const landmarker = await PoseLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetPath: POSE_MODEL_URL, delegate: "CPU" },
+          runningMode: "VIDEO",
+          numPoses: 3,
+        });
+        if (cancelled) {
+          landmarker.close();
+          return;
+        }
+        poseLandmarkerRef.current = landmarker;
+        setPoseModelReady(true);
+      } catch (err) {
+        console.error("Failed to load framing-detection model:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      poseLandmarkerRef.current?.close();
+      poseLandmarkerRef.current = null;
+    };
+  }, []);
+
   // The camera preview <video> only mounts once `stage` is "quiz" (see the
   // render below) — same reattachment-on-mount fix as LearnerMockInterview.tsx.
   useEffect(() => {
@@ -257,12 +343,22 @@ export function AssessmentWindow() {
     }
   }, [stage]);
 
-  // Runs a requestAnimationFrame object-detection loop for as long as the
-  // quiz is showing and the model is ready — spotting a phone/laptop/tv/
-  // remote in frame ends the assessment immediately (submits whatever was
-  // answered so far, flagged via violations.device_detected).
+  // One requestAnimationFrame loop running both checks per frame (cheaper
+  // than two competing RAF loops fighting over the same video element):
+  //
+  // 1. Device detection — zero tolerance. A phone/laptop/tv/remote in frame
+  //    ends the assessment immediately, no warning (violations.device_detected,
+  //    marked 'malpractice' server-side, permanently blocks retaking).
+  //
+  // 2. Framing — "exactly one person, facing the camera, visible down to the
+  //    chest." Two-strike: the first sustained violation shows a warning
+  //    banner (self-correctable, doesn't stop anything); a second SEPARATE
+  //    occurrence ends the assessment (violations.framing_warnings) — but
+  //    unlike device detection, this does NOT permanently block retaking,
+  //    since a bad webcam angle or briefly stepping out of frame twice is
+  //    plausibly innocent in a way a phone appearing in frame just isn't.
   useEffect(() => {
-    if (stage !== "quiz" || !objectDetectorReady) return;
+    if (stage !== "quiz" || (!objectDetectorReady && !poseModelReady)) return;
 
     let consecutiveErrors = 0;
     const MAX_CONSECUTIVE_ERRORS = 5;
@@ -270,29 +366,62 @@ export function AssessmentWindow() {
     const detect = () => {
       try {
         const video = videoRef.current;
-        const detector = objectDetectorRef.current;
-        if (video && detector && video.readyState >= 2) {
-          // Strictly increasing timestamp requirement — same reasoning as
-          // LearnerMockInterview.tsx's lastPoseTimestampRef.
-          const timestamp = Math.max(performance.now(), lastDetectTimestampRef.current + 1);
-          lastDetectTimestampRef.current = timestamp;
-          const result = detector.detectForVideo(video, timestamp);
-          consecutiveErrors = 0;
-          const now = Date.now();
-          if (detectsExternalDevice(result)) {
-            if (deviceIssueSinceRef.current == null) deviceIssueSinceRef.current = now;
-            if (now - deviceIssueSinceRef.current > DEVICE_DETECTION_DEBOUNCE_MS) {
-              violationsRef.current.device_detected += 1;
-              setTerminationReason("An external device (phone, laptop, TV, or remote) was detected in your camera — the assessment was stopped immediately.");
-              handleSubmit();
-              return;
+        if (video && video.readyState >= 2) {
+          const objectDetector = objectDetectorRef.current;
+          if (objectDetector) {
+            // Strictly increasing timestamp requirement — same reasoning as
+            // LearnerMockInterview.tsx's lastPoseTimestampRef.
+            const timestamp = Math.max(performance.now(), lastDetectTimestampRef.current + 1);
+            lastDetectTimestampRef.current = timestamp;
+            const result = objectDetector.detectForVideo(video, timestamp);
+            if (detectsExternalDevice(result)) {
+              const now = Date.now();
+              if (deviceIssueSinceRef.current == null) deviceIssueSinceRef.current = now;
+              if (now - deviceIssueSinceRef.current > DEVICE_DETECTION_DEBOUNCE_MS) {
+                violationsRef.current.device_detected += 1;
+                setTerminationReason(
+                  "An external device (phone, laptop, TV, or remote) was detected in your camera — the assessment was stopped immediately."
+                );
+                handleSubmit();
+                return;
+              }
+            } else {
+              deviceIssueSinceRef.current = null;
             }
-          } else {
-            deviceIssueSinceRef.current = null;
+          }
+
+          const poseLandmarker = poseLandmarkerRef.current;
+          if (poseLandmarker) {
+            const timestamp = Math.max(performance.now(), lastPoseTimestampRef.current + 1);
+            lastPoseTimestampRef.current = timestamp;
+            const poseResult = poseLandmarker.detectForVideo(video, timestamp);
+            const issue = evaluateFraming(poseResult);
+            const now = Date.now();
+            if (issue) {
+              if (framingIssueSinceRef.current == null) framingIssueSinceRef.current = now;
+              if (!framingIssueActiveRef.current && now - framingIssueSinceRef.current > FRAMING_WARNING_DEBOUNCE_MS) {
+                framingIssueActiveRef.current = true;
+                violationsRef.current.framing_warnings += 1;
+                const count = violationsRef.current.framing_warnings;
+                if (count >= 2) {
+                  setTerminationReason(`${issue} This is your second warning — the assessment has ended.`);
+                  handleSubmit();
+                  return;
+                }
+                setFramingWarning({ message: issue, count });
+              } else if (framingIssueActiveRef.current) {
+                setFramingWarning({ message: issue, count: violationsRef.current.framing_warnings });
+              }
+            } else {
+              framingIssueSinceRef.current = null;
+              framingIssueActiveRef.current = false;
+              setFramingWarning(null);
+            }
           }
         }
+        consecutiveErrors = 0;
       } catch (err) {
-        console.error("Device detection frame failed:", err);
+        console.error("Proctoring detection frame failed:", err);
         consecutiveErrors += 1;
         if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return;
       }
@@ -303,11 +432,14 @@ export function AssessmentWindow() {
     return () => {
       if (detectLoopRef.current) cancelAnimationFrame(detectLoopRef.current);
       deviceIssueSinceRef.current = null;
+      framingIssueSinceRef.current = null;
+      framingIssueActiveRef.current = false;
+      setFramingWarning(null);
     };
     // handleSubmit intentionally not a dependency — see the comment on
     // answersRef/submittingRef above for why it's safe here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, objectDetectorReady]);
+  }, [stage, objectDetectorReady, poseModelReady]);
 
   // Countdown + auto-submit at zero.
   useEffect(() => {
@@ -426,11 +558,12 @@ export function AssessmentWindow() {
             <ol className="text-small space-y-1.5 list-decimal list-inside mb-4">
               <li>No tab switching or opening other applications during the assessment.</li>
               <li>Copy, pasting, or screen capture is disabled during the assessment.</li>
-              <li>External devices or AI-based assistance are not permitted.</li>
+              <li>Stay alone, facing the camera, visible from your face to your chest — you&apos;ll get one warning, then the assessment ends.</li>
+              <li>External devices (phone, laptop, TV, remote) are not permitted — this ends the assessment immediately, no warning.</li>
             </ol>
             <p className="text-caption bg-paper-tint rounded-md p-3">
               Note: Camera, microphone and screen sharing stay on for the duration of the assessment — nothing is recorded or uploaded, but tab
-              switches and copy/paste attempts are counted and saved with your result.
+              switches, copy/paste attempts, and framing warnings are counted and saved with your result.
             </p>
           </div>
 
@@ -482,6 +615,12 @@ export function AssessmentWindow() {
       {terminationReason && (
         <p className="text-small text-danger font-semibold mb-4 rounded-md border border-danger/30 bg-[color-mix(in_srgb,var(--color-danger)_6%,white)] p-3">
           {terminationReason}
+        </p>
+      )}
+
+      {stage === "quiz" && framingWarning && (
+        <p className="text-small font-semibold mb-4 rounded-md border p-3 text-[var(--color-warning)] border-[color-mix(in_srgb,var(--color-warning)_30%,white)] bg-[color-mix(in_srgb,var(--color-warning)_8%,white)]">
+          Warning {framingWarning.count}/2: {framingWarning.message} One more and the assessment will end.
         </p>
       )}
 
