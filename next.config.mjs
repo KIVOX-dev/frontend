@@ -97,7 +97,9 @@ function securityHeaders({ allowEval = false } = {}) {
         // eval the way 'unsafe-eval' can.
         `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' ${allowEval ? "'unsafe-eval' " : ""}https://accounts.google.com ${turnstileOrigin} ${mediapipeCdn}`,
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: https://unavatar.io https://upscaler-ai.com https://via.placeholder.com https://t3.gstatic.com",
+        // storage.googleapis.com: student-uploaded avatar/cover images (see
+        // gcsClient.js — Cloud Run's own filesystem can't persist these).
+        "img-src 'self' data: https://unavatar.io https://upscaler-ai.com https://via.placeholder.com https://t3.gstatic.com https://storage.googleapis.com",
         "font-src 'self' data:",
         `connect-src ${connectSrc}`,
         `frame-src https://accounts.google.com ${turnstileOrigin}`,

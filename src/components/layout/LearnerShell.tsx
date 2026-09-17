@@ -31,23 +31,33 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
 
   const isInstitutionalStudent = user?.role === "student" && !!user?.college_id;
 
+  // "Practice Tools" mirrors the collapsible-group pattern of a reference
+  // sidebar (GoodFreshers' "Tools") — the three lower-frequency practice
+  // modes nest under one expandable entry instead of sitting flat alongside
+  // daily-use screens (Dashboard/Test History/Aptitude Tests).
+  const PRACTICE_TOOLS_GROUP_ID = "practice-tools";
+  const practiceToolsChildren = [
+    { id: "practice", label: "Mock Practice", icon: <PracticeIcon /> },
+    { id: "mnc", label: "MNC Test", icon: <MncIcon /> },
+    { id: "iv", label: "Mock Interviewer", icon: <IvIcon /> },
+  ];
+
   const navItems = user?.role === "faculty"
     ? [
         { id: "dash", label: "Dashboard", section: "Faculty Portal", icon: <DashboardIcon /> },
+        { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
         { id: "tracking", label: "Student Tracking", icon: <ProfileIcon /> },
         { id: "add-student", label: "Add Student", icon: <PracticeIcon /> },
         { id: "upload", label: "Upload Students", icon: <ResumeIcon /> },
         { id: "chat", label: "Messages", icon: <ChatIcon /> },
-        { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
         { id: "settings", label: "Settings", icon: <SettingsIcon /> },
       ]
     : [
         { id: "dash", label: "Dashboard", section: "Learning Portal", icon: <DashboardIcon /> },
+        { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
         { id: "history", label: "Test History", icon: <ResumeIcon /> },
-        { id: "practice", label: "Mock Practice", icon: <PracticeIcon /> },
         { id: "tests", label: "Aptitude Tests", icon: <TestsIcon /> },
-        { id: "mnc", label: "MNC Test", icon: <MncIcon /> },
-        { id: "iv", label: "Mock Interviewer", icon: <IvIcon /> },
+        { id: PRACTICE_TOOLS_GROUP_ID, label: "Practice Tools", icon: <PracticeIcon />, children: practiceToolsChildren },
         ...(isInstitutionalStudent ? [
           { id: "placements", label: "Placements", section: "Professional Profile", icon: <PlacementIcon /> },
           { id: "profile", label: "Profile Summarizer", icon: <ProfileIcon /> },
@@ -55,9 +65,17 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
           { id: "lb", label: "Top Talent Board", icon: <LeaderboardIcon /> },
         ] : []),
         { id: "chat", label: "Messages", icon: <ChatIcon />, section: isInstitutionalStudent ? undefined : "Professional Profile" },
-        { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
         { id: "settings", label: "Settings", icon: <SettingsIcon /> },
       ];
+
+  // Auto-expand the group whenever navigation lands on one of its children
+  // (e.g. a deep link, or switching accounts) — otherwise the active screen
+  // could be selected while its own group still renders collapsed.
+  const activeChildGroupId = navItems.find(
+    (item) => "children" in item && item.children?.some((c) => `nav-${c.id}` === activeNav)
+  )?.id;
+  const [manuallyExpandedGroup, setManuallyExpandedGroup] = React.useState<string | null>(null);
+  const expandedGroupId = manuallyExpandedGroup ?? activeChildGroupId ?? null;
 
   return (
     <div id="app" className={isMobileSidebarOpen ? "mob-sidebar-open" : ""}>
@@ -72,21 +90,57 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div id="snav">
-          {navItems.map((item, index) => (
-            <React.Fragment key={item.id}>
-              {item.section && <div className="nav-sec">{item.section}</div>}
-              <button
-                type="button"
-                className={`nav-item ${activeNav === `nav-${item.id}` ? "active" : ""}`}
-                id={`nav-${item.id}`}
-                onClick={() => setActiveScreen(item.id)}
-                aria-current={activeNav === `nav-${item.id}` ? "page" : undefined}
-              >
-                {item.icon}
-                <span className="nav-lbl">{item.label}</span>
-              </button>
-            </React.Fragment>
-          ))}
+          {navItems.map((item) => {
+            const hasChildren = "children" in item && Array.isArray(item.children);
+            const isExpanded = hasChildren && expandedGroupId === item.id;
+            return (
+              <React.Fragment key={item.id}>
+                {item.section && <div className="nav-sec">{item.section}</div>}
+                <button
+                  type="button"
+                  className={`nav-item ${!hasChildren && activeNav === `nav-${item.id}` ? "active" : ""}`}
+                  id={`nav-${item.id}`}
+                  onClick={() =>
+                    hasChildren
+                      ? setManuallyExpandedGroup((current) => (current === item.id ? null : item.id))
+                      : setActiveScreen(item.id)
+                  }
+                  aria-current={!hasChildren && activeNav === `nav-${item.id}` ? "page" : undefined}
+                  aria-expanded={hasChildren ? isExpanded : undefined}
+                >
+                  {item.icon}
+                  <span className="nav-lbl" style={{ flex: 1 }}>{item.label}</span>
+                  {hasChildren && (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      width="14"
+                      height="14"
+                      style={{ transform: isExpanded ? "rotate(180deg)" : undefined, transition: "transform 0.15s", flexShrink: 0 }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  )}
+                </button>
+                {hasChildren && isExpanded && "children" in item && item.children?.map((child) => (
+                  <button
+                    type="button"
+                    key={child.id}
+                    className={`nav-item ${activeNav === `nav-${child.id}` ? "active" : ""}`}
+                    id={`nav-${child.id}`}
+                    onClick={() => setActiveScreen(child.id)}
+                    aria-current={activeNav === `nav-${child.id}` ? "page" : undefined}
+                    style={{ paddingLeft: "38px" }}
+                  >
+                    {child.icon}
+                    <span className="nav-lbl">{child.label}</span>
+                  </button>
+                ))}
+              </React.Fragment>
+            );
+          })}
         </div>
 
         <div className="s-foot">
@@ -103,6 +157,17 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
                 <div className="plan-bar-f" style={{ width: "20%", background: "var(--accent)" }}></div>
               </div>
             </button>
+          )}
+          {!isSidebarCollapsed && (
+            // Opens in a new tab rather than navigating this tab away from
+            // an in-progress test/practice session — these are separate
+            // marketing-site pages (src/app/privacy-policy, .../terms-of-service),
+            // not part of this SPA's screen-switcher.
+            <div style={{ display: "flex", justifyContent: "center", gap: "8px", padding: "4px 0 8px", fontSize: "11px", color: "var(--muted)" }}>
+              <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Privacy Policy</Link>
+              <span>|</span>
+              <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Terms &amp; Conditions</Link>
+            </div>
           )}
           <button className="collapse-btn" onClick={toggleSidebar}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">

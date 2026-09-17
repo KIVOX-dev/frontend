@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Pencil, Unlink } from "lucide-react";
+import { Pencil, Unlink, Camera } from "lucide-react";
 import { api, type ApiRequestConfig } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
@@ -45,6 +45,8 @@ type StudentProfile = {
   stackoverflow_reputation?: number | null;
   stackoverflow_profile_url?: string | null;
   stackoverflow_connected_at?: string | null;
+  avatar_url?: string | null;
+  cover_image_url?: string | null;
 };
 
 type Department = { id: string; name: string };
@@ -500,6 +502,10 @@ export function ProfilePanel() {
   const [connectingStackoverflow, setConnectingStackoverflow] = useState(false);
   const [disconnectingStackoverflow, setDisconnectingStackoverflow] = useState(false);
   const [stackoverflowMsg, setStackoverflowMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const [coverError, setCoverError] = useState("");
 
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -596,6 +602,60 @@ export function ProfilePanel() {
   }, []);
 
   const departmentName = departments.find((d) => d.id === studentProfile?.department_id)?.name;
+
+  const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // mirrors the backend's own cap (upload.js) — fail fast client-side too
+
+  const handleUploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // lets the same file be re-selected later (e.g. after fixing an error)
+    if (!file) return;
+    if (file.size > MAX_IMAGE_BYTES) {
+      setAvatarError("Image must be under 5MB.");
+      return;
+    }
+    setUploadingAvatar(true);
+    setAvatarError("");
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      // Content-Type: undefined drops the axios instance's default
+      // application/json header so the browser sets the correct
+      // multipart/form-data boundary itself — explicitly setting
+      // "multipart/form-data" here would omit that boundary and break the upload.
+      const res = await api.post<StudentProfile>("/students/profile/avatar", formData, {
+        headers: { "Content-Type": undefined },
+      } as ApiRequestConfig);
+      setStudentProfile(res.data);
+    } catch (err: unknown) {
+      setAvatarError(extractErrorMessage(err, "Couldn't upload photo"));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleUploadCover = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > MAX_IMAGE_BYTES) {
+      setCoverError("Image must be under 5MB.");
+      return;
+    }
+    setUploadingCover(true);
+    setCoverError("");
+    try {
+      const formData = new FormData();
+      formData.append("cover", file);
+      const res = await api.post<StudentProfile>("/students/profile/cover", formData, {
+        headers: { "Content-Type": undefined },
+      } as ApiRequestConfig);
+      setStudentProfile(res.data);
+    } catch (err: unknown) {
+      setCoverError(extractErrorMessage(err, "Couldn't upload cover image"));
+    } finally {
+      setUploadingCover(false);
+    }
+  };
 
   const handleConnectGithub = async () => {
     setConnectingGithub(true);
@@ -736,18 +796,60 @@ export function ProfilePanel() {
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto">
       {/* Cover banner */}
-      <div
-        className="h-32 md:h-40 rounded-xl"
-        style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 55%, white) 100%)" }}
-      />
+      <div className="relative h-32 md:h-40 rounded-xl overflow-hidden">
+        {studentProfile?.cover_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element -- externally hosted (GCS), not a static/imported asset next/image expects
+          <img src={studentProfile.cover_image_url} alt="" className="absolute inset-0 size-full object-cover" />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 55%, white) 100%)" }}
+          />
+        )}
+        {isStudent && (
+          <label className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-md bg-black/50 hover:bg-black/65 text-white text-xs font-medium px-2.5 py-1.5 cursor-pointer transition-colors">
+            <Camera className="size-3.5" />
+            {uploadingCover ? "Uploading…" : "Edit banner"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={handleUploadCover}
+              disabled={uploadingCover}
+            />
+          </label>
+        )}
+      </div>
+      {coverError && <p className="text-small text-danger mt-1 px-2">{coverError}</p>}
 
       {/* Avatar + identity, overlapping the banner */}
       <div className="flex flex-wrap items-end justify-between gap-4 px-2 -mt-12 md:-mt-14 mb-6">
         <div className="flex items-end gap-4 min-w-0">
-          <Avatar fallback={initials} size="lg" className="size-24 md:size-28 text-3xl ring-4 ring-white shadow-md shrink-0" />
+          <div className="relative shrink-0">
+            <Avatar
+              src={studentProfile?.avatar_url}
+              fallback={initials}
+              size="lg"
+              className="size-24 md:size-28 text-3xl ring-4 ring-white shadow-md"
+            />
+            {isStudent && (
+              <label className="absolute bottom-0 right-0 flex items-center justify-center size-8 rounded-full bg-ink text-white cursor-pointer shadow-md hover:bg-ink/90 transition-colors">
+                <Camera className="size-4" />
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="hidden"
+                  onChange={handleUploadAvatar}
+                  disabled={uploadingAvatar}
+                />
+              </label>
+            )}
+          </div>
           <div className="pb-1 min-w-0">
             <h1 className="text-heading-l text-ink leading-tight truncate">{user?.name}</h1>
             <p className="text-small text-ink-muted truncate">{user?.email}</p>
+            {avatarError && <p className="text-small text-danger mt-1">{avatarError}</p>}
+            {uploadingAvatar && <p className="text-small text-ink-muted mt-1">Uploading…</p>}
           </div>
         </div>
         <Badge tone="success" className="capitalize mb-2 shrink-0">
