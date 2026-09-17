@@ -4,65 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
+import { loadGsiScript, type GoogleCredentialResponse } from "@/lib/googleIdentity";
 
-const SCRIPT_ID = "google-identity-services";
-const SCRIPT_SRC = "https://accounts.google.com/gsi/client";
-
-interface GoogleCredentialResponse {
-  credential: string;
-}
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: {
-            client_id: string;
-            callback: (response: GoogleCredentialResponse) => void;
-          }) => void;
-          renderButton: (
-            parent: HTMLElement,
-            options: {
-              type?: "standard" | "icon";
-              theme?: "outline-solid" | "filled_blue" | "filled_black";
-              size?: "large" | "medium" | "small";
-              shape?: "rectangular" | "pill" | "circle" | "square";
-              text?: "signin_with" | "signup_with" | "continue_with" | "signin";
-              width?: number;
-            }
-          ) => void;
-        };
-      };
-    };
-  }
-}
-
-function loadGsiScript(): Promise<void> {
-  if (document.getElementById(SCRIPT_ID)) {
-    return window.google ? Promise.resolve() : new Promise((resolve) => {
-      document.getElementById(SCRIPT_ID)!.addEventListener("load", () => resolve());
-    });
-  }
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.id = SCRIPT_ID;
-    script.src = SCRIPT_SRC;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Google Identity Services"));
-    document.head.appendChild(script);
-  });
-}
-
-/**
- * Callers should gate the "OR" divider that precedes GoogleLoginButton on
- * this too — otherwise an unconfigured client ID leaves the divider
- * dangling above an empty gap instead of hiding the whole Google sign-in
- * option together.
- */
-export const isGoogleLoginConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
+export { isGoogleLoginConfigured } from "@/lib/googleIdentity";
 
 /**
  * Renders Google's own Sign-In button and exchanges the resulting ID token
