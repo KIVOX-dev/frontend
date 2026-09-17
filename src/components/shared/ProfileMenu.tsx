@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 
@@ -24,8 +25,29 @@ interface ProfileMenuProps {
 export function ProfileMenu({ avatar, avatarStyle, name, roleLabel, showSettings = true }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateUser } = useAuthStore();
   const { setActiveScreen } = useUiStore();
+  const avatarUrl = typeof user?.avatar_url === "string" ? user.avatar_url : null;
+
+  // The chip's photo is the student's own uploaded avatar (students.avatar_url
+  // via /students/profile), not part of the login/auth payload — fetch it
+  // once so the chip shows the real photo without needing a Profile-page
+  // visit first. ProfilePanel's own upload handler calls updateUser() so this
+  // chip (and any other mounted instance sharing the auth store) refreshes
+  // immediately after a new photo is uploaded, without a refetch here.
+  useEffect(() => {
+    if (user?.role !== "student" || avatarUrl) return;
+    let cancelled = false;
+    api
+      .get<{ avatar_url?: string | null }>("/students/profile")
+      .then((res) => {
+        if (!cancelled && res.data.avatar_url) updateUser({ avatar_url: res.data.avatar_url });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.role, avatarUrl, updateUser]);
 
   useEffect(() => {
     if (!open) return;
@@ -53,7 +75,13 @@ export function ProfileMenu({ avatar, avatarStyle, name, roleLabel, showSettings
         aria-expanded={open}
         style={{ background: "none", border: "none", cursor: "pointer", font: "inherit", color: "inherit" }}
       >
-        <div className="uav" style={avatarStyle}>{avatar}</div>
+        <div className="uav" style={avatarStyle}>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", borderRadius: "inherit", objectFit: "cover" }} />
+          ) : (
+            avatar
+          )}
+        </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
           <span className="un">{name}</span>
           <span className="ur">{roleLabel}</span>
