@@ -27,6 +27,7 @@ const ProfilePanel = dynamic(() => import("@/components/shared/ProfilePanel").th
 const MyActivity = dynamic(() => import("@/components/shared/MyActivity").then((m) => m.MyActivity));
 const MyLearnings = dynamic(() => import("@/components/learner/MyLearnings").then((m) => m.MyLearnings));
 const YoutubeCourseImport = dynamic(() => import("@/components/learner/YoutubeCourseImport").then((m) => m.YoutubeCourseImport));
+const AssessmentWindow = dynamic(() => import("@/components/learner/AssessmentWindow").then((m) => m.AssessmentWindow));
 
 // Separate component so useSearchParams is inside a Suspense boundary
 function LearnerContent() {
@@ -59,6 +60,17 @@ function LearnerContent() {
   // elsewhere (e.g. super-admin) must not fall through to this dashboard.
   if (!isAuthenticated || user?.role !== "student") {
     return <LearnerLogin initialMode={mode} />;
+  }
+
+  // Opened via window.open() as its own browser window/tab (see
+  // CourseViewer.tsx's Assessment tab) — deliberately unwrapped by
+  // LearnerShell below (no sidebar) so there's nowhere to navigate away to
+  // without it counting as leaving the window entirely. Read directly off
+  // the URL param rather than waiting on the effect-driven activeScreen
+  // update above, so this renders on the very first paint instead of
+  // flashing the Dashboard first.
+  if ((screenParam || activeScreen) === "lesson-assessment") {
+    return <AssessmentWindow />;
   }
 
   const renderScreen = () => {

@@ -30,6 +30,7 @@ const FacultyUpload = dynamic(() => import("@/components/faculty/FacultyUpload")
 const AptitudeTests = dynamic(() => import("@/components/learner/AptitudeTests").then((m) => m.AptitudeTests));
 const MyLearnings = dynamic(() => import("@/components/learner/MyLearnings").then((m) => m.MyLearnings));
 const YoutubeCourseImport = dynamic(() => import("@/components/learner/YoutubeCourseImport").then((m) => m.YoutubeCourseImport));
+const AssessmentWindow = dynamic(() => import("@/components/learner/AssessmentWindow").then((m) => m.AssessmentWindow));
 const PracticeModule = dynamic(() => import("@/components/learner/PracticeModule").then((m) => m.PracticeModule));
 const MNCTestModule = dynamic(() => import("@/components/learner/MNCTestModule").then((m) => m.MNCTestModule));
 const LearnerMockInterview = dynamic(() => import("@/components/learner/LearnerMockInterview").then((m) => m.LearnerMockInterview));
@@ -57,7 +58,7 @@ const INSTITUTIONAL_ROLES = ["college_admin", "institution_admin", "faculty", "s
 // which then 403s fetching /users instead of showing anything sensible.
 const ADMIN_SCREENS = new Set(["dash", "placements", "drives", "users", "security", "assessments", "tracking", "chat", "profile-info", "settings", "my-activity", "search-results"]);
 const FACULTY_SCREENS = new Set(["dash", "tracking", "add-student", "upload", "chat", "profile-info", "settings", "my-activity", "search-results"]);
-const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "mnc", "iv", "chat", "profile-info", "settings", "my-activity", "learnings", "youtube-course-import"];
+const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "mnc", "iv", "chat", "profile-info", "settings", "my-activity", "learnings", "youtube-course-import", "lesson-assessment"];
 const INSTITUTIONAL_STUDENT_EXTRA_SCREENS = ["placements", "profile", "resume", "lb"];
 
 function InstitutionalContent() {
@@ -175,6 +176,16 @@ function InstitutionalContent() {
         </div>
       </AuthSplitLayout>
     );
+  }
+
+  // Opened via window.open() as its own browser window/tab (see
+  // CourseViewer.tsx's Assessment tab) — deliberately unwrapped by any shell
+  // below (no sidebar) so there's nowhere to navigate away to without it
+  // counting as leaving the window entirely. Read directly off the URL param
+  // rather than waiting on the effect-driven activeScreen update, so this
+  // renders on the very first paint instead of flashing the Dashboard first.
+  if ((searchParams.get("screen") || activeScreen) === "lesson-assessment") {
+    return <AssessmentWindow />;
   }
 
   // Render the active screen based on sidebar selection

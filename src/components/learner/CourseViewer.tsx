@@ -34,8 +34,6 @@ type CourseDetail = {
 
 type Note = { id: string; timestamp_seconds: number; text: string };
 
-type AssessmentQuestion = { question: string; options: string[] };
-type GradedQuestion = AssessmentQuestion & { correct_answer: string; selected: string | null; is_correct: boolean };
 type AssessmentAttempt = { score: number; max_score: number; percentage: number };
 
 function formatTime(totalSeconds: number) {
@@ -364,113 +362,46 @@ function NotesTab({
   );
 }
 
+// The actual quiz (camera/mic + screen-share proctoring gate, timer,
+// grading) lives in AssessmentWindow.tsx, opened in its own browser
+// window/tab — a real separate window is what makes "did they switch away"
+// a meaningful integrity signal, and keeps the proctoring checks isolated
+// from this page's video/notes UI. This tab is just the launcher.
 function AssessmentTab({ courseId, lessonId }: { courseId: string; lessonId: string }) {
-  const [questions, setQuestions] = useState<AssessmentQuestion[] | null>(null);
   const [latestAttempt, setLatestAttempt] = useState<AssessmentAttempt | null>(null);
-  const [answers, setAnswers] = useState<(string | null)[]>([]);
-  const [graded, setGraded] = useState<GradedQuestion[] | null>(null);
-  const [result, setResult] = useState<AssessmentAttempt | null>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     setLoading(true);
-    setGraded(null);
-    setResult(null);
     setError("");
     api
-      .get<{ questions: AssessmentQuestion[]; latest_attempt: AssessmentAttempt | null }>(
-        `/courses/${courseId}/lessons/${lessonId}/assessment`
-      )
-      .then((res) => {
-        setQuestions(res.data.questions);
-        setLatestAttempt(res.data.latest_attempt);
-        setAnswers(new Array(res.data.questions.length).fill(null));
-      })
+      .get<{ latest_attempt: AssessmentAttempt | null }>(`/courses/${courseId}/lessons/${lessonId}/assessment`)
+      .then((res) => setLatestAttempt(res.data.latest_attempt))
       .catch((err: unknown) => setError(extractErrorMessage(err, "Couldn't load the assessment")))
       .finally(() => setLoading(false));
   }, [courseId, lessonId]);
 
-  const handleSubmit = async () => {
-    if (!questions) return;
-    setSubmitting(true);
-    setError("");
-    try {
-      const res = await api.post<{ attempt: AssessmentAttempt; graded: GradedQuestion[] }>(
-        `/courses/${courseId}/lessons/${lessonId}/assessment/submit`,
-        { answers }
-      );
-      setGraded(res.data.graded);
-      setResult(res.data.attempt);
-    } catch (err: unknown) {
-      setError(extractErrorMessage(err, "Couldn't submit the assessment"));
-    } finally {
-      setSubmitting(false);
-    }
+  const handleOpen = () => {
+    const url = `/learner?screen=lesson-assessment&courseId=${encodeURIComponent(courseId)}&lessonId=${encodeURIComponent(lessonId)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  if (loading) return <p className="text-small">Generating assessment…</p>;
-  if (error && !questions) return <p className="text-small text-danger">{error}</p>;
-  if (!questions || questions.length === 0) return <p className="text-small">No assessment available for this lesson.</p>;
-
-  const displayGraded = graded;
-  const displayResult = result || (latestAttempt && !graded ? latestAttempt : null);
+  if (loading) return <p className="text-small">Loading…</p>;
+  if (error) return <p className="text-small text-danger">{error}</p>;
 
   return (
     <div>
-      {displayResult && (
+      {latestAttempt && (
         <p className="text-small font-semibold text-ink mb-4">
-          Score: {displayResult.score}/{displayResult.max_score} ({displayResult.percentage}%)
+          Last score: {latestAttempt.score}/{latestAttempt.max_score} ({latestAttempt.percentage}%)
         </p>
       )}
-      <div className="space-y-5">
-        {questions.map((q, i) => {
-          const gradedQ = displayGraded?.[i];
-          return (
-            <div key={i}>
-              <p className="text-small font-semibold text-ink mb-2">
-                {i + 1}. {q.question}
-              </p>
-              <div className="space-y-1.5">
-                {q.options.map((option) => {
-                  const isSelected = answers[i] === option;
-                  const showCorrectness = !!gradedQ;
-                  const isCorrectOption = gradedQ?.correct_answer === option;
-                  return (
-                    <label
-                      key={option}
-                      className={cn(
-                        "flex items-center gap-2 rounded-md border p-2.5 text-small cursor-pointer",
-                        showCorrectness && isCorrectOption ? "border-success bg-[color-mix(in_srgb,var(--color-success)_8%,white)]" : "",
-                        showCorrectness && isSelected && !isCorrectOption ? "border-danger bg-[color-mix(in_srgb,var(--color-danger)_8%,white)]" : "",
-                        !showCorrectness ? "border-line hover:border-line-strong" : ""
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name={`q-${i}`}
-                        checked={isSelected}
-                        disabled={!!displayGraded}
-                        onChange={() => setAnswers((prev) => prev.map((a, idx) => (idx === i ? option : a)))}
-                      />
-                      {option}
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {error && <p className="text-small text-danger mt-4">{error}</p>}
-
-      {!displayGraded && (
-        <Button className="mt-5" onClick={handleSubmit} loading={submitting} disabled={answers.some((a) => !a)}>
-          Submit Assessment
-        </Button>
-      )}
+      <p className="text-small mb-4">
+        This assessment opens in a new window with a camera, microphone, and screen-share check first — a focused, proctored environment
+        separate from the lesson video.
+      </p>
+      <Button onClick={handleOpen}>{latestAttempt ? "Retake Assessment" : "Open Assessment"}</Button>
     </div>
   );
 }
