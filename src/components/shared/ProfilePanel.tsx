@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { User, GraduationCap, Pencil, Plug, Unlink } from "lucide-react";
+import { Pencil, Unlink } from "lucide-react";
 import { api, type ApiRequestConfig } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
@@ -452,14 +452,15 @@ function ReadOnlyField({ label, value }: { label: string; value: React.ReactNode
   );
 }
 
-function TabButton({
+// Horizontal, underline-style tab — matches the reference profile page's tab
+// row (About / Career / Projects & Activities / ...), unlike SettingsPanel's
+// vertical sidebar tabs.
+function ProfileTabButton({
   active,
-  icon: Icon,
   children,
   onClick,
 }: {
   active: boolean;
-  icon: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
   onClick: () => void;
 }) {
@@ -467,11 +468,10 @@ function TabButton({
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium text-left transition-colors duration-150 w-full",
-        active ? "bg-primary/10 text-primary" : "text-ink-muted hover:bg-paper-tint hover:text-ink"
+        "px-3.5 py-2 text-sm font-medium rounded-t-md -mb-px border-b-2 transition-colors duration-150 whitespace-nowrap",
+        active ? "border-primary text-primary" : "border-transparent text-ink-muted hover:text-ink"
       )}
     >
-      <Icon className="size-4 shrink-0" />
       {children}
     </button>
   );
@@ -735,45 +735,48 @@ export function ProfilePanel() {
 
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-heading-l mb-1">Profile</h1>
-        <p className="text-body text-ink-muted">Your identity, academic details, and connected accounts.</p>
+      {/* Cover banner */}
+      <div
+        className="h-32 md:h-40 rounded-xl"
+        style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 55%, white) 100%)" }}
+      />
+
+      {/* Avatar + identity, overlapping the banner */}
+      <div className="flex flex-wrap items-end justify-between gap-4 px-2 -mt-12 md:-mt-14 mb-6">
+        <div className="flex items-end gap-4 min-w-0">
+          <Avatar fallback={initials} size="lg" className="size-24 md:size-28 text-3xl ring-4 ring-white shadow-md shrink-0" />
+          <div className="pb-1 min-w-0">
+            <h1 className="text-heading-l text-ink leading-tight truncate">{user?.name}</h1>
+            <p className="text-small text-ink-muted truncate">{user?.email}</p>
+          </div>
+        </div>
+        <Badge tone="success" className="capitalize mb-2 shrink-0">
+          {user?.role?.replace("_", " ")}
+        </Badge>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Left: identity + tabs */}
-        <div className="md:w-64 shrink-0 space-y-4">
-          <Card className="flex flex-col items-center text-center py-8">
-            <Avatar fallback={initials} size="lg" className="mb-3" />
-            <p className="font-semibold text-ink truncate max-w-full">{user?.name}</p>
-            <p className="text-small truncate max-w-full">{user?.email}</p>
-            <Badge tone="success" className="mt-3 capitalize">
-              {user?.role?.replace("_", " ")}
-            </Badge>
-          </Card>
+      {/* Horizontal tabs */}
+      <div className="flex gap-1 border-b border-line mb-6 overflow-x-auto">
+        <ProfileTabButton active={activeTab === "profile"} onClick={() => setActiveTab("profile")}>
+          About
+        </ProfileTabButton>
+        {isStudent && (
+          <ProfileTabButton active={activeTab === "student"} onClick={() => setActiveTab("student")}>
+            Student Details
+          </ProfileTabButton>
+        )}
+        {isStudent && (
+          <ProfileTabButton active={activeTab === "integrations"} onClick={() => setActiveTab("integrations")}>
+            Integrations
+          </ProfileTabButton>
+        )}
+      </div>
 
-          <nav className="flex md:flex-col gap-1">
-            <TabButton active={activeTab === "profile"} icon={User} onClick={() => setActiveTab("profile")}>
-              Profile
-            </TabButton>
-            {isStudent && (
-              <TabButton active={activeTab === "student"} icon={GraduationCap} onClick={() => setActiveTab("student")}>
-                Student Details
-              </TabButton>
-            )}
-            {isStudent && (
-              <TabButton active={activeTab === "integrations"} icon={Plug} onClick={() => setActiveTab("integrations")}>
-                Integrations
-              </TabButton>
-            )}
-          </nav>
-        </div>
-
-        {/* Right: content */}
-        <div className="flex-1 min-w-0">
-          {activeTab === "profile" && (
+      {/* Content */}
+      <div>
+        {activeTab === "profile" && (
             <Card>
-              <h2 className="text-section-title mb-5">Profile</h2>
+              <h2 className="text-section-title mb-5">About</h2>
               <div className="grid sm:grid-cols-2 gap-5 max-w-lg">
                 <ReadOnlyField label="Name" value={user?.name} />
                 <ReadOnlyField label="Email" value={user?.email} />
@@ -1011,7 +1014,6 @@ export function ProfilePanel() {
               </div>
             </Card>
           )}
-        </div>
       </div>
     </div>
   );
