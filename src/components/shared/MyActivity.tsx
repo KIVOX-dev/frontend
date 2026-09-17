@@ -2,6 +2,7 @@
 
 import { useAuthStore } from "@/stores/authStore";
 import { ActivityHeatmap } from "@/components/shared/ActivityHeatmap";
+import { ConnectedAppsCard } from "@/components/shared/ConnectedAppsCard";
 
 /**
  * The screen behind the profile chip's "My Activity" menu item — account
@@ -46,10 +47,12 @@ export function MyActivity() {
         </div>
       </div>
 
-      <div className="card" style={{ padding: "20px" }}>
+      <div className="card" style={{ marginBottom: "20px", padding: "20px" }}>
         <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--text)", marginBottom: "4px" }}>Activity</div>
         <ActivityHeatmap />
       </div>
+
+      {user?.role === "student" && <ConnectedAppsCard />}
     </div>
   );
 }
