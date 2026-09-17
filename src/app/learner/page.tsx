@@ -19,7 +19,6 @@ const PracticeModule = dynamic(() => import("@/components/learner/PracticeModule
 const MNCTestModule = dynamic(() => import("@/components/learner/MNCTestModule").then((m) => m.MNCTestModule));
 const Leaderboard = dynamic(() => import("@/components/learner/Leaderboard").then((m) => m.Leaderboard));
 const Subscription = dynamic(() => import("@/components/learner/Subscription").then((m) => m.Subscription));
-const ProfileSummarizer = dynamic(() => import("@/components/learner/ProfileSummarizer").then((m) => m.ProfileSummarizer));
 const TestHistory = dynamic(() => import("@/components/learner/TestHistory").then((m) => m.TestHistory));
 const PlacementOpportunities = dynamic(() => import("@/components/learner/PlacementOpportunities").then((m) => m.PlacementOpportunities));
 const PlatformChat = dynamic(() => import("@/components/shared/PlatformChat").then((m) => m.PlatformChat));
@@ -67,7 +66,6 @@ function LearnerContent() {
       case "tests": return <AptitudeTests />;
       case "mnc": return <MNCTestModule />;
       case "iv": return <LearnerMockInterview />;
-      case "profile": return <ProfileSummarizer />;
       case "resume": return <ResumeBuilder />;
       case "lb": return <Leaderboard />;
       case "placements":
@@ -81,6 +79,10 @@ function LearnerContent() {
       case "history": return <TestHistory />;
       case "subs": return <Subscription />;
       case "chat": return <PlatformChat />;
+      // "profile" (old id) -> Profile page — graceful redirect for anyone
+      // whose persisted activeScreen still points at the now-removed
+      // standalone "Profile Summarizer" screen.
+      case "profile":
       case "profile-info": return <ProfilePanel />;
       case "settings": return <SettingsPanel />;
       case "my-activity": return <MyActivity />;

@@ -31,7 +31,6 @@ const AptitudeTests = dynamic(() => import("@/components/learner/AptitudeTests")
 const PracticeModule = dynamic(() => import("@/components/learner/PracticeModule").then((m) => m.PracticeModule));
 const MNCTestModule = dynamic(() => import("@/components/learner/MNCTestModule").then((m) => m.MNCTestModule));
 const LearnerMockInterview = dynamic(() => import("@/components/learner/LearnerMockInterview").then((m) => m.LearnerMockInterview));
-const ProfileSummarizer = dynamic(() => import("@/components/learner/ProfileSummarizer").then((m) => m.ProfileSummarizer));
 const ResumeBuilder = dynamic(() => import("@/components/learner/ResumeBuilder").then((m) => m.ResumeBuilder));
 const Leaderboard = dynamic(() => import("@/components/learner/Leaderboard").then((m) => m.Leaderboard));
 const LearnerDashboard = dynamic(() => import("@/components/learner/LearnerDashboard").then((m) => m.LearnerDashboard));
@@ -212,8 +211,6 @@ function InstitutionalContent() {
         return <MNCTestModule />;
       case "iv":
         return <LearnerMockInterview />;
-      case "profile":
-        return <ProfileSummarizer />;
       case "resume":
         return <ResumeBuilder />;
       case "lb":
@@ -224,6 +221,10 @@ function InstitutionalContent() {
         return <FacultyUpload />;
       case "chat":
         return <PlatformChat />;
+      // "profile" (old id) -> Profile page — graceful redirect for anyone
+      // whose persisted activeScreen still points at the now-removed
+      // standalone "Profile Summarizer" screen.
+      case "profile":
       case "profile-info":
         return <ProfilePanel />;
       case "settings":

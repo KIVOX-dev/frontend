@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Pencil, Unlink, Camera } from "lucide-react";
+import { Pencil, Unlink, Camera, Plus, Trash2, Briefcase, GraduationCap as GradCapIcon } from "lucide-react";
 import { api, type ApiRequestConfig } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Field, Label, Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
+import { PerformanceSummarySection } from "@/components/shared/PerformanceSummarySection";
 import { CalendarHeatmap, type DayCount } from "@/components/shared/CalendarHeatmap";
 import { cn } from "@/lib/utils";
 
@@ -47,11 +49,405 @@ type StudentProfile = {
   stackoverflow_connected_at?: string | null;
   avatar_url?: string | null;
   cover_image_url?: string | null;
+  work_experience?: WorkExperienceEntry[] | null;
+  education?: EducationEntry[] | null;
 };
 
 type Department = { id: string; name: string };
 
-type Tab = "profile" | "student" | "integrations";
+type Tab = "profile" | "career" | "student" | "integrations";
+
+type WorkExperienceEntry = {
+  id: string;
+  jobTitle: string;
+  companyName: string;
+  workMode: "remote" | "onsite" | "hybrid";
+  workType: "internship" | "full_time" | "part_time" | "freelance" | "contract";
+  location?: string | null;
+  startMonth: number;
+  startYear: number;
+  endMonth?: number | null;
+  endYear?: number | null;
+  isCurrent: boolean;
+  description?: string | null;
+};
+
+type EducationEntry = {
+  id: string;
+  schoolName: string;
+  rollNumber?: string | null;
+  degreeType: string;
+  fieldOfStudy: string;
+  grade?: string | null;
+  location?: string | null;
+  startMonth: number;
+  startYear: number;
+  endMonth?: number | null;
+  endYear?: number | null;
+};
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+// A generous range covering both past graduation/work dates and near-future
+// "expected" graduation dates — this is a plain <select>, not a date picker,
+// so the list just needs to be long enough to never clip a real answer.
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR + 10 - 1970 + 1 }, (_, i) => CURRENT_YEAR + 10 - i);
+
+const WORK_MODE_LABELS: Record<WorkExperienceEntry["workMode"], string> = {
+  remote: "Remote",
+  onsite: "Onsite",
+  hybrid: "Hybrid",
+};
+const WORK_TYPE_LABELS: Record<WorkExperienceEntry["workType"], string> = {
+  internship: "Internship",
+  full_time: "Full-time",
+  part_time: "Part-time",
+  freelance: "Freelance",
+  contract: "Contract",
+};
+
+function formatDateRange(startMonth: number, startYear: number, endMonth?: number | null, endYear?: number | null, isCurrent?: boolean) {
+  const start = `${MONTH_NAMES[startMonth - 1]?.slice(0, 3)} ${startYear}`;
+  if (isCurrent) return `${start} - Present`;
+  if (endMonth && endYear) return `${start} - ${MONTH_NAMES[endMonth - 1]?.slice(0, 3)} ${endYear}`;
+  return start;
+}
+
+function MonthYearSelect({
+  month,
+  year,
+  onMonthChange,
+  onYearChange,
+  disabled,
+}: {
+  month: number | "";
+  year: number | "";
+  onMonthChange: (v: number | "") => void;
+  onYearChange: (v: number | "") => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <select
+        className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+        value={month}
+        disabled={disabled}
+        onChange={(e) => onMonthChange(e.target.value ? Number(e.target.value) : "")}
+      >
+        <option value="">Month</option>
+        {MONTH_NAMES.map((m, i) => (
+          <option key={m} value={i + 1}>
+            {m}
+          </option>
+        ))}
+      </select>
+      <select
+        className="h-11 w-full rounded-md border border-line bg-white px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+        value={year}
+        disabled={disabled}
+        onChange={(e) => onYearChange(e.target.value ? Number(e.target.value) : "")}
+      >
+        <option value="">Year</option>
+        {YEAR_OPTIONS.map((y) => (
+          <option key={y} value={y}>
+            {y}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function WorkExperienceModal({
+  open,
+  onOpenChange,
+  initial,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initial: WorkExperienceEntry | null;
+  onSave: (entry: WorkExperienceEntry) => Promise<void>;
+}) {
+  const [jobTitle, setJobTitle] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [workMode, setWorkMode] = useState<WorkExperienceEntry["workMode"] | "">("");
+  const [workType, setWorkType] = useState<WorkExperienceEntry["workType"] | "">("");
+  const [location, setLocation] = useState("");
+  const [startMonth, setStartMonth] = useState<number | "">("");
+  const [startYear, setStartYear] = useState<number | "">("");
+  const [endMonth, setEndMonth] = useState<number | "">("");
+  const [endYear, setEndYear] = useState<number | "">("");
+  const [isCurrent, setIsCurrent] = useState(false);
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  // Reset (or pre-fill for edit) every time the modal actually opens —
+  // not on every render, so typing doesn't get wiped mid-edit.
+  useEffect(() => {
+    if (!open) return;
+    setJobTitle(initial?.jobTitle || "");
+    setCompanyName(initial?.companyName || "");
+    setWorkMode(initial?.workMode || "");
+    setWorkType(initial?.workType || "");
+    setLocation(initial?.location || "");
+    setStartMonth(initial?.startMonth || "");
+    setStartYear(initial?.startYear || "");
+    setEndMonth(initial?.endMonth || "");
+    setEndYear(initial?.endYear || "");
+    setIsCurrent(initial?.isCurrent || false);
+    setDescription(initial?.description || "");
+    setError("");
+  }, [open, initial]);
+
+  const canSave = jobTitle.trim() && companyName.trim() && workMode && workType && startMonth && startYear && (isCurrent || (endMonth && endYear));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSave || !workMode || !workType || !startMonth || !startYear) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onSave({
+        id: initial?.id ?? crypto.randomUUID(),
+        jobTitle: jobTitle.trim(),
+        companyName: companyName.trim(),
+        workMode,
+        workType,
+        location: location.trim() || null,
+        startMonth,
+        startYear,
+        endMonth: isCurrent ? null : endMonth || null,
+        endYear: isCurrent ? null : endYear || null,
+        isCurrent,
+        description: description.trim() || null,
+      });
+      onOpenChange(false);
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, "Couldn't save this entry"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onOpenChange={onOpenChange} title={initial ? "Edit Work Experience" : "Add Work Experience"}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && <p className="text-small text-danger">{error}</p>}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field>
+            <Label>Job Title *</Label>
+            <Input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Eg. UI/UX Designer" required />
+          </Field>
+          <Field>
+            <Label>Company Name *</Label>
+            <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Eg. Microsoft" required />
+          </Field>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field>
+            <Label>Work Mode *</Label>
+            <select
+              className="h-11 w-full rounded-md border border-line bg-white px-3.5 text-base text-ink focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors duration-150"
+              value={workMode}
+              onChange={(e) => setWorkMode(e.target.value as WorkExperienceEntry["workMode"])}
+              required
+            >
+              <option value="">Select mode</option>
+              {Object.entries(WORK_MODE_LABELS).map(([v, label]) => (
+                <option key={v} value={v}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field>
+            <Label>Work Type *</Label>
+            <select
+              className="h-11 w-full rounded-md border border-line bg-white px-3.5 text-base text-ink focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors duration-150"
+              value={workType}
+              onChange={(e) => setWorkType(e.target.value as WorkExperienceEntry["workType"])}
+              required
+            >
+              <option value="">Select type</option>
+              {Object.entries(WORK_TYPE_LABELS).map(([v, label]) => (
+                <option key={v} value={v}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <Field>
+          <Label>Location</Label>
+          <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Eg. Bengaluru, India" />
+        </Field>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field>
+            <Label>Start Date *</Label>
+            <MonthYearSelect month={startMonth} year={startYear} onMonthChange={setStartMonth} onYearChange={setStartYear} />
+          </Field>
+          <Field>
+            <Label>End Date *</Label>
+            <MonthYearSelect month={endMonth} year={endYear} onMonthChange={setEndMonth} onYearChange={setEndYear} disabled={isCurrent} />
+          </Field>
+        </div>
+        <label className="flex items-center gap-2 text-small text-ink cursor-pointer">
+          <input type="checkbox" checked={isCurrent} onChange={(e) => setIsCurrent(e.target.checked)} className="size-4" />
+          I&apos;m currently working here
+        </label>
+        <Field>
+          <Label>About your role</Label>
+          <textarea
+            className="w-full rounded-md border border-line bg-white px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors duration-150"
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What did you work on?"
+          />
+        </Field>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={saving} disabled={!canSave}>
+            Save
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EducationModal({
+  open,
+  onOpenChange,
+  initial,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initial: EducationEntry | null;
+  onSave: (entry: EducationEntry) => Promise<void>;
+}) {
+  const [schoolName, setSchoolName] = useState("");
+  const [rollNumber, setRollNumber] = useState("");
+  const [degreeType, setDegreeType] = useState("");
+  const [fieldOfStudy, setFieldOfStudy] = useState("");
+  const [grade, setGrade] = useState("");
+  const [location, setLocation] = useState("");
+  const [startMonth, setStartMonth] = useState<number | "">("");
+  const [startYear, setStartYear] = useState<number | "">("");
+  const [endMonth, setEndMonth] = useState<number | "">("");
+  const [endYear, setEndYear] = useState<number | "">("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setSchoolName(initial?.schoolName || "");
+    setRollNumber(initial?.rollNumber || "");
+    setDegreeType(initial?.degreeType || "");
+    setFieldOfStudy(initial?.fieldOfStudy || "");
+    setGrade(initial?.grade || "");
+    setLocation(initial?.location || "");
+    setStartMonth(initial?.startMonth || "");
+    setStartYear(initial?.startYear || "");
+    setEndMonth(initial?.endMonth || "");
+    setEndYear(initial?.endYear || "");
+    setError("");
+  }, [open, initial]);
+
+  const canSave = schoolName.trim() && degreeType.trim() && fieldOfStudy.trim() && startMonth && startYear && endMonth && endYear;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSave || !startMonth || !startYear || !endMonth || !endYear) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onSave({
+        id: initial?.id ?? crypto.randomUUID(),
+        schoolName: schoolName.trim(),
+        rollNumber: rollNumber.trim() || null,
+        degreeType: degreeType.trim(),
+        fieldOfStudy: fieldOfStudy.trim(),
+        grade: grade.trim() || null,
+        location: location.trim() || null,
+        startMonth,
+        startYear,
+        endMonth,
+        endYear,
+      });
+      onOpenChange(false);
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, "Couldn't save this entry"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onOpenChange={onOpenChange} title={initial ? "Edit Education" : "Add Education"}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && <p className="text-small text-danger">{error}</p>}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field>
+            <Label>School / College name *</Label>
+            <Input value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="Eg. Anna University" required />
+          </Field>
+          <Field>
+            <Label>Roll number</Label>
+            <Input value={rollNumber} onChange={(e) => setRollNumber(e.target.value)} placeholder="Eg. 21CS123" />
+          </Field>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field>
+            <Label>Degree type *</Label>
+            <Input value={degreeType} onChange={(e) => setDegreeType(e.target.value)} placeholder="Eg. B.E / B.Tech" required />
+          </Field>
+          <Field>
+            <Label>Major / Field of study *</Label>
+            <Input value={fieldOfStudy} onChange={(e) => setFieldOfStudy(e.target.value)} placeholder="Eg. Computer Science" required />
+          </Field>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field>
+            <Label>Grade</Label>
+            <Input value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="Eg. 8.2 CGPA" />
+          </Field>
+          <Field>
+            <Label>Location</Label>
+            <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Eg. Chennai, India" />
+          </Field>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field>
+            <Label>Start Date *</Label>
+            <MonthYearSelect month={startMonth} year={startYear} onMonthChange={setStartMonth} onYearChange={setStartYear} />
+          </Field>
+          <Field>
+            <Label>End Date (or Expected) *</Label>
+            <MonthYearSelect month={endMonth} year={endYear} onMonthChange={setEndMonth} onYearChange={setEndYear} />
+          </Field>
+        </div>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={saving} disabled={!canSave}>
+            Save
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
 
 // lucide-react ships no brand/logo icons — hand-rolled inline SVG, same
 // pattern as LearnerShell.tsx's custom nav icons.
@@ -506,6 +902,11 @@ export function ProfilePanel() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const [coverError, setCoverError] = useState("");
+  const [workExpModalOpen, setWorkExpModalOpen] = useState(false);
+  const [editingWorkExp, setEditingWorkExp] = useState<WorkExperienceEntry | null>(null);
+  const [eduModalOpen, setEduModalOpen] = useState(false);
+  const [editingEdu, setEditingEdu] = useState<EducationEntry | null>(null);
+  const [careerError, setCareerError] = useState("");
 
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -744,6 +1145,48 @@ export function ProfilePanel() {
     setStudentProfile(res.data);
   };
 
+  // Full-array save, not a per-entry endpoint — matches
+  // studentProfile.service.js#updateOwn's "replace the whole array" design.
+  // Left un-caught here on purpose: WorkExperienceModal/EducationModal's own
+  // onSave wraps this in try/catch and shows the error inline in the modal.
+  const handleSaveWorkExperience = async (entry: WorkExperienceEntry) => {
+    const current = studentProfile?.work_experience || [];
+    const next = current.some((e) => e.id === entry.id) ? current.map((e) => (e.id === entry.id ? entry : e)) : [...current, entry];
+    const res = await api.put<StudentProfile>("/students/profile", { workExperience: next });
+    setStudentProfile(res.data);
+  };
+
+  const handleDeleteWorkExperience = async (id: string) => {
+    if (!window.confirm("Delete this work experience entry?")) return;
+    setCareerError("");
+    try {
+      const next = (studentProfile?.work_experience || []).filter((e) => e.id !== id);
+      const res = await api.put<StudentProfile>("/students/profile", { workExperience: next });
+      setStudentProfile(res.data);
+    } catch (err: unknown) {
+      setCareerError(extractErrorMessage(err, "Couldn't delete this entry"));
+    }
+  };
+
+  const handleSaveEducation = async (entry: EducationEntry) => {
+    const current = studentProfile?.education || [];
+    const next = current.some((e) => e.id === entry.id) ? current.map((e) => (e.id === entry.id ? entry : e)) : [...current, entry];
+    const res = await api.put<StudentProfile>("/students/profile", { education: next });
+    setStudentProfile(res.data);
+  };
+
+  const handleDeleteEducation = async (id: string) => {
+    if (!window.confirm("Delete this education entry?")) return;
+    setCareerError("");
+    try {
+      const next = (studentProfile?.education || []).filter((e) => e.id !== id);
+      const res = await api.put<StudentProfile>("/students/profile", { education: next });
+      setStudentProfile(res.data);
+    } catch (err: unknown) {
+      setCareerError(extractErrorMessage(err, "Couldn't delete this entry"));
+    }
+  };
+
   const startEditingProfile = () => {
     if (!studentProfile) return;
     setProfileForm({
@@ -871,6 +1314,11 @@ export function ProfilePanel() {
           About
         </ProfileTabButton>
         {isStudent && (
+          <ProfileTabButton active={activeTab === "career"} onClick={() => setActiveTab("career")}>
+            Career
+          </ProfileTabButton>
+        )}
+        {isStudent && (
           <ProfileTabButton active={activeTab === "student"} onClick={() => setActiveTab("student")}>
             Student Details
           </ProfileTabButton>
@@ -885,14 +1333,183 @@ export function ProfilePanel() {
       {/* Content */}
       <div>
         {activeTab === "profile" && (
-            <Card>
-              <h2 className="text-section-title mb-5">About</h2>
-              <div className="grid sm:grid-cols-2 gap-5 max-w-lg">
-                <ReadOnlyField label="Name" value={user?.name} />
-                <ReadOnlyField label="Email" value={user?.email} />
-                <ReadOnlyField label="Role" value={<span className="capitalize">{user?.role?.replace("_", " ")}</span>} />
-              </div>
-            </Card>
+            <div className="space-y-4">
+              <Card>
+                <h2 className="text-section-title mb-5">About</h2>
+                <div className="grid sm:grid-cols-2 gap-5 max-w-lg">
+                  <ReadOnlyField label="Name" value={user?.name} />
+                  <ReadOnlyField label="Email" value={user?.email} />
+                  <ReadOnlyField label="Role" value={<span className="capitalize">{user?.role?.replace("_", " ")}</span>} />
+                </div>
+              </Card>
+
+              {/* Formerly the separate "Profile Summarizer" screen — folded
+                  in here since it's the same subject (this student's own
+                  activity), not a separate destination. Student-only: it
+                  reads from studentProfile.service.js#getSummary, which
+                  requires a students row. */}
+              {isStudent && <PerformanceSummarySection />}
+            </div>
+          )}
+
+          {activeTab === "career" && isStudent && (
+            <div className="space-y-6">
+              {careerError && <p className="text-small text-danger">{careerError}</p>}
+
+              <Card>
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-section-title">Work Experience</h2>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setEditingWorkExp(null);
+                      setWorkExpModalOpen(true);
+                    }}
+                  >
+                    <Plus className="size-3.5" />
+                    Add Experience
+                  </Button>
+                </div>
+                {!studentProfile?.work_experience || studentProfile.work_experience.length === 0 ? (
+                  <div className="text-center py-10 border border-dashed border-line rounded-lg">
+                    <Briefcase className="size-6 mx-auto mb-2 text-ink-muted" />
+                    <p className="font-medium text-ink mb-1">No Experience Added Yet</p>
+                    <p className="text-small mb-4">Add your internships, part-time roles, or professional experience.</p>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setEditingWorkExp(null);
+                        setWorkExpModalOpen(true);
+                      }}
+                    >
+                      <Plus className="size-3.5" />
+                      Add Experience
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {studentProfile.work_experience.map((entry) => (
+                      <div key={entry.id} className="flex items-start justify-between gap-4 rounded-md border border-line p-4">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-ink">{entry.jobTitle}</p>
+                          <p className="text-small">
+                            {entry.companyName} · {WORK_TYPE_LABELS[entry.workType]} · {WORK_MODE_LABELS[entry.workMode]}
+                          </p>
+                          <p className="text-caption mt-1">
+                            {formatDateRange(entry.startMonth, entry.startYear, entry.endMonth, entry.endYear, entry.isCurrent)}
+                            {entry.location ? ` · ${entry.location}` : ""}
+                          </p>
+                          {entry.description && <p className="text-small text-ink mt-2">{entry.description}</p>}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            className="p-1.5 rounded text-ink-muted hover:text-ink hover:bg-paper-tint"
+                            aria-label="Edit"
+                            onClick={() => {
+                              setEditingWorkExp(entry);
+                              setWorkExpModalOpen(true);
+                            }}
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            className="p-1.5 rounded text-ink-muted hover:text-danger hover:bg-paper-tint"
+                            aria-label="Delete"
+                            onClick={() => handleDeleteWorkExperience(entry.id)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <Card>
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-section-title">Education</h2>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setEditingEdu(null);
+                      setEduModalOpen(true);
+                    }}
+                  >
+                    <Plus className="size-3.5" />
+                    Add Education
+                  </Button>
+                </div>
+                {!studentProfile?.education || studentProfile.education.length === 0 ? (
+                  <div className="text-center py-10 border border-dashed border-line rounded-lg">
+                    <GradCapIcon className="size-6 mx-auto mb-2 text-ink-muted" />
+                    <p className="font-medium text-ink mb-1">No Education Added Yet</p>
+                    <p className="text-small mb-4">Add your schools, colleges, and degrees.</p>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setEditingEdu(null);
+                        setEduModalOpen(true);
+                      }}
+                    >
+                      <Plus className="size-3.5" />
+                      Add Education
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {studentProfile.education.map((entry) => (
+                      <div key={entry.id} className="flex items-start justify-between gap-4 rounded-md border border-line p-4">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-ink">{entry.schoolName}</p>
+                          <p className="text-small">
+                            {entry.degreeType} in {entry.fieldOfStudy}
+                            {entry.grade ? ` · ${entry.grade}` : ""}
+                          </p>
+                          <p className="text-caption mt-1">
+                            {formatDateRange(entry.startMonth, entry.startYear, entry.endMonth, entry.endYear)}
+                            {entry.location ? ` · ${entry.location}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            className="p-1.5 rounded text-ink-muted hover:text-ink hover:bg-paper-tint"
+                            aria-label="Edit"
+                            onClick={() => {
+                              setEditingEdu(entry);
+                              setEduModalOpen(true);
+                            }}
+                          >
+                            <Pencil className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            className="p-1.5 rounded text-ink-muted hover:text-danger hover:bg-paper-tint"
+                            aria-label="Delete"
+                            onClick={() => handleDeleteEducation(entry.id)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <WorkExperienceModal
+                open={workExpModalOpen}
+                onOpenChange={setWorkExpModalOpen}
+                initial={editingWorkExp}
+                onSave={handleSaveWorkExperience}
+              />
+              <EducationModal open={eduModalOpen} onOpenChange={setEduModalOpen} initial={editingEdu} onSave={handleSaveEducation} />
+            </div>
           )}
 
           {activeTab === "student" && isStudent && (

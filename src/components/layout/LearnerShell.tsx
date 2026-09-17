@@ -60,7 +60,9 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         { id: PRACTICE_TOOLS_GROUP_ID, label: "Practice Tools", icon: <PracticeIcon />, children: practiceToolsChildren },
         ...(isInstitutionalStudent ? [
           { id: "placements", label: "Placements", section: "Professional Profile", icon: <PlacementIcon /> },
-          { id: "profile", label: "Profile Summarizer", icon: <ProfileIcon /> },
+          // Performance Summary (formerly its own "Profile Summarizer" nav
+          // item) now lives inside the Profile screen's About tab — see
+          // ProfilePanel.tsx's PerformanceSummarySection.
           { id: "resume", label: "Resume Builder", icon: <ResumeIcon /> },
           { id: "lb", label: "Top Talent Board", icon: <LeaderboardIcon /> },
         ] : []),
