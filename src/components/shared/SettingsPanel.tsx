@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Field, Label, Input, FieldError } from "@/components/ui/Input";
+import { CalendarHeatmap, type DayCount } from "@/components/shared/CalendarHeatmap";
 import { cn } from "@/lib/utils";
 
 type StudentProfile = {
@@ -166,6 +167,7 @@ function SocialIntegrationRow({
   username,
   suggestedUsername,
   onSave,
+  renderExtra,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -178,6 +180,10 @@ function SocialIntegrationRow({
   // rejected exactly like any other bad username would be.
   suggestedUsername?: string | null;
   onSave: (value: string) => Promise<void>;
+  // LeetCode only, for now — real stats (rank, solved counts, submission
+  // calendar) fetched from a dedicated endpoint once connected. Nothing else
+  // in SOCIAL_INTEGRATIONS has an equivalent public data source to show.
+  renderExtra?: (username: string) => React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
@@ -245,6 +251,8 @@ function SocialIntegrationRow({
         ) : null}
       </div>
 
+      {username && !editing && renderExtra && <div className="mt-4 pt-4 border-t border-line">{renderExtra(username)}</div>}
+
       {editing && (
         <div className="mt-3">
           {suggestedUsername && value === suggestedUsername && (
@@ -262,6 +270,142 @@ function SocialIntegrationRow({
         </div>
       )}
       {error && <p className="text-small text-danger mt-2">{error}</p>}
+    </div>
+  );
+}
+
+type LeetcodeStats = {
+  ranking: number | null;
+  reputation: number | null;
+  totalSolved: number;
+  easySolved: number;
+  mediumSolved: number;
+  hardSolved: number;
+  submissionCalendar: DayCount[];
+};
+
+// The one thing GoodFreshers' reference "Connect with LeetCode" modal
+// promises ("global rank, stats and submission graph") that a bare stored
+// username doesn't deliver on its own — fetched from LeetCode's public
+// GraphQL API server-side (see socialProfileClient.js#fetchLeetcodeStats),
+// on demand, only once the row is actually showing "Connected".
+function LeetCodeStats({ username }: { username: string }) {
+  const [stats, setStats] = useState<LeetcodeStats | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setStats(null);
+    setError("");
+    api
+      .get<LeetcodeStats>("/students/profile/leetcode-stats")
+      .then((res) => {
+        if (!cancelled) setStats(res.data);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(extractErrorMessage(err, "Couldn't load LeetCode stats"));
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Re-fetches if the connected username changes (e.g. reconnected under a
+    // different handle) — `username` isn't sent to the endpoint itself (the
+    // backend reads it from the student's own saved profile), it's only the
+    // trigger for "the connection changed, stats are stale."
+  }, [username]);
+
+  if (error) return <p className="text-small text-danger">{error}</p>;
+  if (!stats) return <p className="text-small">Loading LeetCode stats…</p>;
+
+  return (
+    <div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+        <div>
+          <p className="text-caption mb-0.5">Global Rank</p>
+          <p className="text-sm font-semibold text-ink">{stats.ranking ? `#${stats.ranking.toLocaleString()}` : "—"}</p>
+        </div>
+        <div>
+          <p className="text-caption mb-0.5">Total Solved</p>
+          <p className="text-sm font-semibold text-ink">{stats.totalSolved}</p>
+        </div>
+        <div>
+          <p className="text-caption mb-0.5">Easy / Medium / Hard</p>
+          <p className="text-sm font-semibold text-ink">
+            {stats.easySolved} / {stats.mediumSolved} / {stats.hardSolved}
+          </p>
+        </div>
+        <div>
+          <p className="text-caption mb-0.5">Reputation</p>
+          <p className="text-sm font-semibold text-ink">{stats.reputation ?? "—"}</p>
+        </div>
+      </div>
+      <CalendarHeatmap days={stats.submissionCalendar} unit="submission" />
+    </div>
+  );
+}
+
+type HackerrankBadge = { name: string; stars: number; totalStars: number; solved: number; totalChallenges: number };
+type HackerrankStats = { level: number | null; title: string | null; followers: number; badges: HackerrankBadge[] };
+
+// Same idea as LeetCodeStats above — real per-skill badges (name, stars
+// earned, problems solved) fetched from HackerRank's own public badges
+// endpoint, matching the reference screenshot's "Prove your expertise
+// through coding badges" promise with actual data instead of a stored
+// username alone.
+function HackerRankStats({ username }: { username: string }) {
+  const [stats, setStats] = useState<HackerrankStats | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setStats(null);
+    setError("");
+    api
+      .get<HackerrankStats>("/students/profile/hackerrank-stats")
+      .then((res) => {
+        if (!cancelled) setStats(res.data);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(extractErrorMessage(err, "Couldn't load HackerRank stats"));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [username]);
+
+  if (error) return <p className="text-small text-danger">{error}</p>;
+  if (!stats) return <p className="text-small">Loading HackerRank stats…</p>;
+
+  return (
+    <div>
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <p className="text-caption mb-0.5">Level</p>
+          <p className="text-sm font-semibold text-ink">{stats.level ?? "—"}</p>
+        </div>
+        <div>
+          <p className="text-caption mb-0.5">Title</p>
+          <p className="text-sm font-semibold text-ink">{stats.title || "—"}</p>
+        </div>
+        <div>
+          <p className="text-caption mb-0.5">Followers</p>
+          <p className="text-sm font-semibold text-ink">{stats.followers}</p>
+        </div>
+      </div>
+      {stats.badges.length === 0 ? (
+        <p className="text-small">No public badges yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {stats.badges.map((badge) => (
+            <div key={badge.name} className="flex items-center justify-between gap-3 text-small">
+              <span className="text-ink font-medium">{badge.name}</span>
+              <span className="text-ink-muted">
+                {badge.stars}/{badge.totalStars} stars · {badge.solved}/{badge.totalChallenges} solved
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -889,6 +1033,13 @@ export function SettingsPanel() {
                     username={studentProfile?.[integration.profileKey]}
                     suggestedUsername={studentProfile?.github_username}
                     onSave={(value) => handleSaveSocial(integration.field, value)}
+                    renderExtra={
+                      integration.field === "leetcodeUsername"
+                        ? (u) => <LeetCodeStats username={u} />
+                        : integration.field === "hackerrankUsername"
+                        ? (u) => <HackerRankStats username={u} />
+                        : undefined
+                    }
                   />
                 ))}
               </div>
