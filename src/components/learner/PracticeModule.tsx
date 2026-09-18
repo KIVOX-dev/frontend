@@ -138,8 +138,11 @@ export function PracticeModule() {
     try {
       // GET /tests returns every test visible to this student — the 4 open
       // practice banks plus anything explicitly assigned to them (see
-      // test.service.js#list). Find the one practice test for this category.
-      const res = await api.get<BackendTest[]>("/tests");
+      // test.service.js#list). It's sorted newest-first and defaults to a
+      // page of 20, so a student with 20+ assigned tests can push the
+      // (older, seeded-once) practice-bank rows off page 1 entirely —
+      // request the backend's max page size so all 4 are always included.
+      const res = await api.get<BackendTest[]>("/tests", { params: { limit: 100 } });
       const match = res.data.find((t) => t.category === cat.category);
       if (!match) {
         toast.info("This practice category isn't available yet.", "Please check back later.");
