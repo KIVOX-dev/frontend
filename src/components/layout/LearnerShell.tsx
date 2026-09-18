@@ -97,9 +97,9 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
       <div id="sidebar" className={isSidebarCollapsed ? "collapsed" : ""}>
         <div className="s-logo" style={{ justifyContent: isSidebarCollapsed ? "center" : "flex-start", padding: isSidebarCollapsed ? "16px 0" : "16px 14px 15px" }}>
           {isSidebarCollapsed ? (
-            <Logo variant="mark" height={28} />
+            <Logo variant="mark" height={56} />
           ) : (
-            <Logo variant="brand" height={36} className="brand-logo" />
+            <Logo variant="brand" height={72} className="brand-logo" />
           )}
         </div>
 
