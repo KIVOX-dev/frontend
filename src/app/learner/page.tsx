@@ -6,7 +6,6 @@ import { useUiStore } from "@/stores/uiStore";
 import { LearnerShell } from "@/components/layout/LearnerShell";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { FEATURE_FLAGS } from "@/config/featureFlags";
 
 // Only one of these renders at a time (renderScreen switch below) —
 // dynamic-importing keeps every other screen's code out of this route's
@@ -75,17 +74,7 @@ function LearnerContent() {
   }
 
   const renderScreen = () => {
-    // Hidden behind FEATURE_FLAGS.youtubeToCourse for the current user test
-    // group — redirected to the same "coming soon" default the switch below
-    // already falls back to for any unrecognized screen id, so a stale
-    // ?screen= link can't reach it either. Code/routes are untouched; this
-    // is the only gate, flip the flag back on to restore both the nav item
-    // (LearnerShell.tsx) and this.
-    const screen =
-      !FEATURE_FLAGS.youtubeToCourse && (activeScreen === "learnings" || activeScreen === "youtube-course-import")
-        ? "youtube-course-hidden"
-        : activeScreen;
-    switch (screen) {
+    switch (activeScreen) {
       case "dash": return <LearnerDashboard />;
       case "practice": return <PracticeModule />;
       case "tests": return <AptitudeTests />;

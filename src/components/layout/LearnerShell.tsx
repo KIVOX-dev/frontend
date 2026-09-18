@@ -6,7 +6,6 @@ import { useAuthStore } from "@/stores/authStore";
 import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
-import { FEATURE_FLAGS } from "@/config/featureFlags";
 
 export function LearnerShell({ children }: { children: React.ReactNode }) {
   const {
@@ -61,15 +60,9 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         // Tests (AptitudeTests.tsx) now, not the sidebar — one entry point
         // instead of two for the same screen.
         { id: "tests", label: "Aptitude Tests", icon: <TestsIcon /> },
-        // Hidden behind FEATURE_FLAGS.youtubeToCourse for the current user
-        // test group — code/routes untouched, just not reachable from here
-        // until that flag flips back on. See app/learner/page.tsx and
-        // app/institutional/page.tsx's renderScreen for the matching guard.
-        ...(FEATURE_FLAGS.youtubeToCourse ? [{ id: "learnings", label: "Learnings", icon: <LearningsIcon /> }] : []),
+        { id: "learnings", label: "Learnings", icon: <LearningsIcon /> },
         { id: PRACTICE_TOOLS_GROUP_ID, label: "Practice Tools", icon: <PracticeIcon />, children: practiceToolsChildren },
-        ...(FEATURE_FLAGS.youtubeToCourse
-          ? [{ id: "youtube-course-import", label: "YouTube to Course", icon: <YoutubeToolIcon /> }]
-          : []),
+        { id: "youtube-course-import", label: "YouTube to Course", icon: <YoutubeToolIcon /> },
         ...(isInstitutionalStudent ? [
           { id: "placements", label: "Placements", section: "Professional Profile", icon: <PlacementIcon /> },
           // Performance Summary (formerly its own "Profile Summarizer" nav
