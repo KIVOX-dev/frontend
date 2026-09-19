@@ -376,6 +376,20 @@ function sceneFor(season: AuthSeason): Scene {
 }
 
 
+// One mountain range: haze-faded body, shadow face, sunlit face, snow caps.
+function Range({ art, id, p }: { art: LayerArt; id: "far" | "mid" | "near"; p: Palette }) {
+  return (
+    <>
+      <path d={art.body} fill={`url(#lp-body-${id})`} />
+      <path d={art.shade} fill="url(#lp-shade)" />
+      <path d={art.lit} fill="url(#lp-lit)" />
+      <path d={art.gullies} fill="url(#lp-shade)" opacity=".8" />
+      {art.snowShade && <path d={art.snowShade} fill={p.snow} opacity={p.snowOpacity * 0.55} />}
+      {art.snowLit && <path d={art.snowLit} fill={p.snow} opacity={p.snowOpacity} />}
+    </>
+  );
+}
+
 // The night sky's star field — fixed positions and fixed twinkle timing
 // (not Math.random()) so server and client render identical markup, but
 // varied enough per star that the sparkle reads as random rather than a
@@ -518,19 +532,6 @@ function Cloud({ x, y, s = 1, fill, opacity }: { x: number; y: number; s?: numbe
   );
 }
 
-// One mountain range: haze-faded body, shadow face, sunlit face, snow caps.
-function Range({ art, id, p }: { art: LayerArt; id: "far" | "mid" | "near"; p: Palette }) {
-  return (
-    <>
-      <path d={art.body} fill={`url(#lp-body-${id})`} />
-      <path d={art.shade} fill="url(#lp-shade)" />
-      <path d={art.lit} fill="url(#lp-lit)" />
-      <path d={art.gullies} fill="url(#lp-shade)" opacity=".8" />
-      {art.snowShade && <path d={art.snowShade} fill={p.snow} opacity={p.snowOpacity * 0.55} />}
-      {art.snowLit && <path d={art.snowLit} fill={p.snow} opacity={p.snowOpacity} />}
-    </>
-  );
-}
 
 export function AuthMountains({
   season = "night",
