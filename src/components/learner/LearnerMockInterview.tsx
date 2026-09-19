@@ -1,7 +1,18 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { FilesetResolver, PoseLandmarker, type PoseLandmarkerResult } from "@mediapipe/tasks-vision";
+import type { ObjectDetector, PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
+import {
+  ABSENT_COUNTDOWN_AFTER_MS,
+  ABSENT_LIMIT_MS,
+  DEVICE_CONFIRM_HITS,
+  OBJECT_INTERVAL_MS,
+  POSE_INTERVAL_MS,
+  createObjectDetector,
+  createPoseLandmarker,
+  detectsExternalDevice,
+  isPersonAbsent,
+} from "@/lib/proctoring";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { useUiStore } from "@/stores/uiStore";
@@ -13,15 +24,6 @@ interface Question {
   time_limit_seconds: number;
   type: string;
 }
-
-// Loaded from Google's model store / jsdelivr's CDN at runtime, not bundled —
-// see next.config.mjs's CSP connect-src/worker-src for why those two origins
-// are allow-listed. "lite" variant: accurate enough for a coarse posture
-// heuristic (shoulder tilt, facing-camera) at a fraction of the "full"/"heavy"
-// variants' download size and per-frame inference cost.
-const POSE_MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
-const MEDIAPIPE_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
 
 // Indices into MediaPipe Pose's 33-point BlazePose landmark layout — only
 // the few this component's posture heuristic actually uses.
@@ -37,7 +39,9 @@ function evaluatePosture(result: PoseLandmarkerResult): string | null {
   const nose = landmarks?.[POSE_LANDMARK.NOSE];
   const leftShoulder = landmarks?.[POSE_LANDMARK.LEFT_SHOULDER];
   const rightShoulder = landmarks?.[POSE_LANDMARK.RIGHT_SHOULDER];
-  if (!nose || !leftShoulder || !rightShoulder) return "Please stay in frame — we can't see you.";
+  // Nobody in view is handled by the 5-second out-of-frame countdown in the
+  // detection loop, which ends the interview — not by this soft warning.
+  if (!nose || !leftShoulder || !rightShoulder) return null;
 
   // Landmark x/y are normalized to [0, 1] against the video frame, so these
   // thresholds are resolution-independent.
@@ -156,6 +160,19 @@ export function LearnerMockInterview() {
   const poseLoopRef = useRef<number | null>(null);
   const postureIssueSinceRef = useRef<number | null>(null);
   const lastPoseTimestampRef = useRef(0);
+  const objectDetectorRef = useRef<ObjectDetector | null>(null);
+  const lastObjectTimestampRef = useRef(0);
+  const deviceHitsRef = useRef(0);
+  const absentSinceRef = useRef<number | null>(null);
+  // Set once the interview has been stopped for a violation, so a slow save
+  // can't be triggered a second time by the next detection frame.
+  const terminatedRef = useRef(false);
+  // finishInterview is declared further down (it has to come after the
+  // dependencies it reads); the detection loop reaches it through this ref.
+  const terminateRef = useRef<(reason: string) => void>(() => {});
+  const [objectModelReady, setObjectModelReady] = useState(false);
+  const [absentSecondsLeft, setAbsentSecondsLeft] = useState<number | null>(null);
+  const [terminationReason, setTerminationReason] = useState<string | null>(null);
   const [mediaStatus, setMediaStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
   const [poseModelReady, setPoseModelReady] = useState(false);
   const [postureWarning, setPostureWarning] = useState<string | null>(null);
@@ -174,27 +191,18 @@ export function LearnerMockInterview() {
   const [speechSupported, setSpeechSupported] = useState(true);
   const [listening, setListening] = useState(false);
 
-  // Loads the posture model in the background as soon as this screen mounts
-  // (not gated on camera permission — the download/init can overlap with the
-  // user reading the setup screen and clicking "Enable Camera").
+  // Loads the posture and device-detection models in the background as soon
+  // as this screen mounts (not gated on camera permission — the download/init
+  // can overlap with the user reading the setup screen and clicking "Enable
+  // Camera"). Each degrades independently: if one fails to load, the camera
+  // and speech-to-text still work and the other check still runs.
   useEffect(() => {
     setSpeechSupported(Boolean(getSpeechRecognitionCtor()));
 
     let cancelled = false;
     (async () => {
       try {
-        const fileset = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
-        // CPU, not GPU — the WebGL-based GPU delegate fails silently or
-        // throws mid-session on a lot of real machines (VMs, remote desktop
-        // sessions, hardware acceleration disabled) in ways that never show
-        // up in normal local testing. CPU is slower per frame but the "lite"
-        // model at 1 pose is well within real-time budget, and it works
-        // identically everywhere.
-        const landmarker = await PoseLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: POSE_MODEL_URL, delegate: "CPU" },
-          runningMode: "VIDEO",
-          numPoses: 1,
-        });
+        const landmarker = await createPoseLandmarker(1);
         if (cancelled) {
           landmarker.close();
           return;
@@ -202,9 +210,20 @@ export function LearnerMockInterview() {
         poseLandmarkerRef.current = landmarker;
         setPoseModelReady(true);
       } catch (err) {
-        // Posture detection degrades to "unavailable" rather than blocking
-        // the interview — camera + speech-to-text still work without it.
         console.error("Failed to load posture-detection model:", err);
+      }
+    })();
+    (async () => {
+      try {
+        const detector = await createObjectDetector();
+        if (cancelled) {
+          detector.close();
+          return;
+        }
+        objectDetectorRef.current = detector;
+        setObjectModelReady(true);
+      } catch (err) {
+        console.error("Failed to load device-detection model:", err);
       }
     })();
 
@@ -212,6 +231,8 @@ export function LearnerMockInterview() {
       cancelled = true;
       poseLandmarkerRef.current?.close();
       poseLandmarkerRef.current = null;
+      objectDetectorRef.current?.close();
+      objectDetectorRef.current = null;
     };
   }, []);
 
@@ -264,10 +285,19 @@ export function LearnerMockInterview() {
     }
   };
 
-  // Runs a requestAnimationFrame pose-detection loop for as long as the live
-  // interview screen is showing and both the stream and model are ready.
+  // Runs the camera checks for as long as the live interview screen is
+  // showing and the stream and at least one model are ready:
+  //
+  // 1. External device (phone / laptop / TV / remote) — zero tolerance. Seen
+  //    on two consecutive checks (~0.5s) it ends the interview immediately.
+  // 2. Out of frame — nobody in view, or the face turned away/covered. A 5s
+  //    countdown appears; if the person isn't back by zero the interview ends.
+  // 3. Posture (shoulder tilt, facing the camera) — soft warning only.
+  //
+  // One requestAnimationFrame loop drives both models, but each is throttled
+  // to its own interval (see proctoring.ts) rather than running every frame.
   useEffect(() => {
-    if (setup || interviewComplete || mediaStatus !== "granted" || !poseModelReady) return;
+    if (setup || interviewComplete || mediaStatus !== "granted" || (!poseModelReady && !objectModelReady)) return;
 
     // A thrown detectForVideo() call (dropped WebGL context, a transient GPU
     // delegate hiccup, etc.) must not kill this loop — without the try/catch,
@@ -277,42 +307,86 @@ export function LearnerMockInterview() {
     // this gives up for good instead of hammering a broken pipeline forever.
     let consecutiveErrors = 0;
     const MAX_CONSECUTIVE_ERRORS = 5;
+    let lastPoseRun = 0;
+    let lastObjectRun = 0;
 
     const detect = () => {
       try {
         const video = videoRef.current;
-        const landmarker = poseLandmarkerRef.current;
-        if (video && landmarker && video.readyState >= 2) {
-          // detectForVideo requires a STRICTLY increasing timestamp on every
-          // call in VIDEO mode — it throws otherwise. Two requestAnimationFrame
-          // ticks can land on the same performance.now() value under Chrome/
-          // Firefox's reduced timer-precision privacy protections (or on
-          // high-refresh displays), which would otherwise throw on every
-          // subsequent call from that point on, not just once.
-          const timestamp = Math.max(performance.now(), lastPoseTimestampRef.current + 1);
-          lastPoseTimestampRef.current = timestamp;
-          const result = landmarker.detectForVideo(video, timestamp);
-          consecutiveErrors = 0;
-          const issue = evaluatePosture(result);
-          const now = Date.now();
-          if (issue) {
-            if (postureIssueSinceRef.current == null) postureIssueSinceRef.current = now;
-            if (now - postureIssueSinceRef.current > POSTURE_WARNING_DEBOUNCE_MS) {
-              setPostureWarning(issue);
+        if (video && video.readyState >= 2 && !terminatedRef.current) {
+          const nowMs = performance.now();
+
+          // Pose model first; the object model waits for a later frame so the
+          // two never land in the same tick and stall it.
+          const landmarker = poseLandmarkerRef.current;
+          if (landmarker && nowMs - lastPoseRun >= POSE_INTERVAL_MS) {
+            lastPoseRun = nowMs;
+            // detectForVideo requires a STRICTLY increasing timestamp on every
+            // call in VIDEO mode — it throws otherwise. Two requestAnimationFrame
+            // ticks can land on the same performance.now() value under Chrome/
+            // Firefox's reduced timer-precision privacy protections (or on
+            // high-refresh displays), which would otherwise throw on every
+            // subsequent call from that point on, not just once.
+            const timestamp = Math.max(nowMs, lastPoseTimestampRef.current + 1);
+            lastPoseTimestampRef.current = timestamp;
+            const result = landmarker.detectForVideo(video, timestamp);
+            const now = Date.now();
+
+            if (isPersonAbsent(result)) {
+              if (absentSinceRef.current == null) absentSinceRef.current = now;
+              const elapsed = now - absentSinceRef.current;
+              if (elapsed >= ABSENT_LIMIT_MS) {
+                terminateRef.current("You were out of the camera's view for more than 5 seconds — the interview was stopped.");
+                return;
+              }
+              if (elapsed >= ABSENT_COUNTDOWN_AFTER_MS) setAbsentSecondsLeft(Math.ceil((ABSENT_LIMIT_MS - elapsed) / 1000));
+              postureIssueSinceRef.current = null;
+              setPostureWarning(null);
+            } else {
+              absentSinceRef.current = null;
+              setAbsentSecondsLeft(null);
+              const issue = evaluatePosture(result);
+              if (issue) {
+                if (postureIssueSinceRef.current == null) postureIssueSinceRef.current = now;
+                if (now - postureIssueSinceRef.current > POSTURE_WARNING_DEBOUNCE_MS) {
+                  setPostureWarning(issue);
+                }
+              } else {
+                postureIssueSinceRef.current = null;
+                setPostureWarning(null);
+              }
             }
           } else {
-            postureIssueSinceRef.current = null;
-            setPostureWarning(null);
+            const detector = objectDetectorRef.current;
+            if (detector && nowMs - lastObjectRun >= OBJECT_INTERVAL_MS) {
+              lastObjectRun = nowMs;
+              const timestamp = Math.max(nowMs, lastObjectTimestampRef.current + 1);
+              lastObjectTimestampRef.current = timestamp;
+              if (detectsExternalDevice(detector.detectForVideo(video, timestamp))) {
+                deviceHitsRef.current += 1;
+                if (deviceHitsRef.current >= DEVICE_CONFIRM_HITS) {
+                  terminateRef.current(
+                    "An external device (phone, laptop, TV, or remote) was detected in your camera — the interview was stopped immediately."
+                  );
+                  return;
+                }
+              } else {
+                deviceHitsRef.current = 0;
+              }
+            }
           }
+          consecutiveErrors = 0;
         }
       } catch (err) {
-        console.error("Posture detection frame failed:", err);
+        console.error("Camera-check frame failed:", err);
         consecutiveErrors += 1;
         if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-          // Degrade to "no posture detection" rather than leaving a stale
+          // Degrade to "no camera checks" rather than leaving a stale
           // warning on screen with nothing left updating it.
           postureIssueSinceRef.current = null;
+          absentSinceRef.current = null;
           setPostureWarning(null);
+          setAbsentSecondsLeft(null);
           return;
         }
       }
@@ -323,9 +397,12 @@ export function LearnerMockInterview() {
     return () => {
       if (poseLoopRef.current) cancelAnimationFrame(poseLoopRef.current);
       postureIssueSinceRef.current = null;
+      absentSinceRef.current = null;
+      deviceHitsRef.current = 0;
       setPostureWarning(null);
+      setAbsentSecondsLeft(null);
     };
-  }, [setup, interviewComplete, mediaStatus, poseModelReady]);
+  }, [setup, interviewComplete, mediaStatus, poseModelReady, objectModelReady]);
 
   // A recognition session is scoped to one question — stops it (rather than
   // letting it keep dictating) the moment the question changes, so a
@@ -411,6 +488,8 @@ export function LearnerMockInterview() {
     try {
       const res = await api.post(`/interviews/generate?role=${encodeURIComponent(role)}&company=${encodeURIComponent(company)}`);
       setQuestions(res.data);
+      terminatedRef.current = false;
+      setTerminationReason(null);
       setSetup(false);
       setTimeLeft(60);
     } catch (err) {
@@ -472,6 +551,17 @@ export function LearnerMockInterview() {
       setInterviewComplete(true);
     }
   }, [questions, user?.id, role]);
+
+  // Stops the interview for a camera violation: records why, then saves
+  // whatever was answered so far exactly like "End Session" does.
+  useEffect(() => {
+    terminateRef.current = (reason: string) => {
+      if (terminatedRef.current) return;
+      terminatedRef.current = true;
+      setTerminationReason(reason);
+      finishInterview();
+    };
+  }, [finishInterview]);
 
   // Deps: `currentQuestionIndex`/`questions` (read directly) plus
   // `finishInterview` (called in the else branch). `role`/`user`/`company`
@@ -567,7 +657,7 @@ export function LearnerMockInterview() {
                 <div>
                   <strong style={{ fontSize: "14px" }}>Camera &amp; Microphone Check</strong>
                   <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
-                    Required to start — this interview monitors your posture in real time and can transcribe spoken answers.
+                    Required to start — this interview watches the camera in real time: stay in view, and keep phones and other devices out of frame, or it will stop. It can also transcribe spoken answers.
                   </p>
                 </div>
                 {mediaStatus !== "granted" && (
@@ -597,7 +687,7 @@ export function LearnerMockInterview() {
                     style={{ width: "120px", height: "90px", borderRadius: "8px", background: "#000", objectFit: "cover", transform: "scaleX(-1)" }}
                   />
                   <span style={{ fontSize: "12px", color: "var(--teal)", fontWeight: 600 }}>
-                    ✓ Camera ready{poseModelReady ? "" : " — loading posture check…"}
+                    ✓ Camera ready{poseModelReady && objectModelReady ? "" : " — loading camera checks…"}
                   </span>
                 </div>
               )}
@@ -665,8 +755,13 @@ export function LearnerMockInterview() {
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </div>
-        <h2 style={{ fontSize: "28px", marginBottom: "12px", fontWeight: 800 }}>Interview Saved! 🎉</h2>
-        <p style={{ color: "var(--muted)", marginBottom: "32px", lineHeight: 1.6 }}>Your responses have been recorded and saved to your history.</p>
+        <h2 style={{ fontSize: "28px", marginBottom: "12px", fontWeight: 800 }}>{terminationReason ? "Interview Stopped" : "Interview Saved! 🎉"}</h2>
+        {terminationReason && (
+          <p style={{ color: "var(--red)", marginBottom: "12px", lineHeight: 1.6, fontWeight: 600 }}>{terminationReason}</p>
+        )}
+        <p style={{ color: "var(--muted)", marginBottom: "32px", lineHeight: 1.6 }}>
+          {terminationReason ? "Your answers so far have been saved to your history." : "Your responses have been recorded and saved to your history."}
+        </p>
         <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
           <button className="btn btn-p" onClick={() => { setSetup(true); setInterviewComplete(false); setTab("history"); }}>View History</button>
           <button className="btn btn-o" onClick={() => setActiveScreen("dash")}>Return to Dashboard</button>
@@ -708,9 +803,16 @@ export function LearnerMockInterview() {
         </div>
       </div>
 
-      {(postureWarning || cameraDisconnected) && (
+      {(absentSecondsLeft != null || postureWarning || cameraDisconnected) && (
         <div style={{ background: "rgba(239,68,68,0.1)", color: "var(--red)", padding: "10px 24px", fontSize: "13px", fontWeight: 600, textAlign: "center", borderBottom: "1px solid var(--border)" }}>
-          ⚠ {cameraDisconnected ? "Camera disconnected — please reconnect your webcam to continue." : postureWarning}
+          {absentSecondsLeft != null ? (
+            <>
+              ⚠ We can&apos;t see you — get back in the camera&apos;s view within{" "}
+              <strong style={{ fontSize: "16px", fontVariantNumeric: "tabular-nums" }}>{absentSecondsLeft}s</strong> or the interview will stop.
+            </>
+          ) : (
+            <>⚠ {cameraDisconnected ? "Camera disconnected — please reconnect your webcam to continue." : postureWarning}</>
+          )}
         </div>
       )}
 

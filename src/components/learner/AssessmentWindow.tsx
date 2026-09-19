@@ -4,7 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, XCircle, Globe, Camera, Monitor } from "lucide-react";
 import { SkillBadgeIcon } from "@/components/shared/SkillBadgeIcon";
-import { FilesetResolver, ObjectDetector, PoseLandmarker, type ObjectDetectorResult, type PoseLandmarkerResult } from "@mediapipe/tasks-vision";
+import type { ObjectDetector, PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
+import {
+  DEVICE_CONFIRM_HITS,
+  OBJECT_INTERVAL_MS,
+  POSE_INTERVAL_MS,
+  createObjectDetector,
+  createPoseLandmarker,
+  detectsExternalDevice,
+} from "@/lib/proctoring";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { Card } from "@/components/ui/Card";
@@ -18,35 +26,11 @@ type CheckStatus = "idle" | "checking" | "granted" | "denied";
 type SkillProgress = { skill_name: string; badge_count: number; certificate_issued: boolean; badges_remaining: number };
 const BADGES_PER_CERTIFICATE = 5;
 
-// Same CDN/model-store pattern as LearnerMockInterview.tsx's posture
-// detection (already allow-listed in next.config.mjs's CSP) — a second,
-// unrelated MediaPipe Tasks Vision model, this time EfficientDet-Lite0 for
-// general object detection instead of PoseLandmarker.
-const MEDIAPIPE_WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
-const OBJECT_MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/latest/efficientdet_lite0.tflite";
-// A conservative subset of the model's 80 COCO classes — deliberately
-// excludes "keyboard"/"mouse"/"book" etc., which the camera routinely sees
-// as part of the student's OWN normal setup and would false-positive
-// constantly. These four are the classic "second device" cheating signals.
-const DEVICE_CLASSES = new Set(["cell phone", "laptop", "tv", "remote"]);
-// Must persist this long before it ends the assessment — a single misread
-// frame shouldn't terminate someone's attempt, but this is deliberately much
-// shorter than posture detection's debounce elsewhere in the app, since the
-// whole point here is stopping quickly once something real is confirmed.
-const DEVICE_DETECTION_DEBOUNCE_MS = 600;
-
-function detectsExternalDevice(result: ObjectDetectorResult): boolean {
-  return result.detections.some((d) => d.categories.some((c) => DEVICE_CLASSES.has(c.categoryName) && c.score > 0.5));
-}
-
 // Same pose-landmarker model/CDN as LearnerMockInterview.tsx's posture
 // detection — reused here for a different purpose: not posture, but "is
 // there exactly one person, framed from the face down to the chest, facing
 // the camera." `numPoses: 3` is enough headroom to tell "0", "1", and
 // "more than 1" apart without needing a large cap.
-const POSE_MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
 const POSE_LANDMARK = { NOSE: 0, LEFT_EYE: 2, RIGHT_EYE: 5, LEFT_EAR: 7, RIGHT_EAR: 8, LEFT_SHOULDER: 11, RIGHT_SHOULDER: 12 } as const;
 // MediaPipe Pose reports a per-landmark `visibility` score (0-1, how
 // confident it is that point is actually in frame / not occluded) — real
@@ -157,7 +141,7 @@ export function AssessmentWindow() {
   const objectDetectorRef = useRef<ObjectDetector | null>(null);
   const [objectDetectorReady, setObjectDetectorReady] = useState(false);
   const lastDetectTimestampRef = useRef(0);
-  const deviceIssueSinceRef = useRef<number | null>(null);
+  const deviceHitsRef = useRef(0);
   const detectLoopRef = useRef<number | null>(null);
   // Both loading effects and the detection loop below degrade silently by
   // design (console.error only, assessment still proceeds without that
@@ -289,13 +273,7 @@ export function AssessmentWindow() {
     let cancelled = false;
     (async () => {
       try {
-        const fileset = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
-        const detector = await ObjectDetector.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: OBJECT_MODEL_URL, delegate: "CPU" },
-          runningMode: "VIDEO",
-          scoreThreshold: 0.5,
-          maxResults: 5,
-        });
+        const detector = await createObjectDetector();
         if (cancelled) {
           detector.close();
           return;
@@ -322,12 +300,7 @@ export function AssessmentWindow() {
     let cancelled = false;
     (async () => {
       try {
-        const fileset = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
-        const landmarker = await PoseLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: POSE_MODEL_URL, delegate: "CPU" },
-          runningMode: "VIDEO",
-          numPoses: 3,
-        });
+        const landmarker = await createPoseLandmarker(3);
         if (cancelled) {
           landmarker.close();
           return;
@@ -374,22 +347,30 @@ export function AssessmentWindow() {
 
     let consecutiveErrors = 0;
     const MAX_CONSECUTIVE_ERRORS = 5;
+    let lastObjectRun = 0;
+    let lastPoseRun = 0;
 
     const detect = () => {
       try {
         const video = videoRef.current;
         if (video && video.readyState >= 2) {
+          // Each model runs on its own interval instead of every frame (see
+          // proctoring.ts), and never both in the same tick — that is what
+          // keeps the page responsive and detections prompt on a CPU-only
+          // runtime.
+          const nowMs = performance.now();
+          let ranObject = false;
           const objectDetector = objectDetectorRef.current;
-          if (objectDetector) {
+          if (objectDetector && nowMs - lastObjectRun >= OBJECT_INTERVAL_MS) {
+            ranObject = true;
+            lastObjectRun = nowMs;
             // Strictly increasing timestamp requirement — same reasoning as
             // LearnerMockInterview.tsx's lastPoseTimestampRef.
-            const timestamp = Math.max(performance.now(), lastDetectTimestampRef.current + 1);
+            const timestamp = Math.max(nowMs, lastDetectTimestampRef.current + 1);
             lastDetectTimestampRef.current = timestamp;
-            const result = objectDetector.detectForVideo(video, timestamp);
-            if (detectsExternalDevice(result)) {
-              const now = Date.now();
-              if (deviceIssueSinceRef.current == null) deviceIssueSinceRef.current = now;
-              if (now - deviceIssueSinceRef.current > DEVICE_DETECTION_DEBOUNCE_MS) {
+            if (detectsExternalDevice(objectDetector.detectForVideo(video, timestamp))) {
+              deviceHitsRef.current += 1;
+              if (deviceHitsRef.current >= DEVICE_CONFIRM_HITS) {
                 violationsRef.current.device_detected += 1;
                 setTerminationReason(
                   "An external device (phone, laptop, TV, or remote) was detected in your camera — the assessment was stopped immediately."
@@ -398,13 +379,14 @@ export function AssessmentWindow() {
                 return;
               }
             } else {
-              deviceIssueSinceRef.current = null;
+              deviceHitsRef.current = 0;
             }
           }
 
           const poseLandmarker = poseLandmarkerRef.current;
-          if (poseLandmarker) {
-            const timestamp = Math.max(performance.now(), lastPoseTimestampRef.current + 1);
+          if (poseLandmarker && !ranObject && nowMs - lastPoseRun >= POSE_INTERVAL_MS) {
+            lastPoseRun = nowMs;
+            const timestamp = Math.max(nowMs, lastPoseTimestampRef.current + 1);
             lastPoseTimestampRef.current = timestamp;
             const poseResult = poseLandmarker.detectForVideo(video, timestamp);
             const issue = evaluateFraming(poseResult);
@@ -446,7 +428,7 @@ export function AssessmentWindow() {
 
     return () => {
       if (detectLoopRef.current) cancelAnimationFrame(detectLoopRef.current);
-      deviceIssueSinceRef.current = null;
+      deviceHitsRef.current = 0;
       framingIssueSinceRef.current = null;
       framingIssueActiveRef.current = false;
       setFramingWarning(null);
