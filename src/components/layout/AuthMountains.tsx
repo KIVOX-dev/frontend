@@ -1,9 +1,8 @@
-// Decorative mountain silhouette for AuthSplitLayout's left panel. Pure
-// SVG, no dependencies. Each season gets both its own palette AND its own
-// ridge-line geometry — sharp icy peaks for winter/night, soft rolling
-// hills for spring/summer, clustered tree-canopy hills for autumn — so the
-// five login screens read as five different places, not one scene recolored
-// five times.
+// Decorative mountain range for AuthSplitLayout's left panel. Pure SVG, no
+// dependencies. Each season has its own palette and its own procedurally
+// generated terrain (see TERRAIN below) — tall snow-capped alpine peaks for
+// night/winter/spring, lower forested ranges for summer/autumn/monsoon — so
+// the login screens read as different places, not one scene recoloured.
 export type AuthSeason = "spring" | "summer" | "autumn" | "winter" | "night" | "monsoon";
 
 type Palette = {
@@ -88,65 +87,294 @@ const PALETTES: Record<AuthSeason, Palette> = {
   },
 };
 
-type Shape = {
-  far: string;
-  mid: string;
-  near: string;
-  /** Small triangular caps on the tallest near-ridge peaks — sharp seasons only. */
-  caps?: string[];
+// ── Procedural mountain terrain ─────────────────────────────────────────────
+// Ridgelines are generated (ridged fractal noise), not hand-drawn, so they
+// read as real mountains: sharp peaks, rounded valleys, fine-grained
+// jaggedness. Everything is derived from a fixed seed with plain arithmetic
+// (no Math.random, no trig) so server and client render identical markup.
+// Each peak also gets a lit face (towards the sun, right) and a shadow face
+// (left) split by a jagged crease, plus a snow cap with a ragged lower edge;
+// the near range gets a conifer fringe. Together with the haze gradients in
+// AuthMountains this gives the depth of a photographed range.
+type Pt = [number, number];
+type LayerCfg = { base: number; amp: number; freq: number; sharp: number };
+type Terrain = {
+  seed: number;
+  far: LayerCfg;
+  mid: LayerCfg;
+  near: LayerCfg;
+  /** Peaks higher than this y (smaller y = higher) get a snow cap; 0 = none. */
+  snowY: number;
+  /** Conifer fringe along the foot of the near range. */
+  trees: boolean;
 };
 
-const SHAPES: Record<AuthSeason, Shape> = {
-  // Sharp, dramatic alpine skyline — tall single peaks, wide gaps.
+const X0 = -10;
+const X1 = 430;
+const STEP = 4;
+const FLOOR = 380;
+
+const TERRAIN: Record<AuthSeason, Terrain> = {
+  // Tall, sharp alpine skyline.
   night: {
-    far: "M0 220 L45 178 L95 208 L150 158 L205 202 L265 168 L320 206 L375 172 L420 198 L420 380 L0 380 Z",
-    mid: "M0 258 L55 214 L115 248 L180 194 L235 244 L295 202 L350 246 L420 220 L420 380 L0 380 Z",
-    near: "M0 300 L50 254 L100 284 L165 226 L220 278 L285 236 L345 282 L420 254 L420 380 L0 380 Z",
-    caps: ["M165 226 L178 244 L152 244 Z", "M285 236 L297 253 L273 253 Z"],
+    seed: 7,
+    far: { base: 236, amp: 88, freq: 4, sharp: 1.3 },
+    mid: { base: 278, amp: 108, freq: 3, sharp: 1.5 },
+    near: { base: 322, amp: 112, freq: 3.5, sharp: 1.6 },
+    snowY: 226, trees: true,
   },
-  // Sharper and more frequent peaks than night — a jagged icefield, heavy snow.
+  // Denser, more jagged — an icefield.
   winter: {
-    far: "M0 240 L30 190 L60 220 L90 170 L120 210 L150 160 L180 205 L210 155 L240 200 L270 165 L300 210 L330 170 L360 215 L390 175 L420 205 L420 380 L0 380 Z",
-    mid: "M0 270 L40 220 L80 255 L125 200 L165 245 L210 195 L250 240 L295 190 L335 235 L375 200 L420 230 L420 380 L0 380 Z",
-    near: "M0 312 L45 255 L90 292 L140 222 L185 278 L235 218 L285 274 L335 228 L385 278 L420 244 L420 380 L0 380 Z",
-    caps: [
-      "M140 222 L152 244 L128 244 Z",
-      "M235 218 L247 240 L223 240 Z",
-      "M335 228 L347 249 L323 249 Z",
-    ],
+    seed: 19,
+    far: { base: 240, amp: 90, freq: 5, sharp: 1.6 },
+    mid: { base: 280, amp: 110, freq: 4, sharp: 1.7 },
+    near: { base: 324, amp: 114, freq: 4, sharp: 1.8 },
+    snowY: 236, trees: true,
   },
-  // Soft, rounded peaks — real mountain relief, just with smooth curved
-  // summits instead of winter/night's sharp triangular ones. One tall
-  // central peak flanked by smaller rounded ones, unlike summer's evenly
-  // separated domes or autumn's dense tiny bumps.
+  // Big broad peaks with snow only on the tallest summits.
   spring: {
-    far: "M0 250 C 25 210 45 195 70 200 C 95 205 105 235 130 225 C 155 215 175 160 205 165 C 235 170 250 225 280 220 C 310 215 325 180 355 185 C 385 190 400 220 420 215 L420 380 L0 380 Z",
-    mid: "M0 280 C 30 245 55 230 80 235 C 105 240 115 265 140 258 C 165 251 185 205 215 210 C 245 215 260 260 290 255 C 320 250 335 220 365 225 C 390 230 405 255 420 250 L420 380 L0 380 Z",
-    near: "M0 315 C 35 275 65 258 95 264 C 125 270 138 300 168 292 C 198 284 220 230 255 236 C 290 242 308 295 343 289 C 373 283 390 250 420 258 L420 380 L0 380 Z",
+    seed: 31,
+    far: { base: 238, amp: 86, freq: 3.5, sharp: 1.25 },
+    mid: { base: 280, amp: 106, freq: 3, sharp: 1.4 },
+    near: { base: 324, amp: 108, freq: 3.5, sharp: 1.45 },
+    snowY: 214, trees: true,
   },
-  // A few big, separate rounded dome hills with real valleys between them —
-  // reads as distinct hills, not one continuous wave.
+  // Lower, forested ranges — rounder summits, no snow.
   summer: {
-    far: "M0 280 C 40 232 80 212 120 212 C 160 212 180 255 220 255 C 260 255 280 202 320 202 C 360 202 380 248 420 248 L420 380 L0 380 Z",
-    mid: "M0 310 C 35 265 75 245 115 245 C 155 245 175 288 215 288 C 255 288 275 235 315 235 C 355 235 375 280 415 280 L420 282 L420 380 L0 380 Z",
-    near: "M0 340 C 30 300 70 280 110 280 C 150 280 170 320 210 320 C 250 320 270 270 310 270 C 350 270 370 315 410 315 L420 318 L420 380 L0 380 Z",
+    seed: 43,
+    far: { base: 250, amp: 66, freq: 3.5, sharp: 1 },
+    mid: { base: 290, amp: 80, freq: 3, sharp: 1.05 },
+    near: { base: 330, amp: 84, freq: 2.5, sharp: 1.1 },
+    snowY: 0, trees: true,
   },
-  // A dense field of small, tight bumps — a forest-canopy texture, distinct
-  // from summer's few big domes and spring's flat wave.
   autumn: {
-    far: "M0 260 C 15 238 30 250 45 240 C 60 230 75 246 90 238 C 105 230 120 248 135 240 C 150 232 165 248 180 240 C 195 232 210 248 225 240 C 240 232 255 248 270 240 C 285 232 300 246 315 238 C 330 230 345 244 360 236 C 375 228 390 240 405 234 L420 238 L420 380 L0 380 Z",
-    mid: "M0 292 C 18 266 35 280 52 270 C 69 260 86 278 103 268 C 120 258 137 278 154 268 C 171 258 188 278 205 268 C 222 258 239 278 256 268 C 273 258 290 276 307 266 C 324 256 341 272 358 262 C 375 252 392 266 409 258 L420 262 L420 380 L0 380 Z",
-    near: "M0 335 C 20 306 38 322 56 310 C 74 298 92 320 110 308 C 128 296 146 320 164 308 C 182 296 200 320 218 308 C 236 296 254 320 272 308 C 290 296 308 318 326 306 C 344 294 362 312 380 302 C 392 295 402 300 410 298 L420 302 L420 380 L0 380 Z",
+    seed: 57,
+    far: { base: 250, amp: 68, freq: 4, sharp: 1.05 },
+    mid: { base: 290, amp: 82, freq: 3, sharp: 1.1 },
+    near: { base: 330, amp: 86, freq: 2.5, sharp: 1.15 },
+    snowY: 0, trees: true,
   },
-  // Low, lush, rolling hills — the Western Ghats foothill profile rather
-  // than alpine peaks, since this is a wet-season lowland scene (rain
-  // clouds sit low over hills, not sharp snow-line summits).
+  // Low, lush ridges under cloud.
   monsoon: {
-    far: "M0 260 C 30 225 60 215 95 222 C 130 229 150 255 185 248 C 220 241 245 205 285 210 C 325 215 345 248 385 244 C 405 242 415 235 420 232 L420 380 L0 380 Z",
-    mid: "M0 288 C 35 255 70 245 108 252 C 146 259 168 282 205 276 C 242 270 262 238 302 244 C 342 250 358 278 398 274 L420 270 L420 380 L0 380 Z",
-    near: "M0 320 C 40 288 80 280 120 288 C 160 296 182 318 222 312 C 262 306 280 276 322 282 C 364 288 380 314 420 310 L420 380 L0 380 Z",
+    seed: 71,
+    far: { base: 252, amp: 62, freq: 3.5, sharp: 0.9 },
+    mid: { base: 292, amp: 74, freq: 3, sharp: 0.95 },
+    near: { base: 332, amp: 78, freq: 2.5, sharp: 1 },
+    snowY: 0, trees: true,
   },
 };
+
+// Multiply each RGB channel of a #rrggbb colour by `k` (0–1) — a shade of
+// the same hue, used for the tree line so it reads darker than the rock.
+function darken(hex: string, k: number) {
+  const ch = (i: number) => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, "0");
+  return `#${ch(1)}${ch(3)}${ch(5)}`;
+}
+
+const fmt = (n: number) => Math.round(n * 10) / 10;
+
+// mulberry32 — integer maths only, identical on every JS engine.
+function rng(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function valueNoise(lattice: number[], t: number) {
+  const i = Math.floor(t);
+  const f = t - i;
+  const s = f * f * (3 - 2 * f);
+  return lattice[i] + (lattice[i + 1] - lattice[i]) * s;
+}
+
+function makeRidge(cfg: LayerCfg, rand: () => number): Pt[] {
+  const OCTAVES = 5;
+  const lattices: number[][] = [];
+  for (let o = 0; o < OCTAVES; o++) {
+    const cells = Math.ceil(cfg.freq * Math.pow(2, o));
+    lattices.push(Array.from({ length: cells + 2 }, () => rand()));
+  }
+  const heights: number[] = [];
+  const count = Math.round((X1 - X0) / STEP);
+  for (let i = 0; i <= count; i++) {
+    const u = i / count;
+    let h = 0;
+    let gain = 1;
+    let norm = 0;
+    for (let o = 0; o < OCTAVES; o++) {
+      const n = valueNoise(lattices[o], u * cfg.freq * Math.pow(2, o));
+      h += gain * Math.pow(1 - Math.abs(2 * n - 1), cfg.sharp);
+      norm += gain;
+      gain *= 0.5;
+    }
+    heights.push(h / norm);
+  }
+  // Stretch so each range always spans its full amplitude.
+  const lo = Math.min(...heights);
+  const hi = Math.max(...heights);
+  return heights.map((h, i) => [X0 + i * STEP, cfg.base - (cfg.amp * (h - lo)) / (hi - lo)] as Pt);
+}
+
+function findPeaks(pts: Pt[], win: number): number[] {
+  const out: number[] = [];
+  for (let i = win; i < pts.length - win; i++) {
+    let ok = true;
+    for (let k = 1; k <= win && ok; k++) {
+      if (pts[i - k][1] < pts[i][1] || pts[i + k][1] <= pts[i][1]) ok = false;
+    }
+    if (ok) out.push(i);
+  }
+  return out;
+}
+
+// Follow the ridge downhill from a peak to the valley floor; a small rise
+// (jitter from the fine octaves) doesn't end the descent, a real one does.
+function descend(pts: Pt[], i: number, dir: 1 | -1, maxSteps: number): number {
+  let best = i;
+  for (let s = 1; s <= maxSteps; s++) {
+    const n = i + dir * s;
+    if (n < 0 || n >= pts.length) break;
+    if (pts[n][1] >= pts[best][1]) best = n;
+    else if (pts[best][1] - pts[n][1] > 6) break;
+  }
+  return best;
+}
+
+const path = (points: Pt[]) =>
+  `M${points.map(([x, y]) => `${fmt(x)} ${fmt(y)}`).join("L")}Z`;
+
+function snowCap(pts: Pt[], i: number, rand: () => number, snowY: number): { lit: string; shade: string } | null {
+  const [px, py] = pts[i];
+  if (py >= snowY) return null;
+  const depth = Math.min(46, Math.max(12, (snowY - py) * 0.9 + 10));
+  let l = i;
+  let r = i;
+  while (i - l < 20 && l > 0 && pts[l - 1][1] < py + depth) l--;
+  while (r - i < 20 && r < pts.length - 1 && pts[r + 1][1] < py + depth) r++;
+  if (r - l < 4) return null;
+
+  // Ragged lower edge: alternate shallow/deep tongues along the cap.
+  const edge: Pt[] = [pts[l]];
+  let deep = false;
+  for (let k = l + 2; k < r - 1; k += 2) {
+    const reach = deep ? 0.82 + rand() * 0.18 : 0.42 + rand() * 0.25;
+    edge.push([pts[k][0], Math.max(pts[k][1] + 3, py + depth * reach)]);
+    deep = !deep;
+  }
+  edge.push(pts[r]);
+
+  const mid: Pt = [px, py + depth * 0.7];
+  const left: Pt[] = [...pts.slice(l, i + 1), mid, ...edge.filter((e) => e[0] < px).reverse()];
+  const right: Pt[] = [...pts.slice(i, r + 1), ...edge.filter((e) => e[0] > px).reverse(), mid];
+  return { lit: path(right), shade: path(left) };
+}
+
+type LayerArt = { body: string; lit: string; shade: string; gullies: string; snowLit: string; snowShade: string };
+
+// A jagged line running from (x, y) down to the floor — used for the crease
+// between a summit's lit and shadow faces and for the gullies at valley
+// floors, so no flank edge is ever a straight ruler line.
+function ravine(x: number, y: number, rand: () => number, jitter: number): Pt[] {
+  const n = 6;
+  const out: Pt[] = [];
+  for (let k = 1; k <= n; k++) {
+    out.push([x + (k === n ? 0 : (rand() - 0.5) * jitter * 2), y + ((FLOOR - y) * k) / n]);
+  }
+  return out;
+}
+
+function buildLayer(cfg: LayerCfg, snowY: number, rand: () => number): LayerArt {
+  const pts = makeRidge(cfg, rand);
+  const lit: string[] = [];
+  const shade: string[] = [];
+  const gullies: string[] = [];
+  const snowLit: string[] = [];
+  const snowShade: string[] = [];
+
+  for (const i of findPeaks(pts, 7)) {
+    const [px, py] = pts[i];
+    const l = descend(pts, i, -1, 24);
+    const r = descend(pts, i, 1, 24);
+    if (Math.min(pts[l][1], pts[r][1]) - py < 16) continue;
+
+    // Each flank is bounded by the ridge, a jagged gully down the valley
+    // floor, and a jagged crease down from the summit.
+    const crease = ravine(px, py, rand, 6).reverse();
+    shade.push(path([...pts.slice(l, i + 1).reverse(), ...ravine(pts[l][0], pts[l][1], rand, 5), ...crease]));
+    lit.push(path([...pts.slice(i, r + 1), ...ravine(pts[r][0], pts[r][1], rand, 5), ...crease]));
+
+    if (snowY > 0) {
+      const cap = snowCap(pts, i, rand, snowY);
+      if (cap) {
+        snowLit.push(cap.lit);
+        snowShade.push(cap.shade);
+      }
+    }
+  }
+
+  // Fine rock texture: thin wedges running down from the ridge, like erosion
+  // gullies on a real face.
+  for (let i = 2; i < pts.length - 2; i += 2) {
+    if (rand() < 0.45) continue;
+    const [x, y] = pts[i];
+    const len = 12 + rand() * 46;
+    const w = 0.8 + rand() * 1.6;
+    const lean = (rand() - 0.5) * 8;
+    gullies.push(path([[x, y + 1], [x - w + lean, y + len], [x + w + lean, y + len]]));
+  }
+
+  return {
+    body: path([[X0, FLOOR], ...pts, [X1, FLOOR]]),
+    lit: lit.join(""),
+    shade: shade.join(""),
+    gullies: gullies.join(""),
+    snowLit: snowLit.join(""),
+    snowShade: snowShade.join(""),
+  };
+}
+
+// A row of conifers: a sawtooth whose tooth height and baseline drift
+// randomly, so no two trees repeat.
+function pineRow(baseY: number, drift: number, minH: number, maxH: number, w: number, rand: () => number): string {
+  const pts: Pt[] = [[X0, FLOOR]];
+  let y = baseY;
+  let x = X0;
+  pts.push([x, y]);
+  while (x < X1) {
+    y = Math.min(baseY + drift, Math.max(baseY - drift, y + (rand() - 0.5) * 4));
+    const h = minH + rand() * (maxH - minH);
+    pts.push([x + w * (0.4 + rand() * 0.2), y - h]);
+    x += w;
+    pts.push([x, y]);
+  }
+  pts.push([x, FLOOR]);
+  return path(pts);
+}
+
+type Scene = { far: LayerArt; mid: LayerArt; near: LayerArt; treesBack: string; treesFront: string };
+const SCENES: Partial<Record<AuthSeason, Scene>> = {};
+
+function sceneFor(season: AuthSeason): Scene {
+  const cached = SCENES[season];
+  if (cached) return cached;
+  const t = TERRAIN[season];
+  const rand = rng(t.seed);
+  const scene: Scene = {
+    far: buildLayer(t.far, t.snowY, rand),
+    mid: buildLayer(t.mid, t.snowY, rand),
+    near: buildLayer(t.near, t.snowY, rand),
+    treesBack: t.trees ? pineRow(t.near.base + 6, 6, 9, 20, 8, rand) : "",
+    treesFront: t.trees ? pineRow(t.near.base + 26, 5, 13, 26, 10, rand) : "",
+  };
+  SCENES[season] = scene;
+  return scene;
+}
+
 
 // The night sky's star field — fixed positions and fixed twinkle timing
 // (not Math.random()) so server and client render identical markup, but
@@ -290,6 +518,20 @@ function Cloud({ x, y, s = 1, fill, opacity }: { x: number; y: number; s?: numbe
   );
 }
 
+// One mountain range: haze-faded body, shadow face, sunlit face, snow caps.
+function Range({ art, id, p }: { art: LayerArt; id: "far" | "mid" | "near"; p: Palette }) {
+  return (
+    <>
+      <path d={art.body} fill={`url(#lp-body-${id})`} />
+      <path d={art.shade} fill="url(#lp-shade)" />
+      <path d={art.lit} fill="url(#lp-lit)" />
+      <path d={art.gullies} fill="url(#lp-shade)" opacity=".8" />
+      {art.snowShade && <path d={art.snowShade} fill={p.snow} opacity={p.snowOpacity * 0.55} />}
+      {art.snowLit && <path d={art.snowLit} fill={p.snow} opacity={p.snowOpacity} />}
+    </>
+  );
+}
+
 export function AuthMountains({
   season = "night",
   className = "lp-mountains",
@@ -302,7 +544,8 @@ export function AuthMountains({
   className?: string;
 }) {
   const p = PALETTES[season];
-  const s = SHAPES[season];
+  const scene = sceneFor(season);
+  const t = TERRAIN[season];
   return (
     <svg
       className={className}
@@ -314,6 +557,28 @@ export function AuthMountains({
         <linearGradient id="lp-shoot-trail" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stopColor="#fff" stopOpacity="0" />
           <stop offset="1" stopColor="#fff" stopOpacity="1" />
+        </linearGradient>
+
+        {/* Each range fades toward the sky at its foot, so the range behind
+            shows through the valleys — atmospheric haze. */}
+        {(["far", "mid", "near"] as const).map((k) => (
+          <linearGradient key={k} id={`lp-body-${k}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={p[k]} stopOpacity="1" />
+            <stop offset="1" stopColor={p[k]} stopOpacity={k === "near" ? 1 : 0.4} />
+          </linearGradient>
+        ))}
+        <linearGradient id="lp-lit" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={p.sun} stopOpacity=".4" />
+          <stop offset=".8" stopColor={p.sun} stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="lp-shade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={p.skyTop} stopOpacity=".55" />
+          <stop offset=".85" stopColor={p.skyTop} stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="lp-mist" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity="0" />
+          <stop offset=".55" stopColor="#fff" stopOpacity=".2" />
+          <stop offset="1" stopColor="#fff" stopOpacity="0" />
         </linearGradient>
       </defs>
 
@@ -424,12 +689,19 @@ export function AuthMountains({
         </>
       )}
 
-      <path d={s.far} fill={p.far} opacity={p.farOpacity} />
-      <path d={s.mid} fill={p.mid} opacity={p.midOpacity} />
-      <path d={s.near} fill={p.near} />
-      {s.caps?.map((d, i) => (
-        <path key={i} d={d} fill={p.snow} opacity={p.snowOpacity * (i === 0 ? 1 : 0.85)} />
-      ))}
+      <g opacity={p.farOpacity}>
+        <Range art={scene.far} id="far" p={p} />
+      </g>
+      <rect x="0" y={t.mid.base - t.mid.amp * 0.55} width="420" height="70" fill="url(#lp-mist)" />
+      <g opacity={p.midOpacity}>
+        <Range art={scene.mid} id="mid" p={p} />
+      </g>
+      <rect x="0" y={t.near.base - t.near.amp * 0.45} width="420" height="70" fill="url(#lp-mist)" />
+      <Range art={scene.near} id="near" p={p} />
+
+      {/* conifer fringe along the foot of the near range */}
+      {scene.treesBack && <path d={scene.treesBack} fill={darken(p.near, 0.72)} />}
+      {scene.treesFront && <path d={scene.treesFront} fill={darken(p.near, 0.52)} />}
     </svg>
   );
 }
