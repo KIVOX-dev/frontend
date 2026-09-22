@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { CheckCircle2, Circle, Briefcase, GraduationCap, FileText, Target, Award, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
@@ -50,6 +50,7 @@ type StepId = "profile" | "education" | "experience" | "job-role" | "roadmap";
  */
 export function SetupWizard() {
   const router = useRouter();
+  const pathname = usePathname();
   const setActiveScreen = useUiStore((s) => s.setActiveScreen);
 
   const [profile, setProfile] = useState<StudentSetupProfile | null>(null);
@@ -131,8 +132,19 @@ export function SetupWizard() {
   const progressPct = Math.round((completedCount / steps.length) * 100);
   const currentStep = openStep ?? steps.find((s) => !s.complete)?.id ?? steps[steps.length - 1].id;
 
+  // Screens in this app switch via useUiStore's activeScreen, not real
+  // routing — a plain router.push to a hardcoded "/learner?screen=..." only
+  // updates the URL, and for an institutional student (hosted at
+  // /institutional, not /learner) it navigates to the wrong page entirely
+  // while activeScreen stays "setup", so the Setup Wizard just keeps
+  // rendering. setActiveScreen() is what actually flips the visible screen,
+  // same as every other in-app nav call (e.g. the "Go to Setup" button in
+  // JobRoleRoadmap.tsx); the router.push here only carries the `tab` query
+  // param on the CURRENT path so ProfilePanel.tsx's own searchParams effect
+  // opens the right tab.
   const goToProfileTab = (tab: "career") => {
-    router.push(`/learner?screen=profile-info&tab=${tab}`);
+    setActiveScreen("profile-info");
+    router.push(`${pathname}?screen=profile-info&tab=${tab}`);
   };
 
   return (
