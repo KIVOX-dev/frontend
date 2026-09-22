@@ -63,6 +63,7 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         { id: "learnings", label: "Learnings", icon: <LearningsIcon /> },
         { id: PRACTICE_TOOLS_GROUP_ID, label: "Practice Tools", icon: <PracticeIcon />, children: practiceToolsChildren },
         { id: "youtube-course-import", label: "YouTube to Course", icon: <YoutubeToolIcon /> },
+        { id: "setup", label: "Setup", icon: <SetupIcon /> },
         ...(isInstitutionalStudent ? [
           { id: "placements", label: "Placements", section: "Professional Profile", icon: <PlacementIcon /> },
           // Performance Summary (formerly its own "Profile Summarizer" nav
@@ -270,6 +271,15 @@ function LearningsIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <polygon points="23 7 16 12 23 17 23 7" />
       <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+    </svg>
+  );
+}
+
+function SetupIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
     </svg>
   );
 }

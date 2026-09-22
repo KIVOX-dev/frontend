@@ -537,16 +537,18 @@ export function ProfilePanel() {
       .finally(() => setProfileLoading(false));
   }, [isStudent]);
 
-  // Lands here once, right after an OAuth callback redirect (GitHub/
+  // Lands here once, either right after an OAuth callback redirect (GitHub/
   // LinkedIn/Stack Overflow — see their respective *AuthService.js on the
-  // backend) sends the browser back with `?tab=integrations&...`. Only the
-  // tab-routing lives here — IntegrationsSection.tsx reads and strips the
-  // provider-specific `<provider>=connected|error&reason=...` params itself,
-  // since it's the thing that actually owns that connect/disconnect state
-  // (and is also reachable directly from Settings, which never sees this
-  // redirect at all).
+  // backend) sends the browser back with `?tab=integrations&...`, or from
+  // SetupWizard.tsx's "Add Education"/"Add Work Experience" links
+  // (`?screen=profile-info&tab=career`). Only the tab-routing lives here —
+  // IntegrationsSection.tsx reads and strips the provider-specific
+  // `<provider>=connected|error&reason=...` params itself, since it's the
+  // thing that actually owns that connect/disconnect state (and is also
+  // reachable directly from Settings, which never sees this redirect at all).
   useEffect(() => {
-    if (searchParams.get("tab") === "integrations") setActiveTab("integrations");
+    const tab = searchParams.get("tab");
+    if (tab === "integrations" || tab === "career" || tab === "skills") setActiveTab(tab);
   }, [searchParams]);
 
   const departmentName = departments.find((d) => d.id === studentProfile?.department_id)?.name;

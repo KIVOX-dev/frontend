@@ -10,7 +10,9 @@ import { Card } from "@/components/ui/Card";
 
 type CertificateVerification = {
   id: string;
-  skill_name: string;
+  type?: "skill" | "role";
+  skill_name?: string | null;
+  role_title?: string | null;
   issued_at: string;
   student_name: string;
 };
@@ -59,12 +61,14 @@ export default function VerifyCertificatePage() {
               <ShieldCheck className="size-7" />
             </div>
             <p className="text-caption mb-1">Verified TalentSnaps Certificate</p>
-            <h1 className="text-heading-l mb-4">{certificate.skill_name}</h1>
+            <h1 className="text-heading-l mb-4">{certificate.type === "role" ? certificate.role_title : certificate.skill_name}</h1>
             <p className="text-small mb-1">
               Awarded to <span className="font-semibold text-ink">{certificate.student_name}</span>
             </p>
             <p className="text-small mb-6">
-              For passing 5 lesson assessments in {certificate.skill_name} on TalentSnaps, issued{" "}
+              {certificate.type === "role"
+                ? `For earning every skill badge in the ${certificate.role_title} roadmap on TalentSnaps, issued `
+                : `For passing 5 lesson assessments in ${certificate.skill_name} on TalentSnaps, issued `}
               {new Date(certificate.issued_at).toLocaleDateString()}.
             </p>
             <p className="text-caption">Credential ID: {certificate.id}</p>

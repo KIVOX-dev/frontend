@@ -18,7 +18,13 @@ type SkillBadge = {
 
 type Certificate = {
   id: string;
-  skill_name: string;
+  // 'role' certificates (role_title populated) are earned by completing every
+  // skill badge in a job-role roadmap — see JobRoleRoadmap.tsx and
+  // roadmap.service.js#_maybeIssueRoleCertificate. Older/'skill' certificates
+  // (skill_name populated) keep working exactly as before.
+  type?: "skill" | "role";
+  skill_name?: string | null;
+  role_title?: string | null;
   issued_at: string;
   verify_url: string;
   linkedin_add_url: string;
@@ -73,7 +79,9 @@ export function SkillsSection() {
                 <div className="flex items-center gap-3 min-w-0">
                   <SkillBadgeIcon size={40} className="shrink-0" />
                   <div className="min-w-0">
-                    <p className="font-semibold text-ink">{certificate.skill_name} — TalentSnaps Certified</p>
+                    <p className="font-semibold text-ink">
+                      {certificate.type === "role" ? certificate.role_title : certificate.skill_name} — TalentSnaps Certified
+                    </p>
                     <p className="text-small">Issued {new Date(certificate.issued_at).toLocaleDateString()}</p>
                   </div>
                 </div>
