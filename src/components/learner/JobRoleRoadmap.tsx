@@ -47,17 +47,7 @@ function formatDuration(seconds: number) {
  * as the plain URL-paste tab, so an added video gets the same lesson,
  * assessment, and skill-badge pipeline as anything else on Learnings.
  */
-export function JobRoleRoadmap({
-  targetJobRole,
-  compact = false,
-}: {
-  targetJobRole: string | null;
-  /** Rendered as a narrow sidebar panel (YoutubeCourseImport.tsx's right
-   * column) instead of its own full-width page section — drops the page-level
-   * max-width/centering and the video grid down to a single column so it
-   * doesn't get cramped in a ~380px-wide rail. */
-  compact?: boolean;
-}) {
+export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null }) {
   const setActiveScreen = useUiStore((s) => s.setActiveScreen);
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [loading, setLoading] = useState(Boolean(targetJobRole));
@@ -94,10 +84,10 @@ export function JobRoleRoadmap({
 
   if (!targetJobRole) {
     return (
-      <Card className={cn("text-center py-10", !compact && "max-w-xl mx-auto")}>
-        <h2 className={compact ? "font-semibold text-ink mb-2" : "text-section-title mb-2"}>Choose a job role first</h2>
+      <Card className="max-w-xl mx-auto text-center py-10">
+        <h2 className="text-section-title mb-2">Choose a job role first</h2>
         <p className="text-small mb-6">Pick a target job role in Setup and we&apos;ll suggest a video roadmap for it.</p>
-        <Button size={compact ? "sm" : "default"} onClick={() => setActiveScreen("setup")}>Go to Setup</Button>
+        <Button onClick={() => setActiveScreen("setup")}>Go to Setup</Button>
       </Card>
     );
   }
@@ -117,15 +107,13 @@ export function JobRoleRoadmap({
   if (!roadmap) return null;
 
   return (
-    <div className={compact ? undefined : "max-w-4xl mx-auto"}>
-      <div className={cn("mb-6", !compact && "text-center")}>
-        <h2 className={compact ? "font-semibold text-ink mb-1" : "text-section-title mb-1"}>
-          {compact ? "Suggested for You" : `${roadmap.role.title} Roadmap`}
-        </h2>
-        <p className="text-small">{compact ? roadmap.role.title : roadmap.role.description}</p>
+    <div className="max-w-4xl mx-auto">
+      <div className="mb-6 text-center">
+        <h2 className="text-section-title mb-1">{roadmap.role.title} Roadmap</h2>
+        <p className="text-small">{roadmap.role.description}</p>
       </div>
 
-      {error && <p className={cn("text-small text-danger mb-4", !compact && "text-center")}>{error}</p>}
+      {error && <p className="text-small text-danger mb-4 text-center">{error}</p>}
 
       {roadmap.role_certificate && (
         <Card className="mb-6 flex items-center gap-3 border-success/40">
@@ -142,7 +130,7 @@ export function JobRoleRoadmap({
           <Card key={step.skill}>
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
-                <h3 className={compact ? "text-small font-semibold text-ink" : "text-section-title"}>{step.skill}</h3>
+                <h3 className="text-section-title">{step.skill}</h3>
                 {step.badge_progress.certificate_issued && <CheckCircle2 className="size-5 text-success" />}
               </div>
               <span
@@ -160,7 +148,7 @@ export function JobRoleRoadmap({
             {step.videos.length === 0 ? (
               <p className="text-small text-ink-muted">No videos available for this skill right now.</p>
             ) : (
-              <div className={cn("grid gap-4", compact ? "grid-cols-1" : "sm:grid-cols-2 lg:grid-cols-3")}>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {step.videos.map((video) => {
                   const added = addedVideoIds.has(video.youtubeVideoId);
                   return (

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { JobRoleRoadmap } from "@/components/learner/JobRoleRoadmap";
+import { cn } from "@/lib/utils";
 
 function YoutubeIcon({ className }: { className?: string }) {
   return (
@@ -34,6 +35,7 @@ export function YoutubeCourseImport() {
   const [url, setUrl] = useState("");
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
+  const [mode, setMode] = useState<"link" | "roadmap">("link");
   const [targetJobRole, setTargetJobRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,15 +60,31 @@ export function YoutubeCourseImport() {
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto">
+    <div className="p-6 md:p-10 max-w-4xl mx-auto">
       <div className="mb-6">
         <h1 className="text-heading-l mb-1">YouTube to Course</h1>
         <p className="text-body text-ink-muted">Convert a link, or follow a video roadmap for your chosen job role.</p>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_380px] gap-8 items-start">
-        <div>
-          <Card className="text-center py-10">
+      <div className="flex justify-center gap-1 mb-8 border-b border-line">
+        {(["link", "roadmap"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setMode(tab)}
+            className={cn(
+              "px-4 py-2.5 text-small font-semibold border-b-2 -mb-px transition-colors",
+              mode === tab ? "border-primary text-primary" : "border-transparent text-ink-muted hover:text-ink"
+            )}
+          >
+            {tab === "link" ? "Paste a Link" : "Job Role Roadmap"}
+          </button>
+        ))}
+      </div>
+
+      {mode === "link" ? (
+        <>
+          <Card className="max-w-xl mx-auto text-center py-10">
             <div className="flex items-center justify-center gap-2 mb-2">
               <YoutubeIcon className="size-7" />
               <h2 className="text-section-title">Convert YouTube Playlist</h2>
@@ -77,7 +95,7 @@ export function YoutubeCourseImport() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="Paste the content/playlist link here"
-              className="mb-2 max-w-xl mx-auto"
+              className="mb-2"
               onKeyDown={(e) => e.key === "Enter" && handleConvert()}
             />
             {error && <p className="text-small text-danger mt-2 mb-2">{error}</p>}
@@ -99,12 +117,10 @@ export function YoutubeCourseImport() {
               ))}
             </div>
           </div>
-        </div>
-
-        <aside className="lg:sticky lg:top-6">
-          <JobRoleRoadmap targetJobRole={targetJobRole} compact />
-        </aside>
-      </div>
+        </>
+      ) : (
+        <JobRoleRoadmap targetJobRole={targetJobRole} />
+      )}
     </div>
   );
 }
