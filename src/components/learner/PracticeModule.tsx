@@ -37,6 +37,9 @@ type BackendTest = {
   description: string;
 };
 
+type TrendPoint = { date: string; percentage: number };
+type CategoryTrend = { category: string; label: string; points: TrendPoint[] };
+
 // Explicit hex pairs rather than the dashboard's --purple/--teal CSS vars —
 // those are redefined elsewhere in legacy-portal.css to unrelated colors
 // (--purple: a gray, --teal: a blue, both for button variants), so
@@ -95,6 +98,50 @@ function resolveAnswer(q: Question): string {
   return raw;
 }
 
+const CHART_W = 240;
+const CHART_H = 56;
+const CHART_PAD_X = 6;
+
+// Small accuracy-over-session line chart backing each category card's growth
+// trend. Plain hand-drawn SVG rather than a charting library — nothing else
+// in this codebase pulls one in, and a handful of points doesn't need one.
+function TrendChart({ points, color }: { points: TrendPoint[]; color: string }) {
+  if (points.length < 2) {
+    return (
+      <div style={{ height: CHART_H, display: "flex", alignItems: "center", fontSize: "12px", color: "var(--muted)" }}>
+        {points.length === 0 ? "No attempts yet — practice once to start your trend." : "One more attempt unlocks your trend line."}
+      </div>
+    );
+  }
+
+  const usableW = CHART_W - CHART_PAD_X * 2;
+  const coords = points.map((p, i) => {
+    const x = CHART_PAD_X + (i / (points.length - 1)) * usableW;
+    const y = CHART_H - 4 - (Math.min(100, Math.max(0, p.percentage)) / 100) * (CHART_H - 8);
+    return [x, y] as const;
+  });
+  const path = coords.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const delta = points[points.length - 1].percentage - points[0].percentage;
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} width="100%" height={CHART_H} preserveAspectRatio="none">
+        <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {coords.map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r={i === coords.length - 1 ? 3 : 2} fill={color} />
+        ))}
+      </svg>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--muted)", marginTop: "2px" }}>
+        <span>{points.length} attempts</span>
+        <span style={{ fontWeight: 700, color: delta >= 0 ? "#16a34a" : "#dc2626" }}>
+          {delta >= 0 ? "+" : ""}
+          {delta}% since first attempt
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function PracticeModule() {
   const { user } = useAuthStore();
 
@@ -119,12 +166,25 @@ export function PracticeModule() {
 
   // Per-category stats persisted in localStorage
   const [categoryStats, setCategoryStats] = useState<Record<string, { total: number; correct: number; sessions: number }>>({});
+  // Real per-attempt history from the backend, keyed by category — unlike
+  // categoryStats above (a device-local running total), this is what lets the
+  // trend charts actually show accuracy changing across sessions over time.
+  const [trends, setTrends] = useState<Record<string, TrendPoint[]>>({});
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem("upscaler_ai_practice_stats");
       if (saved) setCategoryStats(JSON.parse(saved));
     } catch { /* noop */ }
+
+    api
+      .get<CategoryTrend[]>("/students/profile/practice-trends")
+      .then((res) => {
+        const byCategory: Record<string, TrendPoint[]> = {};
+        for (const t of res.data) byCategory[t.category] = t.points;
+        setTrends(byCategory);
+      })
+      .catch(console.error);
   }, []);
 
   const saveStats = useCallback((stats: typeof categoryStats) => {
@@ -520,6 +580,9 @@ export function PracticeModule() {
                     )}
                   </div>
                 )}
+                <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px solid var(--border)" }}>
+                  <TrendChart points={trends[cat.category] || []} color={cat.color} />
+                </div>
               </div>
             </div>
           );

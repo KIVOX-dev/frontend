@@ -39,6 +39,7 @@ const Leaderboard = dynamic(() => import("@/components/learner/Leaderboard").the
 const LearnerDashboard = dynamic(() => import("@/components/learner/LearnerDashboard").then((m) => m.LearnerDashboard));
 const TestHistory = dynamic(() => import("@/components/learner/TestHistory").then((m) => m.TestHistory));
 const PlacementOpportunities = dynamic(() => import("@/components/learner/PlacementOpportunities").then((m) => m.PlacementOpportunities));
+const SetupWizard = dynamic(() => import("@/components/learner/SetupWizard").then((m) => m.SetupWizard));
 
 type InstitutionalRole = "none" | "admin" | "faculty" | "student";
 
@@ -58,7 +59,7 @@ const INSTITUTIONAL_ROLES = ["college_admin", "institution_admin", "faculty", "s
 // which then 403s fetching /users instead of showing anything sensible.
 const ADMIN_SCREENS = new Set(["dash", "placements", "drives", "users", "security", "assessments", "tracking", "chat", "profile-info", "settings", "my-activity", "search-results"]);
 const FACULTY_SCREENS = new Set(["dash", "tracking", "add-student", "upload", "chat", "profile-info", "settings", "my-activity", "search-results"]);
-const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "mnc", "iv", "chat", "profile-info", "settings", "my-activity", "learnings", "youtube-course-import", "lesson-assessment"];
+const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "mnc", "iv", "chat", "profile-info", "settings", "my-activity", "learnings", "youtube-course-import", "lesson-assessment", "setup"];
 const INSTITUTIONAL_STUDENT_EXTRA_SCREENS = ["placements", "profile", "resume", "lb"];
 
 function InstitutionalContent() {
@@ -228,6 +229,8 @@ function InstitutionalContent() {
         return <MyLearnings />;
       case "youtube-course-import":
         return <YoutubeCourseImport />;
+      case "setup":
+        return <SetupWizard />;
       case "resume":
         return <ResumeBuilder />;
       case "lb":

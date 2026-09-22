@@ -14,10 +14,59 @@ import { getDepartmentOptions } from "@/lib/departmentCatalog";
 import { PlacementDashboard } from "./PlacementDashboard";
 import {
   type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
-  type StudentInsights, type Placement, type Drive, type PlacementApplication,
+  type StudentInsights, type InsightCategoryTrend, type Placement, type Drive, type PlacementApplication,
   BASE_CHART_OPTIONS, ChartEmptyState, SectionError, CompanyLogo, colorForKey, monthKey, monthLabel,
   LIST_FETCH_CAP, formatCount, DepartmentMultiSelect,
 } from "./collegeAdminShared";
+
+// Matches PracticeModule.tsx's/PerformanceSummarySection.tsx's CATEGORIES
+// palette so the same 4 aptitude categories read as the same color
+// everywhere in the app, admin side included.
+const INSIGHT_CATEGORY_COLORS: Record<string, string> = {
+  quantitative: "#2563EB",
+  logical: "#16A34A",
+  verbal: "#7C3AED",
+  data_interpretation: "#D97706",
+};
+
+function CategoryTrendCard({ trend }: { trend: InsightCategoryTrend }) {
+  const color = INSIGHT_CATEGORY_COLORS[trend.category] || "var(--accent)";
+  const latest = trend.points[trend.points.length - 1]?.percentage ?? null;
+
+  return (
+    <div className="card" style={{ padding: "16px", background: "var(--bg)", border: "none" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+        <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>{trend.label}</span>
+        {latest !== null && (
+          <span style={{ fontSize: "13px", fontWeight: 800, color }}>{latest}%</span>
+        )}
+      </div>
+      {trend.points.length < 2 ? (
+        <div style={{ height: 32, display: "flex", alignItems: "center", fontSize: "12px", color: "var(--muted)" }}>
+          {trend.points.length === 0 ? "No attempts yet" : "One more attempt unlocks a trend"}
+        </div>
+      ) : (
+        <div style={{ height: 32 }}>
+          <ApexChart
+            type="line"
+            height={32}
+            width="100%"
+            series={[{ data: trend.points.map((p) => p.percentage) }]}
+            options={{
+              chart: { sparkline: { enabled: true }, animations: { enabled: false } },
+              stroke: { curve: "smooth", width: 2 },
+              colors: [color],
+              tooltip: { enabled: false },
+            }}
+          />
+        </div>
+      )}
+      <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "4px" }}>
+        {trend.points.length} attempt{trend.points.length === 1 ? "" : "s"}
+      </div>
+    </div>
+  );
+}
 
 // ApexCharts touches `window` at import time, so it must never run during SSR.
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -1895,6 +1944,29 @@ export function CollegeAdminDashboard() {
                       <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)" }}>{insightsData.interviews_completed}</div>
                     </div>
                   </div>
+
+                  {insightsData.focus_message && (
+                    <div
+                      className="card"
+                      style={{ padding: "18px 20px", background: "var(--accent-l, #eff6ff)", border: "1px solid rgba(37, 99, 235, 0.2)", marginBottom: "28px" }}
+                    >
+                      <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em", color: "var(--accent)", marginBottom: "6px" }}>
+                        What To Focus On
+                      </div>
+                      <p style={{ fontSize: "14px", color: "var(--text)", lineHeight: 1.6, margin: 0 }}>{insightsData.focus_message}</p>
+                    </div>
+                  )}
+
+                  {insightsData.category_trends && insightsData.category_trends.length > 0 && (
+                    <div style={{ marginBottom: "28px" }}>
+                      <h4 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px", color: "var(--text)" }}>Aptitude Growth Trends</h4>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
+                        {insightsData.category_trends.map((trend) => (
+                          <CategoryTrendCard key={trend.category} trend={trend} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <h4 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px", color: "var(--text)" }}>Detailed Test History</h4>
                   {insightsData.history && insightsData.history.length > 0 ? (

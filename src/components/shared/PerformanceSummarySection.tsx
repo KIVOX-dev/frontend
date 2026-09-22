@@ -187,6 +187,19 @@ export function PerformanceSummarySection() {
           <div className="grid sm:grid-cols-2 gap-4">
             {summary.category_trends.map((t) => {
               const palette = CATEGORY_COLORS[t.category] || DEFAULT_CATEGORY_COLOR;
+              if (t.attempts === 0) {
+                return (
+                  <div key={t.category} className="rounded-md border border-dashed border-line p-4">
+                    <p className="text-small mb-2">{t.label}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-small text-ink-muted">Not started yet</span>
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: palette.bg, color: palette.color }}>
+                        Try it
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div key={t.category} className="rounded-md border border-line p-4">
                   <p className="text-small mb-2">{t.label}</p>
@@ -218,8 +231,12 @@ export function PerformanceSummarySection() {
       </Card>
 
       <Card>
-        <h3 className="text-section-title mb-1">What To Focus On</h3>
-        <p className="text-small mb-5">Every item below is a real gap in your record, not generic advice.</p>
+        <h3 className="text-section-title mb-1">Keep Leveling Up</h3>
+        <p className="text-small mb-5">
+          {summary.focus_areas.length === 0
+            ? "You're in great shape — here's the record backing that up."
+            : "You're already putting in real practice — here's exactly what will move your readiness score next."}
+        </p>
         {summary.focus_areas.length === 0 ? (
           <p className="text-small">Nothing outstanding — every category is above 60% and your resume/interview activity is complete.</p>
         ) : (
@@ -229,13 +246,13 @@ export function PerformanceSummarySection() {
               return (
                 <div
                   key={i}
-                  className={cn("flex gap-3 items-start rounded-md p-3 border", isGap ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#FEF2F2] border-[#FECACA]")}
+                  className={cn("flex gap-3 items-start rounded-md p-3 border", isGap ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#EFF6FF] border-[#BFDBFE]")}
                 >
                   <span
                     className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0 mt-0.5"
-                    style={{ background: isGap ? "#FDE68A" : "#FECACA", color: isGap ? "#92400E" : "#991B1B" }}
+                    style={{ background: isGap ? "#FDE68A" : "#BFDBFE", color: isGap ? "#92400E" : "#1D4ED8" }}
                   >
-                    {isGap ? "Not started" : "Needs work"}
+                    {isGap ? "Try this next" : "Keep going"}
                   </span>
                   <p className="text-small text-ink">{f.text}</p>
                 </div>

@@ -86,11 +86,19 @@ export type InsightAttempt = {
   created_at: string;
 };
 
+export type InsightCategoryTrend = {
+  category: string;
+  label: string;
+  points: { date: string; percentage: number }[];
+};
+
 export type StudentInsights = {
   tests_completed: number;
   avg_accuracy: number;
   interviews_completed: number;
   history: InsightAttempt[];
+  category_trends: InsightCategoryTrend[];
+  focus_message: string;
 };
 
 export type Placement = {
