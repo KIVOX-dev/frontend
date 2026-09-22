@@ -186,7 +186,7 @@ export function StudentTracking() {
                     </div>
                     <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
                       <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Average Accuracy</div>
-                      <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--accent)" }}>{studentData.avg_accuracy}%</div>
+                      <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--accent)" }}>{studentData.avg_accuracy.toFixed(1)}%</div>
                     </div>
                     <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
                       <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Mock Interviews</div>
