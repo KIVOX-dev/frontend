@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Award, CheckCircle2, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { useUiStore } from "@/stores/uiStore";
@@ -9,6 +10,15 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { JobRoleRoadmap } from "@/components/learner/JobRoleRoadmap";
 import { cn } from "@/lib/utils";
+
+type BadgeProgress = { badge_count: number; certificate_issued: boolean; badges_remaining: number };
+type RoadmapSkill = { skill: string; badge_progress: BadgeProgress };
+type RoadmapSummary = {
+  role: { id: string; title: string; description: string };
+  steps: RoadmapSkill[];
+  role_certificate: { id: string; role_title: string; issued_at: string } | null;
+};
+const BADGES_PER_CERTIFICATE = 5; // mirrors roadmap.service.js's BADGES_PER_CERTIFICATE
 
 function YoutubeIcon({ className }: { className?: string }) {
   return (
@@ -37,6 +47,12 @@ export function YoutubeCourseImport() {
   const [error, setError] = useState("");
   const [mode, setMode] = useState<"link" | "roadmap">("link");
   const [targetJobRole, setTargetJobRole] = useState<string | null>(null);
+  // Just the skill/badge summary (no per-skill video lists — those are the
+  // full Job Role Roadmap tab's job) for the compact "Badges Needed" card
+  // on this tab, so a student sees what their chosen role requires without
+  // switching tabs.
+  const [roadmapSummary, setRoadmapSummary] = useState<RoadmapSummary | null>(null);
+  const [roadmapLoading, setRoadmapLoading] = useState(false);
 
   useEffect(() => {
     api
@@ -44,6 +60,16 @@ export function YoutubeCourseImport() {
       .then((res) => setTargetJobRole(res.data.target_job_role ?? null))
       .catch(() => setTargetJobRole(null));
   }, []);
+
+  useEffect(() => {
+    if (!targetJobRole) return;
+    setRoadmapLoading(true);
+    api
+      .get<RoadmapSummary>(`/roadmap/roles/${targetJobRole}`)
+      .then((res) => setRoadmapSummary(res.data))
+      .catch(() => setRoadmapSummary(null))
+      .finally(() => setRoadmapLoading(false));
+  }, [targetJobRole]);
 
   const handleConvert = async () => {
     if (!url.trim()) return;
@@ -116,6 +142,64 @@ export function YoutubeCourseImport() {
                 </Card>
               ))}
             </div>
+          </div>
+
+          <div className="mt-12 max-w-xl mx-auto">
+            <h3 className="text-section-title text-center mb-6">Badges Needed For Your Job Role</h3>
+
+            {!targetJobRole ? (
+              <Card className="text-center py-8">
+                <p className="text-small mb-4">Pick a target job role in Setup to see the badges it takes to get certified.</p>
+                <Button size="sm" onClick={() => setActiveScreen("setup")}>Go to Setup</Button>
+              </Card>
+            ) : roadmapLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="size-5 animate-spin text-ink-muted" />
+              </div>
+            ) : roadmapSummary ? (
+              <Card>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <p className="font-semibold text-ink">{roadmapSummary.role.title}</p>
+                  {roadmapSummary.role_certificate ? (
+                    <span className="inline-flex items-center gap-1 text-caption font-semibold text-success">
+                      <Award className="size-3.5" /> Role certified
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setMode("roadmap")}
+                      className="text-caption font-semibold text-primary hover:underline"
+                    >
+                      View full roadmap
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-2.5">
+                  {roadmapSummary.steps.map((step) => (
+                    <div key={step.skill} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        {step.badge_progress.certificate_issued ? (
+                          <CheckCircle2 className="size-4 text-success shrink-0" />
+                        ) : (
+                          <Award className="size-4 text-ink-faint shrink-0" />
+                        )}
+                        <span className="text-small text-ink">{step.skill}</span>
+                      </div>
+                      <span
+                        className={cn(
+                          "text-caption font-medium rounded-full px-2.5 py-0.5 border shrink-0",
+                          step.badge_progress.certificate_issued ? "border-success/40 text-success" : "border-line text-ink-muted"
+                        )}
+                      >
+                        {step.badge_progress.certificate_issued
+                          ? "Certified"
+                          : `${step.badge_progress.badge_count}/${BADGES_PER_CERTIFICATE} badges`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ) : null}
           </div>
         </>
       ) : (
