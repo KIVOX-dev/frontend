@@ -9,6 +9,14 @@ vi.mock("@/lib/api", () => ({
   api: { post: (...args: unknown[]) => postMock(...args) },
 }));
 
+// ForgotPasswordForm's top back button calls useRouter().back() — plain RTL
+// rendering has no Next.js app-router context to satisfy that hook, so it
+// throws ("invariant expected app router to be mounted") without this mock.
+const routerBackMock = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ back: routerBackMock }),
+}));
+
 describe("ForgotPasswordForm", () => {
   beforeEach(() => {
     postMock.mockReset();
