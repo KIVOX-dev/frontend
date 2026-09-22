@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award, CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { useUiStore } from "@/stores/uiStore";
@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { JobRoleRoadmap } from "@/components/learner/JobRoleRoadmap";
+import { SkillBadgeIcon } from "@/components/shared/SkillBadgeIcon";
 import { cn } from "@/lib/utils";
 
 type BadgeProgress = { badge_count: number; certificate_issued: boolean; badges_remaining: number };
@@ -152,7 +153,7 @@ export function YoutubeCourseImport() {
                   </div>
                   {roadmapSummary.role_certificate ? (
                     <span className="inline-flex items-center gap-1 text-caption font-semibold text-success shrink-0">
-                      <Award className="size-3.5" /> Role certified
+                      <SkillBadgeIcon size={16} /> Role certified
                     </span>
                   ) : (
                     <button
@@ -171,7 +172,7 @@ export function YoutubeCourseImport() {
                         {step.badge_progress.certificate_issued ? (
                           <CheckCircle2 className="size-4 text-success shrink-0" />
                         ) : (
-                          <Award className="size-4 text-ink-faint shrink-0" />
+                          <SkillBadgeIcon size={18} className="shrink-0 opacity-40" />
                         )}
                         <span className="text-small text-ink">{step.skill}</span>
                       </div>

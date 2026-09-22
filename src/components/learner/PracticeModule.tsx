@@ -289,9 +289,26 @@ export function PracticeModule() {
         score: finalCorrect,
         max_score: sessionQuestions.length,
         percentage: Math.round((finalCorrect / sessionQuestions.length) * 100),
-      }).catch(console.error);
+      }).catch((err) => {
+        // Was a silent console.error before — a failure here means this
+        // session's score never reaches the Dashboard/Growth Trends charts
+        // even though the session-complete screen (driven entirely by local
+        // scoring) shows a result either way, so it needs to be loud.
+        console.error(err);
+        toast.error("Your score was calculated, but saving it to your profile failed. Your trend charts may not reflect this session.");
+      });
     }
   }, [activeCategory, activeTestId, answers, categoryStats, saveStats, sessionQuestions, user?.id]);
+
+  // Auto-submit the instant every question has an answer — matches
+  // MNCTestModule.tsx/AptitudeTests.tsx's timer-expiry auto-submit, just
+  // triggered by completion instead of running out of time. Previously a
+  // student who answered all 10 had to notice nothing happened and hunt for
+  // Submit Test themselves.
+  useEffect(() => {
+    if (!timerActive || sessionQuestions.length === 0) return;
+    if (Object.keys(answers).length === sessionQuestions.length) finishSession();
+  }, [answers, sessionQuestions.length, timerActive, finishSession]);
 
   // Timer
   useEffect(() => {
