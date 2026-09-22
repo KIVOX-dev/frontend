@@ -452,6 +452,13 @@ body.mobile-view .lp-snow {
   width: 100%;
   max-width: 420px;
   position: relative;
+  /* Above AuthSplitLayout.tsx's decorative logo watermark (position:
+     absolute, z-index: 1, 6% opacity) — without this, that z-index beats
+     this element's default `auto` despite coming later in the DOM, so the
+     "faint" watermark actually renders on top of the card, tinting the
+     white input fields and Turnstile widget blue instead of sitting
+     invisibly behind them. */
+  z-index: 2;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
