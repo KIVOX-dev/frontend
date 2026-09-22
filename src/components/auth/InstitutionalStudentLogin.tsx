@@ -53,6 +53,7 @@ export function InstitutionalStudentLogin({ onBack }: { onBack: () => void }) {
             onSubmit={() => login()}
             submitLabel="Sign In to Portal"
             loadingLabel="Signing in..."
+            forgotPasswordHref="/forgot-password"
             showGoogleLogin
             onGoogleError={setError}
             turnstileRef={turnstileRef}
