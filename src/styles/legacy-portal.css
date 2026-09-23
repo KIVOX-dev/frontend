@@ -224,8 +224,10 @@ a:focus-visible,
   -webkit-mask-image: linear-gradient(to bottom, transparent, #000 90px)
 }
 
-body.mobile-view .lp-mountains {
-  display: none
+@media (max-width: 1023px) {
+  .lp-mountains {
+    display: none
+  }
 }
 
 .lp-snow {
@@ -255,8 +257,10 @@ body.mobile-view .lp-mountains {
   100% { top: 105%; opacity: 0; transform: translateX(0) }
 }
 
-body.mobile-view .lp-snow {
-  display: none
+@media (max-width: 1023px) {
+  .lp-snow {
+    display: none
+  }
 }
 
 .lp-star {
@@ -4850,172 +4854,14 @@ tbody tr:hover td {
   color: var(--accent)
 }
 
-body.mobile-view .ui-mode-badge {
-  background: var(--green-l);
-  color: var(--green)
+@media (max-width: 1023px) {
+  .ui-mode-badge {
+    background: var(--green-l);
+    color: var(--green)
+  }
 }
 
-/* ════════ MOBILE VIEW — class-based (no media queries) ════════ */
-body.mobile-view #login-page {
-  flex-direction: column;
-  overflow-y: auto;
-  height: auto;
-  min-height: 100%
-}
-
-body.mobile-view .lp-left {
-  width: 100%;
-  flex-shrink: 0;
-  padding: 20px 22px 16px;
-  flex-direction: row;
-  align-items: center;
-  gap: 14px;
-  min-height: auto
-}
-
-body.mobile-view .lp-body {
-  display: none
-}
-
-body.mobile-view .lp-logo {
-  margin-bottom: 0
-}
-
-body.mobile-view .lp-right {
-  padding: 18px 18px 32px;
-  align-items: flex-start;
-  flex: none;
-  width: 100%
-}
-
-body.mobile-view .lp-card {
-  max-width: 100%;
-  padding: 24px
-}
-
-body.mobile-view .lp-heading h2 {
-  font-size: 22px
-}
-
-body.mobile-view .l-tabs {
-  flex-wrap: wrap;
-  gap: 3px
-}
-
-body.mobile-view .l-tab {
-  font-size: 10.5px;
-  padding: 7px 6px;
-  flex: none
-}
-
-body.mobile-view .frow {
-  grid-template-columns: 1fr
-}
-
-body.mobile-view #app {
-  flex-direction: column
-}
-
-body.mobile-view #sidebar {
-  position: fixed !important;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  z-index: 200;
-  transform: translateX(-100%);
-  transition: transform .25s ease;
-  width: 260px !important;
-  box-shadow: 4px 0 28px rgba(30, 35, 80, .22)
-}
-
-body.mobile-view #sidebar.mobile-open {
-  transform: translateX(0) !important
-}
-
-body.mobile-view #sidebar.collapsed {
-  width: 260px !important;
-  transform: translateX(-100%)
-}
-
-body.mobile-view #sidebar .nav-lbl {
-  opacity: 1 !important;
-  width: auto !important
-}
-
-body.mobile-view #sidebar .nav-badge {
-  opacity: 1 !important
-}
-
-body.mobile-view #sidebar .logo-text {
-  overflow: visible !important
-}
-
-body.mobile-view #sidebar .plan-strip {
-  opacity: 1 !important;
-  height: auto !important;
-  padding: 10px 12px !important;
-  margin-bottom: 8px !important
-}
-
-body.mobile-view #sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 20, 50, .4);
-  backdrop-filter: blur(2px);
-  z-index: 199
-}
-
-body.mobile-view #sidebar-overlay.show {
-  display: block
-}
-
-body.mobile-view #main {
-  width: 100%;
-  height: 100vh
-}
-
-body.mobile-view #topbar {
-  padding: 0 12px;
-  gap: 8px;
-  height: 52px
-}
-
-body.mobile-view .sw {
-  flex: 1;
-  max-width: none
-}
-
-body.mobile-view .sw input {
-  font-size: 12px
-}
-
-body.mobile-view .tbr {
-  gap: 6px;
-  margin-left: auto
-}
-
-body.mobile-view .ib {
-  width: 30px;
-  height: 30px
-}
-
-body.mobile-view .uc {
-  padding: 3px 8px 3px 3px
-}
-
-body.mobile-view .un {
-  font-size: 11px
-}
-
-body.mobile-view .ur {
-  font-size: 9px
-}
-
-body.mobile-view #content {
-  padding: 14px
-}
-
+/* ════════ MOBILE / TABLET — real media query, driven by viewport width ════════ */
 #mob-menu-btn {
   display: none;
   align-items: center;
@@ -5035,191 +4881,393 @@ body.mobile-view #content {
   height: 16px
 }
 
-body.mobile-view #mob-menu-btn {
-  display: flex !important
+@media (max-width: 1023px) {
+
+  #login-page {
+    flex-direction: column;
+    overflow-y: auto;
+    height: auto;
+    min-height: 100%
+  }
+
+  .lp-left {
+    width: 100%;
+    flex-shrink: 0;
+    padding: 20px 22px 16px;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    min-height: auto
+  }
+
+  .lp-body {
+    display: none
+  }
+
+  .lp-logo {
+    margin-bottom: 0
+  }
+
+  .lp-right {
+    padding: 18px 18px 32px;
+    align-items: flex-start;
+    flex: none;
+    width: 100%
+  }
+
+  .lp-card {
+    max-width: 100%;
+    padding: 24px
+  }
+
+  .lp-heading h2 {
+    font-size: 22px
+  }
+
+  .l-tabs {
+    flex-wrap: wrap;
+    gap: 3px
+  }
+
+  .l-tab {
+    font-size: 10.5px;
+    padding: 7px 6px;
+    flex: none
+  }
+
+  .frow {
+    grid-template-columns: 1fr
+  }
+
+  #app {
+    flex-direction: column
+  }
+
+  #sidebar {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    width: 260px !important;
+    box-shadow: 4px 0 28px rgba(30, 35, 80, .22)
+  }
+
+  #app.mob-sidebar-open #sidebar {
+    transform: translateX(0) !important
+  }
+
+  #sidebar.collapsed {
+    width: 260px !important;
+    transform: translateX(-100%)
+  }
+
+  #sidebar .nav-lbl {
+    opacity: 1 !important;
+    width: auto !important
+  }
+
+  #sidebar .nav-badge {
+    opacity: 1 !important
+  }
+
+  #sidebar .logo-text {
+    overflow: visible !important
+  }
+
+  #sidebar .plan-strip {
+    opacity: 1 !important;
+    height: auto !important;
+    padding: 10px 12px !important;
+    margin-bottom: 8px !important
+  }
+
+  #sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 20, 50, .4);
+    backdrop-filter: blur(2px);
+    z-index: 199
+  }
+
+  #app.mob-sidebar-open #sidebar-overlay {
+    display: block
+  }
+
+  #main {
+    width: 100%;
+    height: 100vh
+  }
+
+  #topbar {
+    padding: 0 12px;
+    gap: 8px;
+    height: 52px
+  }
+
+  .sw {
+    flex: 1;
+    max-width: none
+  }
+
+  .sw input {
+    font-size: 12px
+  }
+
+  .tbr {
+    gap: 6px;
+    margin-left: auto
+  }
+
+  .ib {
+    width: 30px;
+    height: 30px
+  }
+
+  .uc {
+    padding: 3px 8px 3px 3px
+  }
+
+  .un {
+    font-size: 11px
+  }
+
+  .ur {
+    font-size: 9px
+  }
+
+  #content {
+    padding: 14px
+  }
+
+  #mob-menu-btn {
+    display: flex !important
+  }
+
+  .collapse-btn {
+    display: none
+  }
+
+  .pt {
+    font-size: 20px
+  }
+
+  .ps {
+    font-size: 12px
+  }
+
+  .ph {
+    margin-bottom: 14px;
+    flex-direction: column !important;
+    gap: 10px;
+    align-items: flex-start !important
+  }
+
+  .sg {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px
+  }
+
+  .sc {
+    padding: 12px
+  }
+
+  .sv {
+    font-size: 20px
+  }
+
+  .g2,
+  .g3,
+  .gms,
+  .fp-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px
+  }
+
+  .hero {
+    padding: 18px 16px
+  }
+
+  .hero-title {
+    font-size: 20px
+  }
+
+  .hero-sub {
+    font-size: 12px;
+    max-width: 100%
+  }
+
+  .hero-acts {
+    flex-wrap: wrap;
+    gap: 8px
+  }
+
+  .hbtn {
+    font-size: 12px;
+    padding: 8px 14px
+  }
+
+  .card>div {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch
+  }
+
+  table {
+    white-space: nowrap;
+    font-size: 11.5px;
+    min-width: 100%
+  }
+
+  table th,
+  table td {
+    padding: 8px 10px
+  }
+
+  #cadm-db-table {
+    min-width: 700px
+  }
+
+  .dl-btn {
+    padding: 8px 12px;
+    font-size: 11.5px
+  }
+
+  .col-sel-chip {
+    padding: 5px 10px;
+    font-size: 11px;
+    margin: 2px
+  }
+
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end
+  }
+
+  .pmodal {
+    border-radius: 14px 14px 0 0;
+    max-height: 90vh;
+    overflow-y: auto
+  }
+
+  .pmodal-body {
+    grid-template-columns: 1fr !important
+  }
+
+  .apply-modal {
+    border-radius: 14px 14px 0 0
+  }
+
+  .adm-student-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px
+  }
+
+  .appr-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 14px
+  }
+
+  .adm-section-hdr {
+    flex-direction: column;
+    gap: 3px;
+    align-items: flex-start;
+    padding: 8px 14px
+  }
+
+  #faculty-portal .fp-body {
+    padding: 14px
+  }
+
+  #faculty-portal .fp-topbar {
+    padding: 0 14px
+  }
+
+  .fp-hero {
+    padding: 16px 18px
+  }
+
+  .fp-hero-title {
+    font-size: 17px
+  }
+
+  #cadm-db-stats {
+    grid-template-columns: 1fr 1fr !important
+  }
+
+  .ql {
+    flex-direction: column !important;
+    gap: 12px
+  }
+
+  .qm,
+  .qsid {
+    width: 100% !important;
+    min-width: 0
+  }
+
+  .qsid {
+    order: -1
+  }
+
+  .btn {
+    padding: 8px 13px;
+    font-size: 12px
+  }
+
+  .btn-sm {
+    padding: 5px 10px;
+    font-size: 11px
+  }
+
+  #frole-faculty,
+  #frole-cadmin {
+    font-size: 11px;
+    padding: 7px 6px
+  }
 }
 
-body.mobile-view .collapse-btn {
-  display: none
-}
+/* PlatformChat: master-detail pattern below 768px — contact list and
+   conversation pane can't sit side by side in that width, so only one
+   shows at a time, controlled by the .pc-hide-mobile class the component
+   toggles based on whether a contact is selected. */
+@media (max-width: 767px) {
+  /* .screen is the near-universal dashboard content wrapper (28 usages
+     across learner/hr/institutional screens); each one sets its own
+     desktop-sized inline padding (24-40px), which eats most of a phone's
+     width and, combined with fixed-minWidth flex children like pricing
+     cards, forces horizontal page overflow. !important is required here
+     since inline styles otherwise always win. */
+  .screen {
+    padding: 16px !important;
+  }
 
-body.mobile-view .pt {
-  font-size: 20px
-}
+  .pc-screen {
+    padding: 14px !important;
+  }
 
-body.mobile-view .ps {
-  font-size: 12px
-}
+  .pricing-card {
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 24px 20px !important;
+  }
 
-body.mobile-view .ph {
-  margin-bottom: 14px;
-  flex-direction: column !important;
-  gap: 10px;
-  align-items: flex-start !important
-}
+  .pc-contacts,
+  .pc-conv {
+    width: 100% !important;
+  }
 
-body.mobile-view .sg {
-  grid-template-columns: 1fr 1fr !important;
-  gap: 10px
-}
+  .pc-hide-mobile {
+    display: none !important;
+  }
 
-body.mobile-view .sc {
-  padding: 12px
-}
-
-body.mobile-view .sv {
-  font-size: 20px
-}
-
-body.mobile-view .g2,
-body.mobile-view .g3,
-body.mobile-view .gms,
-body.mobile-view .fp-grid {
-  grid-template-columns: 1fr !important;
-  gap: 12px
-}
-
-body.mobile-view .hero {
-  padding: 18px 16px
-}
-
-body.mobile-view .hero-title {
-  font-size: 20px
-}
-
-body.mobile-view .hero-sub {
-  font-size: 12px;
-  max-width: 100%
-}
-
-body.mobile-view .hero-acts {
-  flex-wrap: wrap;
-  gap: 8px
-}
-
-body.mobile-view .hbtn {
-  font-size: 12px;
-  padding: 8px 14px
-}
-
-body.mobile-view .card>div {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch
-}
-
-body.mobile-view table {
-  white-space: nowrap;
-  font-size: 11.5px;
-  min-width: 100%
-}
-
-body.mobile-view table th,
-body.mobile-view table td {
-  padding: 8px 10px
-}
-
-body.mobile-view #cadm-db-table {
-  min-width: 700px
-}
-
-body.mobile-view .dl-btn {
-  padding: 8px 12px;
-  font-size: 11.5px
-}
-
-body.mobile-view .col-sel-chip {
-  padding: 5px 10px;
-  font-size: 11px;
-  margin: 2px
-}
-
-body.mobile-view .modal-overlay {
-  padding: 0;
-  align-items: flex-end
-}
-
-body.mobile-view .pmodal {
-  border-radius: 14px 14px 0 0;
-  max-height: 90vh;
-  overflow-y: auto
-}
-
-body.mobile-view .pmodal-body {
-  grid-template-columns: 1fr !important
-}
-
-body.mobile-view .apply-modal {
-  border-radius: 14px 14px 0 0
-}
-
-body.mobile-view .adm-student-row {
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px 14px
-}
-
-body.mobile-view .appr-row {
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 14px
-}
-
-body.mobile-view .adm-section-hdr {
-  flex-direction: column;
-  gap: 3px;
-  align-items: flex-start;
-  padding: 8px 14px
-}
-
-body.mobile-view #faculty-portal .fp-body {
-  padding: 14px
-}
-
-body.mobile-view #faculty-portal .fp-topbar {
-  padding: 0 14px
-}
-
-body.mobile-view .fp-hero {
-  padding: 16px 18px
-}
-
-body.mobile-view .fp-hero-title {
-  font-size: 17px
-}
-
-body.mobile-view #cadm-db-stats {
-  grid-template-columns: 1fr 1fr !important
-}
-
-body.mobile-view .ql {
-  flex-direction: column !important;
-  gap: 12px
-}
-
-body.mobile-view .qm,
-body.mobile-view .qsid {
-  width: 100% !important;
-  min-width: 0
-}
-
-body.mobile-view .qsid {
-  order: -1
-}
-
-body.mobile-view .btn {
-  padding: 8px 13px;
-  font-size: 12px
-}
-
-body.mobile-view .btn-sm {
-  padding: 5px 10px;
-  font-size: 11px
-}
-
-body.mobile-view #frole-faculty,
-body.mobile-view #frole-cadmin {
-  font-size: 11px;
-  padding: 7px 6px
+  .pc-back-btn {
+    display: inline-flex !important;
+  }
 }
 
 /* -------- ADDED FOR INSTITUTIONAL PORTAL STABILIZATION -------- */

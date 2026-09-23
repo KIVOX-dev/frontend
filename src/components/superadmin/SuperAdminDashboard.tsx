@@ -464,12 +464,12 @@ export function SuperAdminDashboard() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
+      <div className="flex flex-wrap gap-4 justify-between items-center bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-gray-100">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 tracking-tight">Super Admin Dashboard</h1>
-          <p className="text-gray-500 mt-1">Manage all portal accounts and requests here. Update, delete, and approve institutions, faculty, and students.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">Super Admin Dashboard</h1>
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage all portal accounts and requests here. Update, delete, and approve institutions, faculty, and students.</p>
         </div>
         <div className="flex items-center space-x-6 border-l pl-6 border-gray-100">
           <div className="text-right hidden sm:block">
@@ -532,10 +532,10 @@ export function SuperAdminDashboard() {
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 border-b border-gray-200">
+      <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto">
         <button
           onClick={() => setActiveTab("pending")}
-          className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
+          className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors shrink-0 ${
             activeTab === "pending"
               ? "border-blue-500 text-blue-600"
               : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -545,7 +545,7 @@ export function SuperAdminDashboard() {
         </button>
         <button
           onClick={() => setActiveTab("all")}
-          className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
+          className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors shrink-0 ${
             activeTab === "all"
               ? "border-blue-500 text-blue-600"
               : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -555,7 +555,7 @@ export function SuperAdminDashboard() {
         </button>
         <button
           onClick={() => setActiveTab("assessments")}
-          className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
+          className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors shrink-0 ${
             activeTab === "assessments"
               ? "border-blue-500 text-blue-600"
               : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -565,7 +565,7 @@ export function SuperAdminDashboard() {
         </button>
         <button
           onClick={() => setActiveTab("institutions")}
-          className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
+          className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors shrink-0 ${
             activeTab === "institutions"
               ? "border-blue-500 text-blue-600"
               : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"

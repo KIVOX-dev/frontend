@@ -220,6 +220,7 @@ export function LearnerDashboard() {
           </div>
           <div className="card">
             <div className="ct">Today&apos;s Challenges</div>
+            <div style={{ overflowX: "auto" }}>
             <table>
               <thead>
                 <tr>
@@ -253,6 +254,7 @@ export function LearnerDashboard() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>

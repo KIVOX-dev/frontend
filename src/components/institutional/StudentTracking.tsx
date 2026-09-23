@@ -114,6 +114,7 @@ export function StudentTracking() {
         {loading || studentsData === null ? (
           <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>Loading students...</div>
         ) : (
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -148,6 +149,7 @@ export function StudentTracking() {
               )}
             </tbody>
           </table>
+          </div>
         )}
         <div style={{ marginTop: "12px", fontSize: "13px", color: "var(--muted)" }}>Total: {students.length} students</div>
       </div>
@@ -196,6 +198,7 @@ export function StudentTracking() {
 
                   <h4 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px" }}>Detailed Test History</h4>
                   {studentData.history && studentData.history.length > 0 ? (
+                    <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", fontSize: "14px" }}>
                       <thead>
                         <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "12px", textTransform: "uppercase" }}>
@@ -231,6 +234,7 @@ export function StudentTracking() {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   ) : (
                     <div style={{ padding: "32px", textAlign: "center", background: "var(--bg)", borderRadius: "12px", color: "var(--muted)" }}>
                       No assessments completed by this student yet.

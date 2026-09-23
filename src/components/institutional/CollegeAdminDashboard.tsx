@@ -1105,6 +1105,7 @@ export function CollegeAdminDashboard() {
           ) : loadErrors.placements ? (
             <SectionError message={loadErrors.placements} onRetry={fetchPlacements} />
           ) : (
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -1182,6 +1183,7 @@ export function CollegeAdminDashboard() {
               )}
             </tbody>
           </table>
+          </div>
           )}
         </div>
       )}
@@ -1219,6 +1221,7 @@ export function CollegeAdminDashboard() {
             ) : loadErrors.drives ? (
               <SectionError message={loadErrors.drives} onRetry={fetchDrives} />
             ) : (
+            <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -1251,6 +1254,7 @@ export function CollegeAdminDashboard() {
                 )}
               </tbody>
             </table>
+            </div>
             )
           ) : (
             <div>
@@ -1296,6 +1300,7 @@ export function CollegeAdminDashboard() {
                   );
                 }
                 return (
+                  <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -1347,6 +1352,7 @@ export function CollegeAdminDashboard() {
                       })}
                     </tbody>
                   </table>
+                  </div>
                 );
               })()}
             </div>
@@ -1394,6 +1400,7 @@ export function CollegeAdminDashboard() {
           ) : loadErrors.users ? (
             <SectionError message={loadErrors.users} onRetry={fetchUsers} />
           ) : (
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -1435,6 +1442,7 @@ export function CollegeAdminDashboard() {
               )}
             </tbody>
           </table>
+          </div>
           )}
         </div>
       )}
@@ -1503,6 +1511,7 @@ export function CollegeAdminDashboard() {
             ) : loadErrors.assessments ? (
               <SectionError message={loadErrors.assessments} onRetry={fetchAssessments} />
             ) : (
+            <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -1551,6 +1560,7 @@ export function CollegeAdminDashboard() {
                 )}
               </tbody>
             </table>
+            </div>
             )
           ) : (
             <div>
@@ -1626,6 +1636,7 @@ export function CollegeAdminDashboard() {
               ) : (
                 <div ref={resultsContentRef}>
                   {resultsView === "table" ? (
+                    <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
                       <thead>
                         <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -1656,6 +1667,7 @@ export function CollegeAdminDashboard() {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
                       {filteredResults.map((r) => (
@@ -1970,6 +1982,7 @@ export function CollegeAdminDashboard() {
 
                   <h4 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px", color: "var(--text)" }}>Detailed Test History</h4>
                   {insightsData.history && insightsData.history.length > 0 ? (
+                    <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", fontSize: "14px" }}>
                       <thead>
                         <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "12px", textTransform: "uppercase" }}>
@@ -2005,6 +2018,7 @@ export function CollegeAdminDashboard() {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   ) : (
                     <div style={{ padding: "32px", textAlign: "center", background: "var(--bg)", borderRadius: "12px", color: "var(--muted)" }}>
                       No assessments completed by this student yet.

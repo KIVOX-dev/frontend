@@ -22,7 +22,7 @@ export function AuthSplitLayout({
   season?: AuthSeason;
 }) {
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", background: "var(--bg)" }}>
+    <div id="login-page" style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", background: "var(--bg)" }}>
       <div className="lp-left" style={{ background: SEASON_BG[season] }}>
         <AuthMountains season={season} />
         {season === "winter" && <Snowfall />}

@@ -312,7 +312,7 @@ export function PlatformChat() {
   };
 
   return (
-    <div className="screen active" style={{ padding: "24px 40px", height: "100%", display: "flex", flexDirection: "column" }}>
+    <div className="screen active pc-screen" style={{ padding: "24px 40px", height: "100%", display: "flex", flexDirection: "column" }}>
       <style jsx global>{`
         @keyframes pc-pulse {
           0%, 100% { opacity: 1; }
@@ -324,9 +324,9 @@ export function PlatformChat() {
         <p style={{ color: "var(--muted)", fontSize: "14px" }}>Select a user to start a conversation.</p>
       </div>
 
-      <div style={{ display: "flex", flex: 1, gap: "16px", minHeight: 0, maxHeight: "calc(100vh - 180px)" }}>
+      <div className="pc-layout" style={{ display: "flex", flex: 1, gap: "16px", minHeight: 0, maxHeight: "calc(100vh - 180px)" }}>
         {/* Contact List */}
-        <div className="card" style={{ width: "280px", flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div className={`card pc-contacts${selectedContact ? " pc-hide-mobile" : ""}`} style={{ width: "280px", flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ padding: "14px", borderBottom: "1px solid var(--border)" }}>
             <input
               type="text"
@@ -381,7 +381,7 @@ export function PlatformChat() {
         </div>
 
         {/* Chat Area */}
-        <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div className={`card pc-conv${!selectedContact ? " pc-hide-mobile" : ""}`} style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           {!selectedContact ? (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", color: "var(--muted)" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48" style={{ marginBottom: "12px", opacity: 0.4 }}>
@@ -394,6 +394,17 @@ export function PlatformChat() {
             <>
               <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <button
+                    type="button"
+                    className="pc-back-btn"
+                    onClick={() => setSelectedContact(null)}
+                    aria-label="Back to contacts"
+                    style={{ display: "none", background: "none", border: "none", cursor: "pointer", padding: "4px", color: "var(--text)" }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                      <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                  </button>
                   <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: getRoleBadgeColor(selectedContact.role).bg, color: getRoleBadgeColor(selectedContact.role).color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 700 }}>
                     {selectedContact.role === "broadcast" ? "📢" : selectedContact.name.charAt(0).toUpperCase()}
                   </div>

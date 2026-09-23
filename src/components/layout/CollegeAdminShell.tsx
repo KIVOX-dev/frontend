@@ -88,6 +88,9 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
+      {/* Backdrop that closes the drawer on outside click — only visible/interactive while open, see legacy-portal.css's #app.mob-sidebar-open #sidebar-overlay rule */}
+      <div id="sidebar-overlay" onClick={() => toggleMobileSidebar(false)} aria-hidden="true" />
+
       {/* Main */}
       <div id="main">
         <div id="topbar">

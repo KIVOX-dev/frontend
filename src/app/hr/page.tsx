@@ -404,6 +404,7 @@ export default function HrPage() {
             </div>
           </div>
           <div className="card">
+            <div style={{ overflowX: "auto" }}>
             <table>
               <thead>
                 <tr>
@@ -448,6 +449,7 @@ export default function HrPage() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -533,6 +535,7 @@ export default function HrPage() {
             </div>
 
             <div className="lb-table-container extreme-glass" style={{ position: "relative", zIndex: 1 }}>
+              <div style={{ overflowX: "auto" }}>
               <table className="lb-table">
                 <thead>
                   <tr>
@@ -581,6 +584,7 @@ export default function HrPage() {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>

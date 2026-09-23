@@ -39,7 +39,7 @@ export function Subscription() {
       <div style={{ display: "flex", gap: "24px", justifyContent: "center", maxWidth: "900px", margin: "0 auto", flexWrap: "wrap" }}>
         
         {/* Base Plan */}
-        <div className="card" style={{ flex: "1", minWidth: "300px", padding: "40px 32px", position: "relative" }}>
+        <div className="card pricing-card" style={{ flex: "1", minWidth: "300px", padding: "40px 32px", position: "relative" }}>
           <h3 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "8px" }}>Base Plan</h3>
           <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--text)", marginBottom: "24px" }}>
             Free <span style={{ fontSize: "14px", color: "var(--muted)", fontWeight: 500 }}>/ forever</span>
@@ -78,7 +78,7 @@ export function Subscription() {
         </div>
 
         {/* Pro Plan */}
-        <div className="card" style={{ flex: "1", minWidth: "300px", padding: "40px 32px", background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)", border: "2px solid var(--accent)", position: "relative" }}>
+        <div className="card pricing-card" style={{ flex: "1", minWidth: "300px", padding: "40px 32px", background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)", border: "2px solid var(--accent)", position: "relative" }}>
           <div style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", background: "var(--accent)", color: "white", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" }}>
             Most Popular
           </div>

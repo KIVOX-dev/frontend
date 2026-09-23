@@ -199,6 +199,7 @@ export function PlacementOpportunities() {
             No placement drives have been posted by your institution yet.
           </div>
         ) : (
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -255,6 +256,7 @@ export function PlacementOpportunities() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -265,6 +267,7 @@ export function PlacementOpportunities() {
             You haven&apos;t applied to any drives yet.
           </div>
         ) : (
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -292,6 +295,7 @@ export function PlacementOpportunities() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -370,6 +374,7 @@ export function PlacementOpportunities() {
         )}
 
         {records.length > 0 && (
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", marginTop: "20px" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
@@ -408,6 +413,7 @@ export function PlacementOpportunities() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
