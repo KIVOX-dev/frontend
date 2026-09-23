@@ -16,12 +16,11 @@ export default function AudienceBar() {
         <div className="flex items-center gap-1">
           {AUDIENCE_ORDER.map((key) => {
             const audience = AUDIENCES[key];
-            const tabHref = audience.tabPath ?? audience.path;
-            const isActive = pathname === tabHref;
+            const isActive = pathname === audience.path;
             return (
               <Link
                 key={key}
-                href={tabHref}
+                href={audience.path}
                 role="tab"
                 aria-selected={isActive}
                 className={`relative px-4 py-3 text-[13px] font-semibold tracking-wide transition-colors duration-150 ${

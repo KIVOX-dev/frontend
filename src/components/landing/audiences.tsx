@@ -11,16 +11,8 @@ export type PhotoBadge = {
 
 export type AudienceConfig = {
   key: AudienceKey;
-  /** Real route this audience's marketing page lives at — also the nav
-      wordmark's link target on that page. */
+  /** Real route this audience's marketing page lives at. */
   path: string;
-  /** Where the black top audience bar's tab for this audience links to,
-      when it differs from `path` (learner's own page renders at
-      /for-learners, but `path` stays "/" so the nav wordmark on both "/"
-      and /for-learners keeps behaving like every other audience page's
-      wordmark — a self-link, not a jump between the two). Falls back to
-      `path` when omitted. */
-  tabPath?: string;
   /** Label shown in the black top audience bar. */
   tabLabel: string;
   /** Suffix appended to the wordmark in the nav, e.g. "TalentSnaps for HR". */
@@ -55,8 +47,7 @@ export const AUDIENCES: Record<AudienceKey, AudienceConfig> = {
   learner: {
     key: "learner",
     path: "/",
-    tabPath: "/for-learners",
-    tabLabel: "For Learners",
+    tabLabel: "For Institutions",
     navSuffix: null,
     navCtaLabel: "Request Demo",
     headline: (
@@ -116,7 +107,7 @@ export const AUDIENCES: Record<AudienceKey, AudienceConfig> = {
   institutional: {
     key: "institutional",
     path: "/for-institutions",
-    tabLabel: "For Institutions",
+    tabLabel: "For Learners",
     navSuffix: "for Institutions",
     navCtaLabel: "Contact Us",
     headline: (
