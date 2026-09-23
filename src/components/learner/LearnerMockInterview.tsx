@@ -775,9 +775,9 @@ export function LearnerMockInterview() {
   return (
     <div className="screen active" style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-card)" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", borderBottom: "1px solid var(--border)" }}>
+      <div className="mi-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", borderBottom: "1px solid var(--border)", flexWrap: "wrap", gap: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "32px", height: "32px", borderRadius: "6px", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: "14px" }}>
+          <div style={{ width: "32px", height: "32px", borderRadius: "6px", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: "14px", flexShrink: 0 }}>
             {company.charAt(0).toUpperCase()}
           </div>
           <div>
@@ -785,16 +785,17 @@ export function LearnerMockInterview() {
             <div style={{ fontSize: "12px", color: "var(--muted)" }}>{company} · Plagiarism Monitor Active</div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+        <div className="mi-header-right" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
           <video
             ref={videoRef}
             autoPlay
             muted
             playsInline
+            className="mi-video"
             style={{ width: "56px", height: "56px", borderRadius: "8px", objectFit: "cover", background: "#000", transform: "scaleX(-1)", flexShrink: 0 }}
           />
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "2px" }}>Time Remaining</div>
+            <div className="mi-time-label" style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "2px" }}>Time Remaining</div>
             <div style={{ fontSize: "18px", fontWeight: 700, color: timeLeft < 15 ? "var(--red)" : "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
               00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
             </div>
@@ -817,15 +818,15 @@ export function LearnerMockInterview() {
       )}
 
       {/* Main Content Area */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        
+      <div className="mi-body" style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+
         {/* Left sidebar - tabs cursor replica */}
-        <div style={{ width: "60px", borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "16px", gap: "12px" }}>
+        <div className="mi-steps" style={{ width: "60px", borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "16px", gap: "12px" }}>
           {questions.map((q, i) => (
-            <div 
+            <div
               key={q.id}
               style={{
-                width: "32px", height: "32px", borderRadius: "50%",
+                width: "32px", height: "32px", borderRadius: "50%", flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: "13px", fontWeight: 600, cursor: "pointer",
                 background: i === currentQuestionIndex ? "var(--accent)" : answers[q.id] ? "var(--teal-l)" : "transparent",
@@ -840,12 +841,12 @@ export function LearnerMockInterview() {
         </div>
 
         {/* Right side - Question & Answer */}
-        <div style={{ flex: 1, padding: "40px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
+        <div className="mi-content" style={{ flex: 1, padding: "40px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
           <div style={{ marginBottom: "24px" }}>
             <span style={{ display: "inline-block", padding: "4px 10px", background: "var(--bg)", borderRadius: "4px", fontSize: "12px", fontWeight: 600, color: "var(--muted)", marginBottom: "16px" }}>
               Question {currentQuestionIndex + 1} of {questions.length} · {currentQ.type}
             </span>
-            <h1 style={{ fontSize: "22px", fontWeight: 600, lineHeight: 1.5 }}>{currentQ.text}</h1>
+            <h1 className="mi-question" style={{ fontSize: "22px", fontWeight: 600, lineHeight: 1.5 }}>{currentQ.text}</h1>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "10px" }}>

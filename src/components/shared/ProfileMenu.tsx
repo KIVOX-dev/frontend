@@ -82,7 +82,7 @@ export function ProfileMenu({ avatar, avatarStyle, name, roleLabel, showSettings
             avatar
           )}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+        <div className="uc-info" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
           <span className="un">{name}</span>
           <span className="ur">{roleLabel}</span>
         </div>
