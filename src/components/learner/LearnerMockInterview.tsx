@@ -150,7 +150,7 @@ function buildSuggestions(question: Question, answer: string, company: string, t
     ? ["Give a one-line definition", "Explain how it works", "Show a real example from your work", "Say when to use it and its trade-offs"]
     : ["Answer directly in your first sentence", "Support it with one concrete example", "Finish with the impact or takeaway"];
 
-  const points = TOPIC_HINTS.filter((t) => t.match.test(q)).flatMap((t) => t.points).slice(0, 6);
+  const points = TOPIC_HINTS.filter((t) => t.match.test(q)).flatMap((t) => t.points).slice(0, 4);
   if (company && !isBehavioral) points.push(`Tie it to ${company}'s products or scale`);
 
   const words = answer.trim() ? answer.trim().split(/\s+/).length : 0;
@@ -173,7 +173,7 @@ function buildSuggestions(question: Question, answer: string, company: string, t
     }
 
     const fillers = answer.match(/\b(um+|uh+|basically|actually|you know|kind of|sort of)\b/gi) || [];
-    if (fillers.length >= 3) feedback.push({ tone: "warn", text: `Cut filler words ("${fillers[0].toLowerCase()}" ×${fillers.length}).` });
+    if (fillers.length >= 3) feedback.push({ tone: "warn", text: `Cut filler words ("${(fillers[0] ?? "").toLowerCase()}" ×${fillers.length}).` });
 
     if (points.length > 0) {
       const covered = points.filter((p) => p.toLowerCase().split(/[^a-z]+/).some((w) => w.length > 4 && answer.toLowerCase().includes(w)));
@@ -1027,7 +1027,7 @@ export function LearnerMockInterview() {
     { label: "Devices", ok: objectModelReady, text: objectModelReady ? "Clear" : "Loading" },
     { label: "Mic", ok: listening, text: listening ? "Listening" : "Off" },
   ];
-  const toneColor = { good: "var(--teal)", warn: "#d97706", info: "var(--accent)" } as const;
+  const toneColor = { good: "#16a34a", warn: "#d97706", info: "var(--accent)" } as const;
 
   return (
     <div className="screen active" style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-card)" }}>
@@ -1098,8 +1098,8 @@ export function LearnerMockInterview() {
 
         <div className="mi-content" style={{ flex: "1 1 0", minWidth: 0, padding: "28px 32px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
           <div style={{ marginBottom: "20px" }}>
-            <span style={{ display: "inline-block", padding: "4px 10px", background: "var(--bg)", borderRadius: "4px", fontSize: "12px", fontWeight: 600, color: "var(--muted)", marginBottom: "12px", textTransform: "capitalize" }}>
-              Question {currentQuestionIndex + 1} of {questions.length} · {currentQ.type}
+            <span style={{ display: "inline-block", padding: "4px 10px", background: "var(--bg)", borderRadius: "4px", fontSize: "12px", fontWeight: 600, color: "var(--muted)", marginBottom: "12px" }}>
+              Question {currentQuestionIndex + 1} of {questions.length} · {currentQ.type.charAt(0).toUpperCase() + currentQ.type.slice(1)}
             </span>
             <h1 className="mi-question" style={{ fontSize: "19px", fontWeight: 600, lineHeight: 1.5 }}>{currentQ.text}</h1>
           </div>
@@ -1174,8 +1174,8 @@ export function LearnerMockInterview() {
         </div>
 
         <div className="mi-side" style={{ flex: "1 1 0", minWidth: 0, borderLeft: "1px solid var(--border)", background: "var(--bg)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto" }}>
-          <div className="card" style={{ padding: "12px", borderRadius: "14px" }}>
-            <div style={{ position: "relative", width: "100%", aspectRatio: String(videoAspect), maxHeight: "46vh", margin: "0 auto", borderRadius: "10px", overflow: "hidden", background: "#0b1220" }}>
+          <div className="card" style={{ padding: "12px", borderRadius: "14px", flexShrink: 0 }}>
+            <div style={{ position: "relative", width: "100%", aspectRatio: String(videoAspect), maxWidth: `calc(32vh * ${videoAspect.toFixed(4)})`, margin: "0 auto", borderRadius: "10px", overflow: "hidden", background: "#0b1220" }}>
               <video
                 ref={videoRef}
                 autoPlay
@@ -1235,7 +1235,7 @@ export function LearnerMockInterview() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: "18px", borderRadius: "14px", flex: 1 }}>
+          <div className="card" style={{ padding: "18px", borderRadius: "14px", flex: 1, minHeight: 0, overflowY: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "var(--accent-l)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1244,6 +1244,16 @@ export function LearnerMockInterview() {
                 <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>AI Suggestions</div>
               </div>
               <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)", background: "var(--accent-l)", padding: "3px 8px", borderRadius: "999px" }}>Live</span>
+            </div>
+
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>On your answer</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
+              {suggestions.feedback.map((f) => (
+                <div key={f.text} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.45, color: "var(--text)" }}>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: toneColor[f.tone], marginTop: "6px", flexShrink: 0 }} />
+                  {f.text}
+                </div>
+              ))}
             </div>
 
             <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>How to structure it</div>
@@ -1259,23 +1269,13 @@ export function LearnerMockInterview() {
             {suggestions.points.length > 0 && (
               <>
                 <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>Points worth covering</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   {suggestions.points.map((p) => (
                     <span key={p} style={{ fontSize: "12px", fontWeight: 600, padding: "5px 10px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}>{p}</span>
                   ))}
                 </div>
               </>
             )}
-
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>On your answer</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {suggestions.feedback.map((f) => (
-                <div key={f.text} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.45, color: "var(--text)" }}>
-                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: toneColor[f.tone], marginTop: "6px", flexShrink: 0 }} />
-                  {f.text}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
