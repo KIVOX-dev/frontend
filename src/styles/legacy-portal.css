@@ -5281,9 +5281,26 @@ tbody tr:hover td {
 
   .mi-side {
     flex: none !important;
+    overflow: visible !important;
     border-left: none !important;
     border-top: 1px solid var(--border);
     padding: 16px !important;
+  }
+
+  .mi-cam,
+  .mi-sugg,
+  .mi-sugg-box {
+    flex: none !important;
+    overflow: visible !important;
+  }
+
+  .mi-sugg {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mi-cam-area {
+    flex: none !important;
+    height: 240px;
   }
 
   .mi-steps {

@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import type { ObjectDetector, PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
+import type { FaceDetector, PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 import {
   ABSENT_COUNTDOWN_AFTER_MS,
   ABSENT_LIMIT_MS,
-  DEVICE_CONFIRM_HITS,
+  FACE_INTERVAL_MS,
   OBJECT_INTERVAL_MS,
   POSE_INTERVAL_MS,
-  createObjectDetector,
+  createDeviceVoter,
+  createFaceDetector,
+  createDeviceDetector,
   createPoseLandmarker,
-  detectsExternalDevice,
   isPersonAbsent,
+  type DeviceDetector,
+  primaryFace,
 } from "@/lib/proctoring";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
@@ -83,6 +86,14 @@ function evaluatePosture(result: PoseLandmarkerResult): string | null {
   // detection loop, which ends the interview — not by this soft warning.
   if (!nose || !leftShoulder || !rightShoulder) return null;
 
+  // BlazePose places shoulders even when they're below the frame edge (with
+  // y > 1 and low visibility), which let a face at the very bottom of the
+  // shot with no shoulders visible pass as "Good".
+  const shouldersInFrame = [leftShoulder, rightShoulder].every(
+    (p) => (p.visibility ?? 0) >= 0.5 && p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1
+  );
+  if (!shouldersInFrame) return "Sit back so your head and shoulders are both in the frame.";
+
   // Landmark x/y are normalized to [0, 1] against the video frame, so these
   // thresholds are resolution-independent.
   const shoulderTilt = Math.abs(leftShoulder.y - rightShoulder.y);
@@ -116,6 +127,29 @@ function faceBoxFrom(result: PoseLandmarkerResult, aspect: number): FaceBox | nu
   return { x, y, w, h };
 }
 
+// BlazeFace's box runs roughly brow-to-chin and cheek-to-cheek; widened and
+// extended upward so the drawn box frames the whole head.
+function padFaceBox(face: FaceBox): FaceBox {
+  const w = Math.min(face.w * 1.15, 1);
+  const h = Math.min(face.h * 1.35, 1);
+  const x = Math.min(Math.max(face.x - (w - face.w) / 2, 0), 1 - w);
+  const y = Math.min(Math.max(face.y - (h - face.h) * 0.8, 0), 1 - h);
+  return { x, y, w, h };
+}
+
+// Interview framing: head roughly centered in the upper-middle of the shot at
+// a normal sitting distance. Thresholds are in normalized frame units.
+function evaluateFraming(box: FaceBox): string | null {
+  const cx = box.x + box.w / 2;
+  const cy = box.y + box.h / 2;
+  if (box.w < 0.12) return "Move closer to the camera.";
+  if (box.w > 0.6) return "Move back a little from the camera.";
+  if (cy > 0.62 || box.y + box.h > 0.97) return "Raise your camera — your face is too low in the frame.";
+  if (cy < 0.18) return "Lower your camera — your face is too high in the frame.";
+  if (cx < 0.25 || cx > 0.75) return "Move to the center of the frame.";
+  return null;
+}
+
 const TOPIC_HINTS: { match: RegExp; points: string[] }[] = [
   { match: /ci\/?cd|pipeline|deploy|release/i, points: ["Build, test, scan, deploy stages", "Blue-green or canary releases", "Automated rollback on failed health checks", "Infrastructure as code"] },
   { match: /kubernetes|k8s|docker|container/i, points: ["Deployments, services, ingress", "Readiness and liveness probes", "Resource limits and autoscaling"] },
@@ -130,7 +164,9 @@ const TOPIC_HINTS: { match: RegExp; points: string[] }[] = [
   { match: /algorithm|complexity|array|linked list|tree|graph|sort|search|data structure|recursion/i, points: ["Brute force first, then optimize", "Time and space complexity", "Edge cases: empty, single, huge input"] },
   { match: /react|frontend|javascript|typescript|css|browser|ui\b/i, points: ["Component and state design", "Rendering performance", "Accessibility", "Browser compatibility"] },
   { match: /oop|object.oriented|inheritance|polymorph|encapsulat|solid/i, points: ["Encapsulation, inheritance, polymorphism", "A short code-level example", "SOLID principles"] },
-  { match: /machine learning|\bml\b|model|dataset|data scien|training/i, points: ["Data quality and features", "Metric choice for the problem", "Overfitting and validation", "Deployment and monitoring"] },
+  { match: /thread|concurren|volatile|synchroni[sz]|\block|race condition|deadlock|memory model|atomic/i, points: ["Visibility vs atomicity", "happens-before and volatile", "Locks vs atomic classes", "Race conditions and deadlocks"] },
+  { match: /\bjvm\b|garbage collect|heap|stack memory|memory leak/i, points: ["Heap vs stack", "GC generations and pauses", "Finding and fixing leaks"] },
+  { match: /machine learning|\bml\b|\bai model|train(ing|ed) (a |the )?model|dataset|data scien|neural|overfit/i, points: ["Data quality and features", "Metric choice for the problem", "Overfitting and validation", "Deployment and monitoring"] },
   { match: /team|conflict|deadline|pressure|challenge|fail|mistake|lead|disagree/i, points: ["One specific real situation", "Your own actions, not the team's", "A measurable result or lesson"] },
 ];
 
@@ -138,7 +174,7 @@ type Feedback = { tone: "good" | "warn" | "info"; text: string };
 
 function buildSuggestions(question: Question, answer: string, company: string, timeLeft: number) {
   const q = question.text;
-  const isBehavioral = question.type === "behavioral" || /tell me about|describe a (time|situation)|how did you|give an example of a time/i.test(q);
+  const isBehavioral = ["behavioral", "hr", "managerial"].includes(question.type) || /tell me about|describe a (time|situation)|how did you|give an example of a time/i.test(q);
   const isDesign = /design|architect|build a system|how would you build/i.test(q);
   const isExplain = /explain|what is|what are|difference|compare|how does/i.test(q);
 
@@ -292,9 +328,10 @@ export function LearnerMockInterview() {
   const poseLoopRef = useRef<number | null>(null);
   const postureIssueSinceRef = useRef<number | null>(null);
   const lastPoseTimestampRef = useRef(0);
-  const objectDetectorRef = useRef<ObjectDetector | null>(null);
-  const lastObjectTimestampRef = useRef(0);
-  const deviceHitsRef = useRef(0);
+  const objectDetectorRef = useRef<DeviceDetector | null>(null);
+  const deviceVoterRef = useRef(createDeviceVoter());
+  const faceDetectorRef = useRef<FaceDetector | null>(null);
+  const lastFaceTimestampRef = useRef(0);
   const absentSinceRef = useRef<number | null>(null);
   // Set once the interview has been stopped for a violation, so a slow save
   // can't be triggered a second time by the next detection frame.
@@ -307,10 +344,12 @@ export function LearnerMockInterview() {
   const [terminationReason, setTerminationReason] = useState<string | null>(null);
   const [mediaStatus, setMediaStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
   const [poseModelReady, setPoseModelReady] = useState(false);
+  const [faceModelReady, setFaceModelReady] = useState(false);
   const [postureWarning, setPostureWarning] = useState<string | null>(null);
   const [cameraDisconnected, setCameraDisconnected] = useState(false);
   const [faceBox, setFaceBox] = useState<FaceBox | null>(null);
   const [videoAspect, setVideoAspect] = useState(4 / 3);
+  const [videoLive, setVideoLive] = useState(false);
 
   // --- Speech-to-text ---
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -349,7 +388,7 @@ export function LearnerMockInterview() {
     })();
     (async () => {
       try {
-        const detector = await createObjectDetector();
+        const detector = await createDeviceDetector();
         if (cancelled) {
           detector.close();
           return;
@@ -360,6 +399,19 @@ export function LearnerMockInterview() {
         console.error("Failed to load device-detection model:", err);
       }
     })();
+    (async () => {
+      try {
+        const detector = await createFaceDetector();
+        if (cancelled) {
+          detector.close();
+          return;
+        }
+        faceDetectorRef.current = detector;
+        setFaceModelReady(true);
+      } catch (err) {
+        console.error("Failed to load face-detection model:", err);
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -367,6 +419,8 @@ export function LearnerMockInterview() {
       poseLandmarkerRef.current = null;
       objectDetectorRef.current?.close();
       objectDetectorRef.current = null;
+      faceDetectorRef.current?.close();
+      faceDetectorRef.current = null;
     };
   }, []);
 
@@ -397,10 +451,23 @@ export function LearnerMockInterview() {
     };
   }, []);
 
+  // Callback ref: attaches the live stream the moment ANY <video> mounts
+  // (setup preview, live panel, or a remount of either), rather than only
+  // when the [setup, mediaStatus] effect happens to re-run — a video element
+  // that mounted without its srcObject stayed black for the whole interview.
+  const attachVideo = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    if (el && streamRef.current && el.srcObject !== streamRef.current) {
+      el.srcObject = streamRef.current;
+      el.play().catch(() => {});
+    }
+  }, []);
+
   const requestMedia = async () => {
     setMediaStatus("requesting");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = stream;
       setCameraDisconnected(false);
       // Fires if the user revokes camera access mid-interview (e.g. via the
@@ -408,10 +475,10 @@ export function LearnerMockInterview() {
       // "camera compulsory" requirement means that has to be surfaced, not
       // silently ignored.
       stream.getVideoTracks()[0]?.addEventListener("ended", () => setCameraDisconnected(true));
-      // Attaching srcObject here is unreliable — the setup screen's preview
-      // <video> only mounts once mediaStatus becomes "granted", which hasn't
-      // happened yet at this point. The [setup, mediaStatus] effect above
-      // handles the actual attachment once that element exists.
+      // On a reconnect the live panel's <video> is already mounted, so no ref
+      // callback will fire for it — attach directly. On first grant the
+      // setup preview isn't mounted yet; attachVideo handles it on mount.
+      attachVideo(videoRef.current);
       setMediaStatus("granted");
     } catch (err) {
       console.error("Camera/microphone permission denied:", err);
@@ -423,15 +490,18 @@ export function LearnerMockInterview() {
   // showing and the stream and at least one model are ready:
   //
   // 1. External device (phone / laptop / TV / remote) — zero tolerance. Seen
-  //    on two consecutive checks (~0.5s) it ends the interview immediately.
-  // 2. Out of frame — nobody in view, or the face turned away/covered. A 5s
-  //    countdown appears; if the person isn't back by zero the interview ends.
-  // 3. Posture (shoulder tilt, facing the camera) — soft warning only.
+  //    in 3 of the last 5 checks (~1.25s) it ends the interview immediately.
+  // 2. Out of frame — no face detected (turned away, covered by a hand, or
+  //    out of shot). A 5s countdown appears; if the face isn't back by zero
+  //    the interview ends. The face DETECTOR decides this, not pose landmarks,
+  //    which extrapolate a face even when it's hidden.
+  // 3. Posture — face framing (centered, not too low/far/close) plus pose
+  //    (shoulders in frame and level, facing the camera). Soft warning only.
   //
-  // One requestAnimationFrame loop drives both models, but each is throttled
-  // to its own interval (see proctoring.ts) rather than running every frame.
+  // One requestAnimationFrame loop drives all three models, one model per
+  // frame at most, each throttled to its own interval.
   useEffect(() => {
-    if (setup || interviewComplete || mediaStatus !== "granted" || (!poseModelReady && !objectModelReady)) return;
+    if (setup || interviewComplete || mediaStatus !== "granted" || (!poseModelReady && !objectModelReady && !faceModelReady)) return;
 
     // A thrown detectForVideo() call (dropped WebGL context, a transient GPU
     // delegate hiccup, etc.) must not kill this loop — without the try/catch,
@@ -439,77 +509,111 @@ export function LearnerMockInterview() {
     // which froze postureWarning at whatever it last said, permanently, with
     // no visible error to the user. After a handful of consecutive failures
     // this gives up for good instead of hammering a broken pipeline forever.
+    let cancelled = false;
     let consecutiveErrors = 0;
+    const voter = deviceVoterRef.current;
     const MAX_CONSECUTIVE_ERRORS = 5;
     let lastPoseRun = 0;
     let lastObjectRun = 0;
+    let lastFaceRun = 0;
+    // Latest findings from each model; the warning shown is whichever is set,
+    // framing first since it's the more actionable fix.
+    let framingIssue: string | null = null;
+    let poseIssue: string | null = null;
+
+    // detectForVideo requires a STRICTLY increasing timestamp per model in
+    // VIDEO mode — it throws otherwise. Two requestAnimationFrame ticks can
+    // land on the same performance.now() value under reduced timer precision
+    // (or on high-refresh displays).
+    const stamp = (ref: { current: number }, nowMs: number) => {
+      const t = Math.max(nowMs, ref.current + 1);
+      ref.current = t;
+      return t;
+    };
+
+    // Returns true once the interview has been terminated.
+    const handleAbsent = (now: number): boolean => {
+      if (absentSinceRef.current == null) absentSinceRef.current = now;
+      const elapsed = now - absentSinceRef.current;
+      if (elapsed >= ABSENT_LIMIT_MS) {
+        terminateRef.current("Your face was out of view or covered for more than 5 seconds — the interview was stopped.");
+        return true;
+      }
+      if (elapsed >= ABSENT_COUNTDOWN_AFTER_MS) setAbsentSecondsLeft(Math.ceil((ABSENT_LIMIT_MS - elapsed) / 1000));
+      framingIssue = null;
+      postureIssueSinceRef.current = null;
+      setPostureWarning(null);
+      setFaceBox(null);
+      return false;
+    };
+
+    const handlePresent = (box: FaceBox) => {
+      absentSinceRef.current = null;
+      setAbsentSecondsLeft(null);
+      setFaceBox(box);
+    };
+
+    const updatePostureWarning = (now: number) => {
+      const issue = framingIssue ?? poseIssue;
+      if (issue) {
+        if (postureIssueSinceRef.current == null) postureIssueSinceRef.current = now;
+        if (now - postureIssueSinceRef.current > POSTURE_WARNING_DEBOUNCE_MS) setPostureWarning(issue);
+      } else {
+        postureIssueSinceRef.current = null;
+        setPostureWarning(null);
+      }
+    };
 
     const detect = () => {
       try {
         const video = videoRef.current;
         if (video && video.readyState >= 2 && !terminatedRef.current) {
           const nowMs = performance.now();
-
-          // Pose model first; the object model waits for a later frame so the
-          // two never land in the same tick and stall it.
+          const now = Date.now();
+          const faceDetector = faceDetectorRef.current;
+          const objectDetector = objectDetectorRef.current;
           const landmarker = poseLandmarkerRef.current;
-          if (landmarker && nowMs - lastPoseRun >= POSE_INTERVAL_MS) {
-            lastPoseRun = nowMs;
-            // detectForVideo requires a STRICTLY increasing timestamp on every
-            // call in VIDEO mode — it throws otherwise. Two requestAnimationFrame
-            // ticks can land on the same performance.now() value under Chrome/
-            // Firefox's reduced timer-precision privacy protections (or on
-            // high-refresh displays), which would otherwise throw on every
-            // subsequent call from that point on, not just once.
-            const timestamp = Math.max(nowMs, lastPoseTimestampRef.current + 1);
-            lastPoseTimestampRef.current = timestamp;
-            const result = landmarker.detectForVideo(video, timestamp);
-            const now = Date.now();
 
-            if (isPersonAbsent(result)) {
-              if (absentSinceRef.current == null) absentSinceRef.current = now;
-              const elapsed = now - absentSinceRef.current;
-              if (elapsed >= ABSENT_LIMIT_MS) {
-                terminateRef.current("You were out of the camera's view for more than 5 seconds — the interview was stopped.");
-                return;
-              }
-              if (elapsed >= ABSENT_COUNTDOWN_AFTER_MS) setAbsentSecondsLeft(Math.ceil((ABSENT_LIMIT_MS - elapsed) / 1000));
-              postureIssueSinceRef.current = null;
-              setPostureWarning(null);
-              setFaceBox(null);
-            } else {
-              absentSinceRef.current = null;
-              setAbsentSecondsLeft(null);
-              setFaceBox(faceBoxFrom(result, video.videoHeight ? video.videoWidth / video.videoHeight : 4 / 3));
-              const issue = evaluatePosture(result);
-              if (issue) {
-                if (postureIssueSinceRef.current == null) postureIssueSinceRef.current = now;
-                if (now - postureIssueSinceRef.current > POSTURE_WARNING_DEBOUNCE_MS) {
-                  setPostureWarning(issue);
-                }
-              } else {
-                postureIssueSinceRef.current = null;
-                setPostureWarning(null);
-              }
-            }
-          } else {
-            const detector = objectDetectorRef.current;
-            if (detector && nowMs - lastObjectRun >= OBJECT_INTERVAL_MS) {
+          // Runs in a worker, so it doesn't count against this frame's one
+          // on-page model; a new check starts once the previous one returns.
+          if (objectDetector && nowMs - lastObjectRun >= OBJECT_INTERVAL_MS) {
+            const pendingCheck = objectDetector.check(video);
+            if (pendingCheck) {
               lastObjectRun = nowMs;
-              const timestamp = Math.max(nowMs, lastObjectTimestampRef.current + 1);
-              lastObjectTimestampRef.current = timestamp;
-              if (detectsExternalDevice(detector.detectForVideo(video, timestamp))) {
-                deviceHitsRef.current += 1;
-                if (deviceHitsRef.current >= DEVICE_CONFIRM_HITS) {
-                  terminateRef.current(
-                    "An external device (phone, laptop, TV, or remote) was detected in your camera — the interview was stopped immediately."
-                  );
-                  return;
+              pendingCheck.then((hit) => {
+                if (cancelled || terminatedRef.current) return;
+                if (voter.push(hit)) {
+                  terminateRef.current("A phone or other device was detected in your camera — the interview was stopped immediately.");
                 }
+              });
+            }
+          }
+
+          if (faceDetector && nowMs - lastFaceRun >= FACE_INTERVAL_MS) {
+            lastFaceRun = nowMs;
+            const face = primaryFace(faceDetector.detectForVideo(video, stamp(lastFaceTimestampRef, nowMs)), video.videoWidth, video.videoHeight);
+            if (!face) {
+              if (handleAbsent(now)) return;
+            } else {
+              const box = padFaceBox(face);
+              handlePresent(box);
+              framingIssue = evaluateFraming(box);
+              updatePostureWarning(now);
+            }
+          } else if (landmarker && nowMs - lastPoseRun >= POSE_INTERVAL_MS * 2) {
+            lastPoseRun = nowMs;
+            const result = landmarker.detectForVideo(video, stamp(lastPoseTimestampRef, nowMs));
+            // Pose only drives presence when the face model failed to load.
+            if (!faceDetector) {
+              const box = isPersonAbsent(result) ? null : faceBoxFrom(result, video.videoHeight ? video.videoWidth / video.videoHeight : 4 / 3);
+              if (!box) {
+                if (handleAbsent(now)) return;
               } else {
-                deviceHitsRef.current = 0;
+                handlePresent(box);
               }
             }
+            poseIssue = evaluatePosture(result);
+            if (absentSinceRef.current == null) updatePostureWarning(now);
           }
           consecutiveErrors = 0;
         }
@@ -532,15 +636,16 @@ export function LearnerMockInterview() {
     poseLoopRef.current = requestAnimationFrame(detect);
 
     return () => {
+      cancelled = true;
       if (poseLoopRef.current) cancelAnimationFrame(poseLoopRef.current);
       postureIssueSinceRef.current = null;
       absentSinceRef.current = null;
-      deviceHitsRef.current = 0;
+      voter.reset();
       setPostureWarning(null);
       setAbsentSecondsLeft(null);
       setFaceBox(null);
     };
-  }, [setup, interviewComplete, mediaStatus, poseModelReady, objectModelReady]);
+  }, [setup, interviewComplete, mediaStatus, poseModelReady, objectModelReady, faceModelReady]);
 
   // A recognition session is scoped to one question — stops it (rather than
   // letting it keep dictating) the moment the question changes, so a
@@ -851,7 +956,7 @@ export function LearnerMockInterview() {
               {mediaStatus === "granted" && (
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "14px" }}>
                   <video
-                    ref={videoRef}
+                    ref={attachVideo}
                     autoPlay
                     muted
                     playsInline
@@ -1019,12 +1124,13 @@ export function LearnerMockInterview() {
 
   const currentQ = questions[currentQuestionIndex];
   const suggestions = buildSuggestions(currentQ, answers[currentQ.id] || "", company, timeLeft);
-  const trackingReady = poseModelReady;
+  const trackingReady = faceModelReady || poseModelReady;
+  const feedOk = videoLive && !cameraDisconnected;
   const boxColor = postureWarning ? "#f59e0b" : "#22c55e";
   const cameraChecks = [
-    { label: "Face", ok: !!faceBox, text: faceBox ? "In view" : absentSecondsLeft != null ? `Missing ${absentSecondsLeft}s` : "Searching" },
-    { label: "Posture", ok: !postureWarning, text: postureWarning ? "Adjust" : "Good" },
-    { label: "Devices", ok: objectModelReady, text: objectModelReady ? "Clear" : "Loading" },
+    { label: "Face", ok: feedOk && !!faceBox, text: !feedOk ? "No feed" : faceBox ? "In view" : absentSecondsLeft != null ? `Missing ${absentSecondsLeft}s` : "Searching" },
+    { label: "Posture", ok: feedOk && !!faceBox && !postureWarning, text: !feedOk || !faceBox ? "—" : postureWarning ? "Adjust" : "Good" },
+    { label: "Devices", ok: feedOk && objectModelReady, text: !feedOk ? "—" : objectModelReady ? "Clear" : "Loading" },
     { label: "Mic", ok: listening, text: listening ? "Listening" : "Off" },
   ];
   const toneColor = { good: "#16a34a", warn: "#d97706", info: "var(--accent)" } as const;
@@ -1173,22 +1279,29 @@ export function LearnerMockInterview() {
           </div>
         </div>
 
-        <div className="mi-side" style={{ flex: "1 1 0", minWidth: 0, borderLeft: "1px solid var(--border)", background: "var(--bg)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto" }}>
-          <div className="card" style={{ padding: "12px", borderRadius: "14px", flexShrink: 0 }}>
-            <div style={{ position: "relative", width: "100%", aspectRatio: String(videoAspect), maxWidth: `calc(32vh * ${videoAspect.toFixed(4)})`, margin: "0 auto", borderRadius: "10px", overflow: "hidden", background: "#0b1220" }}>
+        <div className="mi-side" style={{ flex: "1 1 0", minWidth: 0, borderLeft: "1px solid var(--border)", background: "var(--bg)", padding: "16px", display: "flex", flexDirection: "column", gap: "12px", overflow: "hidden" }}>
+          <div className="card mi-cam" style={{ padding: "12px", borderRadius: "14px", flex: "1 1 0", minHeight: 0, display: "flex", flexDirection: "column" }}>
+            {/* Size container: the frame below is the largest box of the
+                camera's aspect ratio that fits this half — keeping the ratio
+                exact is what keeps the face box aligned with the face. */}
+            <div className="mi-cam-area" style={{ flex: 1, minHeight: 0, containerType: "size", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "relative", width: `min(100cqw, calc(100cqh * ${videoAspect.toFixed(4)}))`, aspectRatio: String(videoAspect), borderRadius: "10px", overflow: "hidden", background: "#0b1220" }}>
               <video
-                ref={videoRef}
+                ref={attachVideo}
                 autoPlay
                 muted
                 playsInline
                 onLoadedMetadata={(e) => {
                   const v = e.currentTarget;
                   if (v.videoWidth && v.videoHeight) setVideoAspect(v.videoWidth / v.videoHeight);
+                  v.play().catch(() => {});
                 }}
+                onPlaying={() => setVideoLive(true)}
+                onEmptied={() => setVideoLive(false)}
                 style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", display: "block" }}
               />
 
-              {faceBox && (
+              {feedOk && faceBox && (
                 // The video is mirrored, so the box's x is mirrored to match.
                 <div
                   aria-hidden="true"
@@ -1215,14 +1328,24 @@ export function LearnerMockInterview() {
                 LIVE
               </span>
 
-              {!faceBox && (
+              {!feedOk ? (
+                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", color: "#fff", textAlign: "center", padding: "16px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: 600, opacity: 0.85 }}>
+                    {mediaStatus === "requesting" ? "Connecting to your camera…" : "Camera feed isn't showing."}
+                  </span>
+                  {mediaStatus !== "requesting" && (
+                    <button type="button" className="btn btn-sm btn-p" onClick={requestMedia}>Reconnect camera</button>
+                  )}
+                </div>
+              ) : !faceBox && (
                 <span style={{ position: "absolute", left: "50%", bottom: "12px", transform: "translateX(-50%)", background: "rgba(0,0,0,.6)", color: "#fff", fontSize: "12px", fontWeight: 600, padding: "5px 12px", borderRadius: "999px", whiteSpace: "nowrap" }}>
                   {!trackingReady ? "Loading face tracking…" : "Looking for your face…"}
                 </span>
               )}
             </div>
+            </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px", marginTop: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px", marginTop: "10px", flexShrink: 0 }}>
               {cameraChecks.map((c) => (
                 <div key={c.label} style={{ padding: "7px 9px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", minWidth: 0 }}>
                   <div style={{ fontSize: "10.5px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px" }}>{c.label}</div>
@@ -1235,7 +1358,8 @@ export function LearnerMockInterview() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: "18px", borderRadius: "14px", flex: 1, minHeight: 0, overflowY: "auto" }}>
+          <div key={currentQuestionIndex} className="mi-sugg" style={{ flex: "1 1 0", minHeight: 0, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
+          <div className="card mi-sugg-box" style={{ padding: "18px", borderRadius: "14px", minHeight: 0, overflowY: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "var(--accent-l)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1257,7 +1381,7 @@ export function LearnerMockInterview() {
             </div>
 
             <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>How to structure it</div>
-            <ol style={{ listStyle: "none", padding: 0, margin: "0 0 16px", display: "flex", flexDirection: "column", gap: "7px" }}>
+            <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "7px" }}>
               {suggestions.approach.map((step, i) => (
                 <li key={step} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "13px", color: "var(--text)", lineHeight: 1.45 }}>
                   <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: "var(--accent-l)", color: "var(--accent)", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
@@ -1265,17 +1389,27 @@ export function LearnerMockInterview() {
                 </li>
               ))}
             </ol>
+          </div>
 
-            {suggestions.points.length > 0 && (
-              <>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>Points worth covering</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                  {suggestions.points.map((p) => (
-                    <span key={p} style={{ fontSize: "12px", fontWeight: 600, padding: "5px 10px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}>{p}</span>
-                  ))}
-                </div>
-              </>
+          <div className="card mi-sugg-box" style={{ padding: "18px", borderRadius: "14px", minHeight: 0, overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+              <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "#dcfce7", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <RoundIcon d="M8 12.333L10.461 15 16 9m5 3a9 9 0 11-18 0 9 9 0 0118 0z" size={16} />
+              </span>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>Points Worth Covering</div>
+            </div>
+            {suggestions.points.length > 0 ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {suggestions.points.map((p) => (
+                  <span key={p} style={{ fontSize: "12px", fontWeight: 600, padding: "6px 10px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", lineHeight: 1.35 }}>{p}</span>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: "13px", color: "var(--muted)", lineHeight: 1.5, margin: 0 }}>
+                No specific topics for this one — anchor your answer in one clear, real example.
+              </p>
             )}
+          </div>
           </div>
         </div>
       </div>

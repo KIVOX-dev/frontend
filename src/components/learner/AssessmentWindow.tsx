@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, XCircle, Globe, Camera, Monitor } from "lucide-react";
 import { SkillBadgeIcon } from "@/components/shared/SkillBadgeIcon";
-import type { ObjectDetector, PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
+import type { PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 import {
-  DEVICE_CONFIRM_HITS,
   OBJECT_INTERVAL_MS,
   POSE_INTERVAL_MS,
-  createObjectDetector,
+  createDeviceVoter,
+  createDeviceDetector,
   createPoseLandmarker,
-  detectsExternalDevice,
+  type DeviceDetector,
 } from "@/lib/proctoring";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
@@ -138,10 +138,9 @@ export function AssessmentWindow() {
   const [terminationReason, setTerminationReason] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const objectDetectorRef = useRef<ObjectDetector | null>(null);
+  const objectDetectorRef = useRef<DeviceDetector | null>(null);
   const [objectDetectorReady, setObjectDetectorReady] = useState(false);
-  const lastDetectTimestampRef = useRef(0);
-  const deviceHitsRef = useRef(0);
+  const deviceVoterRef = useRef(createDeviceVoter());
   const detectLoopRef = useRef<number | null>(null);
   // Both loading effects and the detection loop below degrade silently by
   // design (console.error only, assessment still proceeds without that
@@ -273,7 +272,7 @@ export function AssessmentWindow() {
     let cancelled = false;
     (async () => {
       try {
-        const detector = await createObjectDetector();
+        const detector = await createDeviceDetector();
         if (cancelled) {
           detector.close();
           return;
@@ -345,7 +344,9 @@ export function AssessmentWindow() {
   useEffect(() => {
     if (stage !== "quiz" || (!objectDetectorReady && !poseModelReady)) return;
 
+    let cancelled = false;
     let consecutiveErrors = 0;
+    const voter = deviceVoterRef.current;
     const MAX_CONSECUTIVE_ERRORS = 5;
     let lastObjectRun = 0;
     let lastPoseRun = 0;
@@ -359,32 +360,26 @@ export function AssessmentWindow() {
           // keeps the page responsive and detections prompt on a CPU-only
           // runtime.
           const nowMs = performance.now();
-          let ranObject = false;
+          // Device detection runs in a background worker (see proctoring.ts),
+          // so it never shares this frame's budget with the pose model.
           const objectDetector = objectDetectorRef.current;
           if (objectDetector && nowMs - lastObjectRun >= OBJECT_INTERVAL_MS) {
-            ranObject = true;
-            lastObjectRun = nowMs;
-            // Strictly increasing timestamp requirement — same reasoning as
-            // LearnerMockInterview.tsx's lastPoseTimestampRef.
-            const timestamp = Math.max(nowMs, lastDetectTimestampRef.current + 1);
-            lastDetectTimestampRef.current = timestamp;
-            if (detectsExternalDevice(objectDetector.detectForVideo(video, timestamp))) {
-              deviceHitsRef.current += 1;
-              if (deviceHitsRef.current >= DEVICE_CONFIRM_HITS) {
+            const pendingCheck = objectDetector.check(video);
+            if (pendingCheck) {
+              lastObjectRun = nowMs;
+              pendingCheck.then((hit) => {
+                if (cancelled || !voter.push(hit)) return;
                 violationsRef.current.device_detected += 1;
                 setTerminationReason(
                   "An external device (phone, laptop, TV, or remote) was detected in your camera — the assessment was stopped immediately."
                 );
                 handleSubmit();
-                return;
-              }
-            } else {
-              deviceHitsRef.current = 0;
+              });
             }
           }
 
           const poseLandmarker = poseLandmarkerRef.current;
-          if (poseLandmarker && !ranObject && nowMs - lastPoseRun >= POSE_INTERVAL_MS) {
+          if (poseLandmarker && nowMs - lastPoseRun >= POSE_INTERVAL_MS) {
             lastPoseRun = nowMs;
             const timestamp = Math.max(nowMs, lastPoseTimestampRef.current + 1);
             lastPoseTimestampRef.current = timestamp;
@@ -427,8 +422,9 @@ export function AssessmentWindow() {
     detectLoopRef.current = requestAnimationFrame(detect);
 
     return () => {
+      cancelled = true;
       if (detectLoopRef.current) cancelAnimationFrame(detectLoopRef.current);
-      deviceHitsRef.current = 0;
+      voter.reset();
       framingIssueSinceRef.current = null;
       framingIssueActiveRef.current = false;
       setFramingWarning(null);
