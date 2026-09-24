@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Clock, ArrowRight } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { companyLogoFor } from "@/lib/companyLogos";
 import {
   type MncQuestion as Question,
   dedupeQuestions,
@@ -14,7 +15,6 @@ type CompanyTrack = {
   id: string;
   name: string;
   logo: string;
-  domain: string;
   color: string;
   colorLight: string;
   gradient: string;
@@ -22,21 +22,15 @@ type CompanyTrack = {
   sections: { label: string; file: string; count: number }[];
 };
 
-// Real logo, fetched from the same third-party logo-lookup service the
-// Placement Dashboard's CompanyLogo already uses (see collegeAdminShared.tsx)
-// — not a trademarked asset hosted/bundled by this app. Falls back to the
-// existing letter badge if the fetch ever fails (unknown domain, service
-// down, etc.), same as that component. Plain <img> rather than next/image,
-// same reasoning as TrustedByColleges.tsx: these logos arrive at wildly
-// inconsistent aspect ratios (a square mark vs. a wide wordmark), which
-// next/image's fixed width/height model fights — object-contain on a
-// plain img scales all of them uniformly instead.
-function TrackLogo({ track }: { track: CompanyTrack }) {
-  const [failed, setFailed] = useState(false);
+// Plain <img> rather than next/image: the wordmarks have very different
+// aspect ratios (Wipro is near-square, Cognizant is ~5:1), and object-contain
+// inside a fixed box scales them uniformly.
+function TrackLogo({ track, height = 44, maxWidth = 160 }: { track: CompanyTrack; height?: number; maxWidth?: number }) {
+  const src = companyLogoFor(track.id);
 
-  if (failed) {
+  if (!src) {
     return (
-      <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: track.gradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", fontWeight: 900, boxShadow: `0 8px 16px -6px ${track.color}66` }}>
+      <div style={{ width: `${height + 8}px`, height: `${height + 8}px`, borderRadius: "14px", background: track.gradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: `${Math.round(height / 2)}px`, fontWeight: 900, flexShrink: 0 }}>
         {track.logo}
       </div>
     );
@@ -44,12 +38,15 @@ function TrackLogo({ track }: { track: CompanyTrack }) {
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={`https://unavatar.io/${track.domain}`}
-      alt={`${track.name} logo`}
-      onError={() => setFailed(true)}
-      style={{ height: "44px", maxWidth: "180px", width: "auto", objectFit: "contain" }}
-    />
+    <img src={src} alt={`${track.name} logo`} style={{ height: `${height}px`, maxWidth: `${maxWidth}px`, width: "auto", objectFit: "contain" }} />
+  );
+}
+
+function TrackLogoTile({ track, size }: { track: CompanyTrack; size: number }) {
+  return (
+    <div style={{ height: `${size}px`, width: `${Math.round(size * 2.6)}px`, padding: "6px 10px", borderRadius: "12px", background: "#fff", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <TrackLogo track={track} height={size - 12} maxWidth={Math.round(size * 2.6) - 20} />
+    </div>
   );
 }
 
@@ -58,7 +55,6 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "tcs",
     name: "TCS NQT",
     logo: "T",
-    domain: "tcs.com",
     color: "#1a73e8",
     colorLight: "#e8f0fe",
     gradient: "linear-gradient(135deg, #60A5FA, #1a73e8)",
@@ -73,7 +69,6 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "infosys",
     name: "Infosys InfyTQ",
     logo: "I",
-    domain: "infosys.com",
     color: "#0071c5",
     colorLight: "#e0f2fe",
     gradient: "linear-gradient(135deg, #38BDF8, #0071c5)",
@@ -88,7 +83,6 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "wipro",
     name: "Wipro NLTH",
     logo: "W",
-    domain: "wipro.com",
     color: "#6d28d9",
     colorLight: "#ede9fe",
     gradient: "linear-gradient(135deg, #A78BFA, #6d28d9)",
@@ -102,7 +96,6 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "cognizant",
     name: "Cognizant GenC",
     logo: "C",
-    domain: "cognizant.com",
     color: "#0d9488",
     colorLight: "#ccfbf1",
     gradient: "linear-gradient(135deg, #2DD4BF, #0d9488)",
@@ -118,7 +111,6 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "accenture",
     name: "Accenture",
     logo: "A",
-    domain: "accenture.com",
     color: "#a855f7",
     colorLight: "#faf5ff",
     gradient: "linear-gradient(135deg, #C084FC, #a855f7)",
@@ -133,7 +125,6 @@ const COMPANY_TRACKS: CompanyTrack[] = [
     id: "zoho",
     name: "Zoho",
     logo: "Z",
-    domain: "zoho.com",
     color: "#dc2626",
     colorLight: "#fee2e2",
     gradient: "linear-gradient(135deg, #F87171, #dc2626)",
@@ -307,8 +298,8 @@ export function MNCTestModule() {
     return (
       <div className="screen active" style={{ padding: "40px" }}>
         <div className="card" style={{ maxWidth: "600px", margin: "0 auto", padding: "48px", textAlign: "center" }}>
-          <div style={{ width: "64px", height: "64px", borderRadius: "16px", background: activeTrack.colorLight, color: activeTrack.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px", fontWeight: 900, margin: "0 auto 24px" }}>
-            {activeTrack.logo}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
+            <TrackLogoTile track={activeTrack} size={72} />
           </div>
           <h2 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "8px" }}>{activeTrack.name} — Results</h2>
           <p style={{ color: "var(--muted)", marginBottom: "32px" }}>{questions.length} questions · {answeredCount} answered</p>
@@ -352,9 +343,7 @@ export function MNCTestModule() {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: activeTrack.colorLight, color: activeTrack.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", fontWeight: 900 }}>
-              {activeTrack.logo}
-            </div>
+            <TrackLogoTile track={activeTrack} size={44} />
             <div>
               <h2 style={{ fontSize: "18px", fontWeight: 800 }}>{activeTrack.name}</h2>
               <p style={{ fontSize: "12px", color: "var(--muted)" }}>{answeredCount}/{questions.length} answered</p>
@@ -362,7 +351,7 @@ export function MNCTestModule() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <div style={{ padding: "8px 16px", borderRadius: "8px", background: timeLeft < 120 ? "#fee2e2" : "var(--bg)", color: timeLeft < 120 ? "#dc2626" : "var(--text)", fontWeight: 700, fontSize: "16px", fontFamily: "monospace" }}>
-              ⏱ {formatTime(timeLeft)}
+              <Clock size={15} style={{ verticalAlign: "-2px", marginRight: "6px" }} />{formatTime(timeLeft)}
             </div>
             <button className="btn btn-p" onClick={finishTest}>Submit Test</button>
           </div>
@@ -521,7 +510,7 @@ export function MNCTestModule() {
 
               <div style={{ position: "relative", zIndex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-                  <TrackLogo track={track} />
+                  <TrackLogoTile track={track} size={60} />
                   <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: track.colorLight, color: track.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <ArrowRight size={18} strokeWidth={2.25} />
                   </div>

@@ -17,6 +17,46 @@ import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
+import { COMPANY_LOGOS, companyLogoFor } from "@/lib/companyLogos";
+
+const ROLE_OPTIONS = [
+  "Software Engineer", "Frontend Developer", "Backend Developer", "Full Stack Developer",
+  "Java Developer", "Python Developer", ".NET Developer", "Mobile App Developer",
+  "Data Analyst", "Data Scientist", "Machine Learning Engineer", "AI Engineer",
+  "DevOps Engineer", "Cloud Engineer", "Site Reliability Engineer", "Cybersecurity Analyst",
+  "QA / Test Engineer", "Automation Test Engineer", "Database Administrator", "Network Engineer",
+  "Business Analyst", "Product Manager", "UI/UX Designer", "Technical Support Engineer",
+  "Systems Engineer", "Associate Consultant", "Graduate Engineer Trainee", "Project Engineer",
+];
+
+const POPULAR_ROLES = ["Software Engineer", "Full Stack Developer", "Data Analyst", "DevOps Engineer", "QA / Test Engineer", "Business Analyst"];
+
+const COMPANY_OPTIONS = [
+  ...COMPANY_LOGOS.map((c) => c.name),
+  "HCLTech", "Tech Mahindra", "Capgemini", "LTIMindtree", "Mphasis", "Hexaware", "Persistent Systems",
+  "Deloitte", "EY", "KPMG", "PwC", "IBM", "Oracle", "SAP", "Cisco",
+  "Google", "Microsoft", "Amazon", "Meta", "Apple", "Adobe", "Salesforce", "Intel", "Nvidia",
+  "Flipkart", "Swiggy", "Zomato", "Paytm", "PhonePe", "Razorpay", "Freshworks", "Startup",
+];
+
+const INTERVIEW_ROUNDS = [
+  { id: "technical", label: "Technical", desc: "Core CS, DSA and role concepts", icon: "M7 8l-4 4 4 4m7-12l-4 16m7-12l4 4-4 4" },
+  { id: "system_design", label: "System Design", desc: "Architecture, scaling, trade-offs", icon: "M12 12H7.6c-.56 0-.84 0-1.054.109a1 1 0 00-.437.437C6 12.76 6 13.04 6 13.6V16m6-4h4.4c.56 0 .84 0 1.054.109a1 1 0 01.437.437C18 12.76 18 13.04 18 13.6V16m-6-4V8m-.9 0h1.8c.56 0 .84 0 1.054-.109a1 1 0 00.437-.437c.109-.214.109-.494.109-1.054V4.6c0-.56 0-.84-.109-1.054a1 1 0 00-.437-.437C13.74 3 13.46 3 12.9 3h-1.8c-.56 0-.84 0-1.054.109a1 1 0 00-.437.437C9.5 3.76 9.5 4.04 9.5 4.6v1.8c0 .56 0 .84.109 1.054a1 1 0 00.437.437C10.26 8 10.54 8 11.1 8zm-6 13h1.8c.56 0 .84 0 1.054-.109a1 1 0 00.437-.437c.109-.214.109-.494.109-1.054v-1.8c0-.56 0-.84-.109-1.054a1 1 0 00-.437-.437C7.74 16 7.46 16 6.9 16H5.1c-.56 0-.84 0-1.054.109a1 1 0 00-.437.437C3.5 16.76 3.5 17.04 3.5 17.6v1.8c0 .56 0 .84.109 1.054a1 1 0 00.437.437C4.26 21 4.54 21 5.1 21zm12 0h1.8c.56 0 .84 0 1.054-.109a1 1 0 00.437-.437c.109-.214.109-.494.109-1.054v-1.8c0-.56 0-.84-.109-1.054a1 1 0 00-.437-.437C19.74 16 19.46 16 18.9 16h-1.8c-.56 0-.84 0-1.054.109a1 1 0 00-.437.437c-.109.214-.109.494-.109 1.054v1.8c0 .56 0 .84.109 1.054a1 1 0 00.437.437C16.26 21 16.54 21 17.1 21z" },
+  { id: "hr", label: "HR", desc: "Background, motivation, fit", icon: "M6 7h1m-1 3h1m4 0h1m-1 3h1m-6 0h1m4-6h1M7 21v-3a2 2 0 114 0v3H7zm0 0H3V4.6c0-.56 0-.84.109-1.054a1 1 0 01.437-.437C3.76 3 4.04 3 4.6 3h8.8c.56 0 .84 0 1.054.109a1 1 0 01.437.437C15 3.76 15 4.04 15 4.6V9m4.7 4.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm1.8 7.5v-.5A2.5 2.5 0 0019 18h-1.5a2.5 2.5 0 00-2.5 2.5v.5h6.5z" },
+  { id: "behavioral", label: "Behavioral", desc: "STAR-style situations", icon: "M13 20v-2a5 5 0 00-10 0v2h10zm0 0h8v-1c0-2.945-2.239-5-5-5-1.413 0-2.69.626-3.6 1.631M11 7a3 3 0 11-6 0 3 3 0 016 0zm7 2a2 2 0 11-4 0 2 2 0 014 0z" },
+  { id: "managerial", label: "Managerial", desc: "Ownership and decisions", icon: "M3.027 10.022l3.658 2.926c.488.39.731.585 1.002.723.241.123.497.213.762.268.299.061.61.061 1.235.061h4.632c.624 0 .936 0 1.235-.061.265-.055.52-.145.761-.268.272-.138.515-.333 1.003-.723l3.657-2.926m-17.945 0C3 10.489 3 11.064 3 11.8v4.4c0 1.68 0 2.52.327 3.162a3 3 0 001.311 1.311C5.28 21 6.12 21 7.8 21h8.4c1.68 0 2.52 0 3.162-.327a3 3 0 001.311-1.311C21 18.72 21 17.88 21 16.2v-4.4c0-.736 0-1.31-.027-1.778m-17.946 0c.036-.6.116-1.023.3-1.384a3 3 0 011.311-1.311C5.28 7 6.12 7 7.8 7H8m12.973 3.022c-.036-.6-.116-1.023-.3-1.384a3 3 0 00-1.311-1.311C18.72 7 17.88 7 16.2 7H16M8 7V6a3 3 0 013-3h2a3 3 0 013 3v1M8 7h8" },
+  { id: "aptitude", label: "Problem Solving", desc: "Puzzles and logical reasoning", icon: "M15 16v2c0 .932 0 1.398-.152 1.765a2 2 0 01-1.083 1.083C13.398 21 12.932 21 12 21c-.932 0-1.398 0-1.765-.152a2 2 0 01-1.083-1.083C9 19.398 9 18.932 9 18v-2m-4-6a7 7 0 1110.608 6H8.392A6.996 6.996 0 015 10z" },
+];
+
+const ROUND_LABEL: Record<string, string> = Object.fromEntries(INTERVIEW_ROUNDS.map((r) => [r.id, r.label]));
+
+function RoundIcon({ d, size = 18 }: { d: string; size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width={size} height={size}>
+      <path d={d} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 interface Question {
   id: number;
@@ -103,7 +143,8 @@ export function LearnerMockInterview() {
   const [tab, setTab] = useState<"new" | "history">("new");
   const [setup, setSetup] = useState(true);
   const [role, setRole] = useState("Software Engineer");
-  const [company, setCompany] = useState("Google");
+  const [company, setCompany] = useState("TCS");
+  const [round, setRound] = useState("technical");
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -486,7 +527,7 @@ export function LearnerMockInterview() {
   const startInterview = async () => {
     setLoading(true);
     try {
-      const res = await api.post(`/interviews/generate?role=${encodeURIComponent(role)}&company=${encodeURIComponent(company)}`);
+      const res = await api.post(`/interviews/generate?role=${encodeURIComponent(role)}&company=${encodeURIComponent(company)}&round=${encodeURIComponent(round)}`);
       setQuestions(res.data);
       terminatedRef.current = false;
       setTerminationReason(null);
@@ -537,7 +578,7 @@ export function LearnerMockInterview() {
       if (user?.id) {
         await api.post(`/students/${user.id}/interviews`, {
           role,
-          category: "technical",
+          category: round,
           overall_rating: overallRating,
           strengths: ["Clear communication", "Structured thinking"],
           improvements: ["Depth of technical answers"],
@@ -550,7 +591,7 @@ export function LearnerMockInterview() {
     } finally {
       setInterviewComplete(true);
     }
-  }, [questions, user?.id, role]);
+  }, [questions, user?.id, role, round]);
 
   // Stops the interview for a camera violation: records why, then saves
   // whatever was answered so far exactly like "End Session" does.
@@ -603,56 +644,89 @@ export function LearnerMockInterview() {
 
   if (setup) {
     return (
-      <div className="screen active" style={{ padding: "40px", maxWidth: "680px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "28px" }}>
-          <h2 style={{ fontSize: "24px", marginBottom: "4px", fontWeight: 700, color: "var(--text)" }}>AI Mock Interviewer</h2>
-          <p style={{ color: "var(--muted)" }}>Practice with real AI-generated questions tailored to your role.</p>
-        </div>
+      <div className="screen active" style={{ padding: "32px 40px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px", marginBottom: "24px" }}>
+          <div>
+            <h2 style={{ fontSize: "24px", marginBottom: "4px", fontWeight: 700, color: "var(--text)" }}>AI Mock Interviewer</h2>
+            <p style={{ color: "var(--muted)" }}>Practice with real AI-generated questions tailored to your role.</p>
+          </div>
 
-        {/* Tab switcher */}
-        <div style={{ display: "flex", background: "var(--bg)", padding: "4px", borderRadius: "10px", border: "1px solid var(--border)", marginBottom: "28px", width: "fit-content" }}>
-          {(["new", "history"] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 20px", borderRadius: "7px", background: tab === t ? "var(--accent)" : "transparent", color: tab === t ? "white" : "var(--muted)", fontWeight: 600, fontSize: "13px", border: "none", cursor: "pointer", transition: "all 0.2s", textTransform: "capitalize" }}>
-              {t === "new" ? "New Interview" : "Past Interviews"}
-            </button>
-          ))}
+          <div style={{ display: "flex", background: "var(--bg)", padding: "4px", borderRadius: "10px", border: "1px solid var(--border)", width: "fit-content" }}>
+            {(["new", "history"] as const).map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 20px", borderRadius: "7px", background: tab === t ? "var(--accent)" : "transparent", color: tab === t ? "white" : "var(--muted)", fontWeight: 600, fontSize: "13px", border: "none", cursor: "pointer", transition: "all 0.2s" }}>
+                {t === "new" ? "New Interview" : "Past Interviews"}
+              </button>
+            ))}
+          </div>
         </div>
 
         {tab === "new" && (
-          <div style={{ background: "var(--bg)", padding: "28px", borderRadius: "16px", border: "1px solid var(--border)" }}>
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, fontSize: "14px" }}>Target Role</label>
-            <input 
-              type="text" 
-              className="fi" 
-              value={role} 
-              onChange={(e) => setRole(e.target.value)} 
-              placeholder="e.g. Frontend Developer"
-              style={{ marginBottom: "20px" }}
-            />
-            
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, fontSize: "14px" }}>Target Company</label>
-            <input 
-              type="text" 
-              className="fi" 
-              value={company} 
-              onChange={(e) => setCompany(e.target.value)} 
-              placeholder="e.g. Microsoft"
-              style={{ marginBottom: "28px" }}
-            />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "24px", alignItems: "start" }}>
+          <div className="card" style={{ padding: "28px", borderRadius: "16px" }}>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)", marginBottom: "4px" }}>Interview Setup</div>
+            <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "22px" }}>Pick the role and company you&apos;re preparing for.</div>
 
-            <div style={{ background: "rgba(108, 92, 231, 0.1)", color: "var(--accent)", padding: "16px", borderRadius: "8px", marginBottom: "28px", fontSize: "13px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20" style={{ flexShrink: 0 }}>
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
+            <label htmlFor="mi-role" style={{ display: "block", marginBottom: "8px", fontWeight: 600, fontSize: "13px" }}>Target Role</label>
+            <input
+              id="mi-role"
+              type="text"
+              className="fi"
+              list="mi-role-options"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="Search or type a role"
+            />
+            <datalist id="mi-role-options">
+              {ROLE_OPTIONS.map((r) => <option key={r} value={r} />)}
+            </datalist>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px", marginBottom: "22px" }}>
+              {POPULAR_ROLES.map((r) => {
+                const active = role === r;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRole(r)}
+                    style={{ padding: "5px 11px", borderRadius: "999px", fontSize: "12px", fontWeight: 600, cursor: "pointer", border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`, background: active ? "var(--accent-l)" : "transparent", color: active ? "var(--accent)" : "var(--muted)", transition: "all .15s" }}
+                  >
+                    {r}
+                  </button>
+                );
+              })}
+            </div>
+
+            <label htmlFor="mi-company" style={{ display: "block", marginBottom: "8px", fontWeight: 600, fontSize: "13px" }}>Target Company</label>
+            <div style={{ position: "relative", marginBottom: "22px" }}>
+              {companyLogoFor(company) && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={companyLogoFor(company)!} alt="" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", height: "20px", maxWidth: "46px", objectFit: "contain", pointerEvents: "none" }} />
+              )}
+              <input
+                id="mi-company"
+                type="text"
+                className="fi"
+                list="mi-company-options"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="Search or type a company"
+                style={companyLogoFor(company) ? { paddingLeft: "64px" } : undefined}
+              />
+              <datalist id="mi-company-options">
+                {COMPANY_OPTIONS.map((c) => <option key={c} value={c} />)}
+              </datalist>
+            </div>
+
+            <div style={{ background: "var(--accent-l)", color: "var(--accent)", padding: "14px 16px", borderRadius: "10px", marginBottom: "22px", fontSize: "13px", display: "flex", gap: "12px", alignItems: "flex-start", lineHeight: 1.55 }}>
+              <span style={{ flexShrink: 0, marginTop: "1px" }}>
+                <RoundIcon d="M12 8h.01M12 11v5m9-4a9 9 0 11-18 0 9 9 0 0118 0z" size={18} />
+              </span>
               <div>
                 <strong>Strict 1-Minute Rule</strong><br/>
                 You will have exactly 60 seconds to answer each of the 10 questions. Plagiarism checks are active.
               </div>
             </div>
 
-            <div style={{ background: "var(--bg-card, #fff)", padding: "20px", borderRadius: "12px", border: "1px solid var(--border)", marginBottom: "24px" }}>
+            <div style={{ background: "var(--bg)", padding: "18px", borderRadius: "12px", border: "1px solid var(--border)", marginBottom: "22px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px" }}>
                 <div>
                   <strong style={{ fontSize: "14px" }}>Camera &amp; Microphone Check</strong>
@@ -695,7 +769,7 @@ export function LearnerMockInterview() {
 
             <button
               className="btn btn-p"
-              style={{ width: "100%", padding: "14px" }}
+              style={{ width: "100%", padding: "14px", justifyContent: "center" }}
               onClick={startInterview}
               disabled={loading || mediaStatus !== "granted"}
             >
@@ -706,15 +780,91 @@ export function LearnerMockInterview() {
                 : "Start Interview Engine"}
             </button>
           </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="card" style={{ padding: "24px", borderRadius: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "16px", gap: "12px" }}>
+                <div>
+                  <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>Top Recruiters</div>
+                  <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "2px" }}>Tap a company to tailor the questions.</div>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
+                {COMPANY_LOGOS.map((c) => {
+                  const active = company.trim().toLowerCase() === c.name.toLowerCase();
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      onClick={() => setCompany(c.name)}
+                      aria-pressed={active}
+                      aria-label={c.name}
+                      style={{
+                        position: "relative", height: "84px", borderRadius: "12px", cursor: "pointer",
+                        background: "#fff", padding: "10px 14px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        border: `1.5px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                        boxShadow: active ? "0 0 0 3px var(--accent-l)" : "none",
+                        transition: "border-color .15s, box-shadow .15s, transform .15s",
+                      }}
+                      onMouseEnter={(e) => { if (!active) e.currentTarget.style.transform = "translateY(-2px)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={c.src} alt={`${c.name} logo`} style={{ maxWidth: "100%", maxHeight: "56px", objectFit: "contain" }} />
+                      {active && (
+                        <span style={{ position: "absolute", top: "6px", right: "6px", width: "18px", height: "18px", borderRadius: "50%", background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" width="11" height="11"><path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: "24px", borderRadius: "16px" }}>
+              <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>Interview Round</div>
+              <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "2px", marginBottom: "16px" }}>Choose which round you want to practice.</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "12px" }}>
+                {INTERVIEW_ROUNDS.map((r) => {
+                  const active = round === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setRound(r.id)}
+                      aria-pressed={active}
+                      style={{
+                        textAlign: "left", padding: "14px", borderRadius: "12px", cursor: "pointer",
+                        background: active ? "var(--accent-l)" : "var(--bg)",
+                        border: `1.5px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                        transition: "all .15s",
+                      }}
+                    >
+                      <span style={{ width: "34px", height: "34px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "10px", background: active ? "var(--accent)" : "var(--accent-l)", color: active ? "#fff" : "var(--accent)" }}>
+                        <RoundIcon d={r.icon} />
+                      </span>
+                      <span style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "var(--text)" }}>{r.label}</span>
+                      <span style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginTop: "2px", lineHeight: 1.4 }}>{r.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          </div>
         )}
 
         {tab === "history" && (
-          <div>
+          <div style={{ maxWidth: "860px" }}>
             {historyLoading ? (
               <div style={{ textAlign: "center", padding: "60px", color: "var(--muted)" }}>Loading history...</div>
             ) : history.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px", color: "var(--muted)" }}>
-                <div style={{ fontSize: "40px", marginBottom: "12px" }}>🎤</div>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px", opacity: 0.4 }}>
+                  <RoundIcon d="M19 10v2a7 7 0 01-7 7m-7-9v2a7 7 0 007 7m0 0v3m-4 0h8M15 6h-2m2 4h-2m-1 5a3 3 0 01-3-3V5a3 3 0 116 0v7a3 3 0 01-3 3z" size={40} />
+                </div>
                 <div style={{ fontWeight: 600, marginBottom: "4px" }}>No interviews yet</div>
                 <div style={{ fontSize: "14px" }}>Complete your first mock interview to see your history here.</div>
               </div>
@@ -725,7 +875,7 @@ export function LearnerMockInterview() {
                     <div>
                       <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>{rec.role}</div>
                       <div style={{ fontSize: "13px", color: "var(--muted)" }}>
-                        Attempt #{rec.attempt_number} · {Math.round(rec.duration_seconds / 60)} min · {new Date(rec.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        {ROUND_LABEL[rec.category] ?? rec.category} · Attempt #{rec.attempt_number} · {Math.round(rec.duration_seconds / 60)} min · {new Date(rec.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                       </div>
                       {rec.strengths?.length > 0 && (
                         <div style={{ marginTop: "8px", fontSize: "12px", color: "var(--teal)" }}>
@@ -755,7 +905,7 @@ export function LearnerMockInterview() {
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </div>
-        <h2 style={{ fontSize: "28px", marginBottom: "12px", fontWeight: 800 }}>{terminationReason ? "Interview Stopped" : "Interview Saved! 🎉"}</h2>
+        <h2 style={{ fontSize: "28px", marginBottom: "12px", fontWeight: 800 }}>{terminationReason ? "Interview Stopped" : "Interview Saved"}</h2>
         {terminationReason && (
           <p style={{ color: "var(--red)", marginBottom: "12px", lineHeight: 1.6, fontWeight: 600 }}>{terminationReason}</p>
         )}
@@ -777,11 +927,18 @@ export function LearnerMockInterview() {
       {/* Header */}
       <div className="mi-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", borderBottom: "1px solid var(--border)", flexWrap: "wrap", gap: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "32px", height: "32px", borderRadius: "6px", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: "14px", flexShrink: 0 }}>
-            {company.charAt(0).toUpperCase()}
-          </div>
+          {companyLogoFor(company) ? (
+            <div style={{ width: "56px", height: "36px", borderRadius: "8px", background: "#fff", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", padding: "4px", flexShrink: 0 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={companyLogoFor(company)!} alt={`${company} logo`} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+            </div>
+          ) : (
+            <div style={{ width: "32px", height: "32px", borderRadius: "6px", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: "14px", flexShrink: 0 }}>
+              {company.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div>
-            <div style={{ fontWeight: 600, fontSize: "15px" }}>{role} Interview</div>
+            <div style={{ fontWeight: 600, fontSize: "15px" }}>{role} · {ROUND_LABEL[round] ?? "Technical"} Round</div>
             <div style={{ fontSize: "12px", color: "var(--muted)" }}>{company} · Plagiarism Monitor Active</div>
           </div>
         </div>
