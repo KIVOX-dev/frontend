@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
+import { UserPlus, InboxArrowUp, ChartSimple } from "./dazzleIcons";
 
 export function FacultyDashboard() {
   const { user } = useAuthStore();
@@ -37,9 +38,9 @@ export function FacultyDashboard() {
       {/* Quick Access Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "32px" }}>
         {[
-          { label: "Add Student", desc: "Create a new student account", icon: "👤", screen: "add-student", color: "#4f46e5" },
-          { label: "Upload Students", desc: "Bulk import via CSV", icon: "📥", screen: "upload", color: "#0891b2" },
-          { label: "Student Tracking", desc: "View student performance", icon: "📊", screen: "tracking", color: "#7c3aed" },
+          { label: "Add Student", desc: "Create a new student account", icon: UserPlus, screen: "add-student", color: "#4f46e5" },
+          { label: "Upload Students", desc: "Bulk import via CSV", icon: InboxArrowUp, screen: "upload", color: "#0891b2" },
+          { label: "Student Tracking", desc: "View student performance", icon: ChartSimple, screen: "tracking", color: "#7c3aed" },
         ].map(card => (
           <div
             key={card.screen}
@@ -49,7 +50,9 @@ export function FacultyDashboard() {
             onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-2px)")}
             onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}
           >
-            <div style={{ fontSize: "28px", marginBottom: "8px" }}>{card.icon}</div>
+            <div style={{ marginBottom: "8px" }}>
+              <card.icon size={28} style={{ color: card.color }} />
+            </div>
             <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--text)", marginBottom: "4px" }}>{card.label}</div>
             <div style={{ fontSize: "13px", color: "var(--muted)" }}>{card.desc}</div>
           </div>

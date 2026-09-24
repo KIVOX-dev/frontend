@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { LayoutList, LayoutGrid, FileSpreadsheet, FileDown } from "lucide-react";
+import { LayoutList, LayoutGrid, FileSpreadsheet, FileDown } from "./dazzleIcons";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { extractErrorMessage as apiErrorMessage } from "@/lib/errors";

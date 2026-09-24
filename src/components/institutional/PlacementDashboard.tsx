@@ -8,7 +8,7 @@ import {
   TrendingUp, Briefcase, Building2, IndianRupee,
   FileSpreadsheet, RefreshCw, Download, Plus, ArrowUpRight, ArrowDownRight,
   Clock, CheckCircle2, UserPlus, ExternalLink,
-} from "lucide-react";
+} from "./dazzleIcons";
 import { toast } from "@/lib/toast";
 import {
   type User, type Placement, type Drive, type Department, type StudentRecord, type PlacementApplication,

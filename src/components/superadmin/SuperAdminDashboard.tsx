@@ -484,7 +484,7 @@ export function SuperAdminDashboard() {
             className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-lg text-sm font-medium transition-colors border border-red-100 flex items-center space-x-2"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H9m4 9H6.2c-1.12 0-1.68 0-2.108-.218a2 2 0 01-.874-.875C3 19.48 3 18.92 3 17.8V6.2c0-1.12 0-1.68.218-2.107a2 2 0 01.874-.874C4.52 3 5.08 3 6.2 3H13" />
             </svg>
             <span>Log Out</span>
           </button>
@@ -496,7 +496,7 @@ export function SuperAdminDashboard() {
         <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 20v-2a5 5 0 00-10 0v2h10zm0 0h8v-1c0-2.945-2.239-5-5-5-1.413 0-2.69.626-3.6 1.631M11 7a3 3 0 11-6 0 3 3 0 016 0zm7 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
           <div>
@@ -507,7 +507,7 @@ export function SuperAdminDashboard() {
         <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-yellow-50 text-yellow-600 rounded-xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l2.5 1.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
@@ -518,7 +518,7 @@ export function SuperAdminDashboard() {
         <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-green-50 text-green-600 rounded-xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12.333L10.461 15 16 9m5 3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
@@ -658,7 +658,7 @@ export function SuperAdminDashboard() {
           <div className="p-16 text-center flex flex-col items-center">
             <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12.333L10.461 15 16 9m5 3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900">
@@ -765,7 +765,7 @@ export function SuperAdminDashboard() {
           <div className="p-16 text-center flex flex-col items-center">
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 11.5h1m-1 4h1m10 0h1m-1-4h1m-6.5 0h1M10 21v-4a2 2 0 014 0v4m3-13.5l1.576.394c.867.217 1.3.325 1.623.567.284.213.507.498.645.826.156.371.156.818.156 1.711V17.8c0 1.12 0 1.68-.218 2.108a2 2 0 01-.874.874C19.48 21 18.92 21 17.8 21H6.2c-1.12 0-1.68 0-2.108-.218a2 2 0 01-.874-.874C3 19.48 3 18.92 3 17.8v-6.802c0-.893 0-1.34.156-1.711a2 2 0 01.645-.826c.323-.242.756-.35 1.623-.567L7 7.5l2.86-2.573c.756-.681 1.134-1.022 1.562-1.151a2 2 0 011.156 0c.428.13.806.47 1.563 1.15L17 7.5z" />
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900">No institutions yet</h3>
