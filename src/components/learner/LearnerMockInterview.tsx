@@ -1311,9 +1311,14 @@ export function LearnerMockInterview() {
                     top: `${faceBox.y * 100}%`,
                     width: `${faceBox.w * 100}%`,
                     height: `${faceBox.h * 100}%`,
-                    border: `2px solid ${boxColor}`,
-                    borderRadius: "12px",
-                    boxShadow: `0 0 0 1px rgba(0,0,0,.25), 0 0 20px ${boxColor}80`,
+                    border: `2.5px solid ${boxColor}`,
+                    borderRadius: "10px",
+                    // A crisp double-line edge (dark hairline outside the
+                    // color, matching one inside) instead of the diffuse 20px
+                    // glow this used to have — that blur read as "blurry" at
+                    // this box's small on-screen size, especially against a
+                    // busy background.
+                    boxShadow: `0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px ${boxColor}`,
                     transition: "left 120ms linear, top 120ms linear, width 120ms linear, height 120ms linear, border-color .2s",
                   }}
                 >
