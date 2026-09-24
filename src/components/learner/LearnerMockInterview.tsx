@@ -94,6 +94,97 @@ function evaluatePosture(result: PoseLandmarkerResult): string | null {
   return null;
 }
 
+type FaceBox = { x: number; y: number; w: number; h: number };
+
+// Face box from BlazePose's 11 face landmarks (nose, eyes, ears, mouth), in
+// normalized [0,1] frame coords. Those points only span eyes-to-mouth, so the
+// box is padded out to cover forehead and chin; `aspect` (videoWidth /
+// videoHeight) converts the width into normalized-y units so the box stays
+// face-shaped at any camera resolution.
+function faceBoxFrom(result: PoseLandmarkerResult, aspect: number): FaceBox | null {
+  const face = (result.landmarks[0] || []).slice(0, 11).filter((p) => (p.visibility ?? 1) > 0.3);
+  if (face.length < 3) return null;
+  const xs = face.map((p) => p.x);
+  const ys = face.map((p) => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const cx = (minX + maxX) / 2;
+  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const w = Math.min(Math.max(maxX - minX, 0.06) * 1.45, 0.9);
+  const h = Math.min(w * aspect * 1.3, 0.95);
+  const x = Math.min(Math.max(cx - w / 2, 0), 1 - w);
+  const y = Math.min(Math.max(cy - h * 0.55, 0), 1 - h);
+  return { x, y, w, h };
+}
+
+const TOPIC_HINTS: { match: RegExp; points: string[] }[] = [
+  { match: /ci\/?cd|pipeline|deploy|release/i, points: ["Build, test, scan, deploy stages", "Blue-green or canary releases", "Automated rollback on failed health checks", "Infrastructure as code"] },
+  { match: /kubernetes|k8s|docker|container/i, points: ["Deployments, services, ingress", "Readiness and liveness probes", "Resource limits and autoscaling"] },
+  { match: /cloud|aws|azure|gcp|multi-cloud/i, points: ["Managed vs self-hosted services", "Multi-region redundancy", "Cost and vendor lock-in trade-offs"] },
+  { match: /scal|traffic|high availability|distributed|latency/i, points: ["Horizontal scaling of stateless services", "Load balancing", "Caching and CDN", "Replication and failover"] },
+  { match: /database|sql|index|query|schema|nosql|transaction/i, points: ["Indexes and query plans", "Transactions and ACID", "Normalization trade-offs", "When NoSQL fits better"] },
+  { match: /api|rest|graphql|endpoint|microservice/i, points: ["Resource design and HTTP semantics", "Versioning and backward compatibility", "Auth and rate limiting", "Idempotency and error handling"] },
+  { match: /cach|redis/i, points: ["Cache-aside vs write-through", "TTL and invalidation", "Cache stampede protection"] },
+  { match: /secur|auth|encrypt|vulnerab|owasp|token/i, points: ["Least privilege", "Encryption in transit and at rest", "Input validation (OWASP Top 10)", "Secrets management"] },
+  { match: /monitor|observab|logging|incident|outage|alert/i, points: ["Metrics, logs and traces", "SLOs and alert thresholds", "Post-incident review"] },
+  { match: /test|qa|bug|quality|automation/i, points: ["Unit, integration, end-to-end split", "Test data and environments", "Regression automation in CI"] },
+  { match: /algorithm|complexity|array|linked list|tree|graph|sort|search|data structure|recursion/i, points: ["Brute force first, then optimize", "Time and space complexity", "Edge cases: empty, single, huge input"] },
+  { match: /react|frontend|javascript|typescript|css|browser|ui\b/i, points: ["Component and state design", "Rendering performance", "Accessibility", "Browser compatibility"] },
+  { match: /oop|object.oriented|inheritance|polymorph|encapsulat|solid/i, points: ["Encapsulation, inheritance, polymorphism", "A short code-level example", "SOLID principles"] },
+  { match: /machine learning|\bml\b|model|dataset|data scien|training/i, points: ["Data quality and features", "Metric choice for the problem", "Overfitting and validation", "Deployment and monitoring"] },
+  { match: /team|conflict|deadline|pressure|challenge|fail|mistake|lead|disagree/i, points: ["One specific real situation", "Your own actions, not the team's", "A measurable result or lesson"] },
+];
+
+type Feedback = { tone: "good" | "warn" | "info"; text: string };
+
+function buildSuggestions(question: Question, answer: string, company: string, timeLeft: number) {
+  const q = question.text;
+  const isBehavioral = question.type === "behavioral" || /tell me about|describe a (time|situation)|how did you|give an example of a time/i.test(q);
+  const isDesign = /design|architect|build a system|how would you build/i.test(q);
+  const isExplain = /explain|what is|what are|difference|compare|how does/i.test(q);
+
+  const approach = isBehavioral
+    ? ["Situation: set the scene in one line", "Task: what you were responsible for", "Action: the specific steps you took", "Result: the outcome, with a number if possible"]
+    : isDesign
+    ? ["Clarify requirements and expected scale", "Sketch the main components", "Go deep on the most critical part", "Close with trade-offs and failure handling"]
+    : isExplain
+    ? ["Give a one-line definition", "Explain how it works", "Show a real example from your work", "Say when to use it and its trade-offs"]
+    : ["Answer directly in your first sentence", "Support it with one concrete example", "Finish with the impact or takeaway"];
+
+  const points = TOPIC_HINTS.filter((t) => t.match.test(q)).flatMap((t) => t.points).slice(0, 6);
+  if (company && !isBehavioral) points.push(`Tie it to ${company}'s products or scale`);
+
+  const words = answer.trim() ? answer.trim().split(/\s+/).length : 0;
+  const feedback: Feedback[] = [];
+  if (words === 0) {
+    feedback.push({ tone: "info", text: "Start with a one-sentence summary of your answer." });
+  } else {
+    if (words < 25) feedback.push({ tone: "warn", text: `Only ${words} words so far — aim for 60 to 120.` });
+    else if (words > 170) feedback.push({ tone: "warn", text: "Getting long — wrap up with a clear conclusion." });
+    else feedback.push({ tone: "good", text: `${words} words — good length.` });
+
+    if (/for example|for instance|in my (project|internship|previous|last)|\bi (built|worked|implemented|led|designed|created|developed|used)\b/i.test(answer)) {
+      feedback.push({ tone: "good", text: "You backed it with a real example." });
+    } else if (words >= 15) {
+      feedback.push({ tone: "info", text: "Add a real example from a project or internship." });
+    }
+
+    if (isBehavioral && !/result|outcome|impact|improv|reduc|increas|saved|deliver|\d+\s?%/i.test(answer) && words >= 30) {
+      feedback.push({ tone: "warn", text: "State the result or impact of your actions." });
+    }
+
+    const fillers = answer.match(/\b(um+|uh+|basically|actually|you know|kind of|sort of)\b/gi) || [];
+    if (fillers.length >= 3) feedback.push({ tone: "warn", text: `Cut filler words ("${fillers[0].toLowerCase()}" ×${fillers.length}).` });
+
+    if (points.length > 0) {
+      const covered = points.filter((p) => p.toLowerCase().split(/[^a-z]+/).some((w) => w.length > 4 && answer.toLowerCase().includes(w)));
+      if (covered.length === 0 && words >= 30) feedback.push({ tone: "info", text: "None of the key points below are mentioned yet." });
+    }
+  }
+  if (timeLeft <= 15 && words < 40) feedback.push({ tone: "warn", text: `${timeLeft}s left — summarize your main point now.` });
+
+  return { approach, points, feedback };
+}
+
 // Minimal shape for the Web Speech API's SpeechRecognition — not in
 // lib.dom.d.ts (it's still non-standard/vendor-prefixed on most browsers),
 // so this declares only what toggleListening() below actually reads/sets.
@@ -218,6 +309,8 @@ export function LearnerMockInterview() {
   const [poseModelReady, setPoseModelReady] = useState(false);
   const [postureWarning, setPostureWarning] = useState<string | null>(null);
   const [cameraDisconnected, setCameraDisconnected] = useState(false);
+  const [faceBox, setFaceBox] = useState<FaceBox | null>(null);
+  const [videoAspect, setVideoAspect] = useState(4 / 3);
 
   // --- Speech-to-text ---
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -383,9 +476,11 @@ export function LearnerMockInterview() {
               if (elapsed >= ABSENT_COUNTDOWN_AFTER_MS) setAbsentSecondsLeft(Math.ceil((ABSENT_LIMIT_MS - elapsed) / 1000));
               postureIssueSinceRef.current = null;
               setPostureWarning(null);
+              setFaceBox(null);
             } else {
               absentSinceRef.current = null;
               setAbsentSecondsLeft(null);
+              setFaceBox(faceBoxFrom(result, video.videoHeight ? video.videoWidth / video.videoHeight : 4 / 3));
               const issue = evaluatePosture(result);
               if (issue) {
                 if (postureIssueSinceRef.current == null) postureIssueSinceRef.current = now;
@@ -428,6 +523,7 @@ export function LearnerMockInterview() {
           absentSinceRef.current = null;
           setPostureWarning(null);
           setAbsentSecondsLeft(null);
+          setFaceBox(null);
           return;
         }
       }
@@ -442,6 +538,7 @@ export function LearnerMockInterview() {
       deviceHitsRef.current = 0;
       setPostureWarning(null);
       setAbsentSecondsLeft(null);
+      setFaceBox(null);
     };
   }, [setup, interviewComplete, mediaStatus, poseModelReady, objectModelReady]);
 
@@ -921,6 +1018,16 @@ export function LearnerMockInterview() {
   }
 
   const currentQ = questions[currentQuestionIndex];
+  const suggestions = buildSuggestions(currentQ, answers[currentQ.id] || "", company, timeLeft);
+  const trackingReady = poseModelReady;
+  const boxColor = postureWarning ? "#f59e0b" : "#22c55e";
+  const cameraChecks = [
+    { label: "Face", ok: !!faceBox, text: faceBox ? "In view" : absentSecondsLeft != null ? `Missing ${absentSecondsLeft}s` : "Searching" },
+    { label: "Posture", ok: !postureWarning, text: postureWarning ? "Adjust" : "Good" },
+    { label: "Devices", ok: objectModelReady, text: objectModelReady ? "Clear" : "Loading" },
+    { label: "Mic", ok: listening, text: listening ? "Listening" : "Off" },
+  ];
+  const toneColor = { good: "var(--teal)", warn: "#d97706", info: "var(--accent)" } as const;
 
   return (
     <div className="screen active" style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-card)" }}>
@@ -943,14 +1050,6 @@ export function LearnerMockInterview() {
           </div>
         </div>
         <div className="mi-header-right" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            className="mi-video"
-            style={{ width: "56px", height: "56px", borderRadius: "8px", objectFit: "cover", background: "#000", transform: "scaleX(-1)", flexShrink: 0 }}
-          />
           <div style={{ textAlign: "right" }}>
             <div className="mi-time-label" style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "2px" }}>Time Remaining</div>
             <div style={{ fontSize: "18px", fontWeight: 700, color: timeLeft < 15 ? "var(--red)" : "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
@@ -997,13 +1096,12 @@ export function LearnerMockInterview() {
           ))}
         </div>
 
-        {/* Right side - Question & Answer */}
-        <div className="mi-content" style={{ flex: 1, padding: "40px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
-          <div style={{ marginBottom: "24px" }}>
-            <span style={{ display: "inline-block", padding: "4px 10px", background: "var(--bg)", borderRadius: "4px", fontSize: "12px", fontWeight: 600, color: "var(--muted)", marginBottom: "16px" }}>
+        <div className="mi-content" style={{ flex: "1 1 0", minWidth: 0, padding: "28px 32px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
+          <div style={{ marginBottom: "20px" }}>
+            <span style={{ display: "inline-block", padding: "4px 10px", background: "var(--bg)", borderRadius: "4px", fontSize: "12px", fontWeight: 600, color: "var(--muted)", marginBottom: "12px", textTransform: "capitalize" }}>
               Question {currentQuestionIndex + 1} of {questions.length} · {currentQ.type}
             </span>
-            <h1 className="mi-question" style={{ fontSize: "22px", fontWeight: 600, lineHeight: 1.5 }}>{currentQ.text}</h1>
+            <h1 className="mi-question" style={{ fontSize: "19px", fontWeight: 600, lineHeight: 1.5 }}>{currentQ.text}</h1>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "10px" }}>
@@ -1051,7 +1149,7 @@ export function LearnerMockInterview() {
 
           <textarea
             style={{
-              flex: 1, width: "100%", padding: "20px", borderRadius: "12px",
+              flex: 1, minHeight: "220px", width: "100%", padding: "18px", borderRadius: "12px",
               border: "1px solid var(--border)", background: "var(--bg)",
               fontSize: "15px", lineHeight: 1.6, resize: "none", outline: "none",
               color: "var(--text)", fontFamily: "inherit"
@@ -1075,6 +1173,111 @@ export function LearnerMockInterview() {
           </div>
         </div>
 
+        <div className="mi-side" style={{ flex: "1 1 0", minWidth: 0, borderLeft: "1px solid var(--border)", background: "var(--bg)", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", overflowY: "auto" }}>
+          <div className="card" style={{ padding: "12px", borderRadius: "14px" }}>
+            <div style={{ position: "relative", width: "100%", aspectRatio: String(videoAspect), maxHeight: "46vh", margin: "0 auto", borderRadius: "10px", overflow: "hidden", background: "#0b1220" }}>
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                onLoadedMetadata={(e) => {
+                  const v = e.currentTarget;
+                  if (v.videoWidth && v.videoHeight) setVideoAspect(v.videoWidth / v.videoHeight);
+                }}
+                style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", display: "block" }}
+              />
+
+              {faceBox && (
+                // The video is mirrored, so the box's x is mirrored to match.
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    left: `${(1 - faceBox.x - faceBox.w) * 100}%`,
+                    top: `${faceBox.y * 100}%`,
+                    width: `${faceBox.w * 100}%`,
+                    height: `${faceBox.h * 100}%`,
+                    border: `2px solid ${boxColor}`,
+                    borderRadius: "12px",
+                    boxShadow: `0 0 0 1px rgba(0,0,0,.25), 0 0 20px ${boxColor}80`,
+                    transition: "left 120ms linear, top 120ms linear, width 120ms linear, height 120ms linear, border-color .2s",
+                  }}
+                >
+                  <span style={{ position: "absolute", top: "-1px", left: "-1px", background: boxColor, color: "#fff", fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "10px 0 8px 0", whiteSpace: "nowrap" }}>
+                    {postureWarning ? "Adjust posture" : "Face detected"}
+                  </span>
+                </div>
+              )}
+
+              <span style={{ position: "absolute", top: "10px", right: "10px", display: "flex", alignItems: "center", gap: "6px", background: "rgba(0,0,0,.55)", color: "#fff", fontSize: "11px", fontWeight: 700, padding: "4px 9px", borderRadius: "999px", letterSpacing: ".4px" }}>
+                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s ease-in-out infinite" }} />
+                LIVE
+              </span>
+
+              {!faceBox && (
+                <span style={{ position: "absolute", left: "50%", bottom: "12px", transform: "translateX(-50%)", background: "rgba(0,0,0,.6)", color: "#fff", fontSize: "12px", fontWeight: 600, padding: "5px 12px", borderRadius: "999px", whiteSpace: "nowrap" }}>
+                  {!trackingReady ? "Loading face tracking…" : "Looking for your face…"}
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px", marginTop: "10px" }}>
+              {cameraChecks.map((c) => (
+                <div key={c.label} style={{ padding: "7px 9px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", minWidth: 0 }}>
+                  <div style={{ fontSize: "10.5px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px" }}>{c.label}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12.5px", fontWeight: 700, color: c.ok ? "var(--teal)" : "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: c.ok ? "#22c55e" : "#cbd5e1", flexShrink: 0 }} />
+                    {c.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card" style={{ padding: "18px", borderRadius: "14px", flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "var(--accent-l)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <RoundIcon d="M15 16v2c0 .932 0 1.398-.152 1.765a2 2 0 01-1.083 1.083C13.398 21 12.932 21 12 21c-.932 0-1.398 0-1.765-.152a2 2 0 01-1.083-1.083C9 19.398 9 18.932 9 18v-2m-4-6a7 7 0 1110.608 6H8.392A6.996 6.996 0 015 10z" size={16} />
+                </span>
+                <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>AI Suggestions</div>
+              </div>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)", background: "var(--accent-l)", padding: "3px 8px", borderRadius: "999px" }}>Live</span>
+            </div>
+
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>How to structure it</div>
+            <ol style={{ listStyle: "none", padding: 0, margin: "0 0 16px", display: "flex", flexDirection: "column", gap: "7px" }}>
+              {suggestions.approach.map((step, i) => (
+                <li key={step} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "13px", color: "var(--text)", lineHeight: 1.45 }}>
+                  <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: "var(--accent-l)", color: "var(--accent)", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+
+            {suggestions.points.length > 0 && (
+              <>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>Points worth covering</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" }}>
+                  {suggestions.points.map((p) => (
+                    <span key={p} style={{ fontSize: "12px", fontWeight: 600, padding: "5px 10px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}>{p}</span>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>On your answer</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {suggestions.feedback.map((f) => (
+                <div key={f.text} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.45, color: "var(--text)" }}>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: toneColor[f.tone], marginTop: "6px", flexShrink: 0 }} />
+                  {f.text}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
