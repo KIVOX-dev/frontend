@@ -6,12 +6,11 @@ import { CheckCircle2, XCircle, Globe, Camera, Monitor } from "lucide-react";
 import { SkillBadgeIcon } from "@/components/shared/SkillBadgeIcon";
 import type { PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 import {
-  OBJECT_INTERVAL_MS,
   POSE_INTERVAL_MS,
   createDeviceVoter,
-  createDeviceDetector,
+  createDeviceWatch,
   createPoseLandmarker,
-  type DeviceDetector,
+  type DeviceWatch,
 } from "@/lib/proctoring";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
@@ -138,7 +137,8 @@ export function AssessmentWindow() {
   const [terminationReason, setTerminationReason] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const objectDetectorRef = useRef<DeviceDetector | null>(null);
+  const objectDetectorRef = useRef<DeviceWatch | null>(null);
+  const deviceResultRef = useRef<(hit: boolean | null) => void>(() => {});
   const [objectDetectorReady, setObjectDetectorReady] = useState(false);
   const deviceVoterRef = useRef(createDeviceVoter());
   const detectLoopRef = useRef<number | null>(null);
@@ -272,7 +272,7 @@ export function AssessmentWindow() {
     let cancelled = false;
     (async () => {
       try {
-        const detector = await createDeviceDetector();
+        const detector = await createDeviceWatch((hit) => deviceResultRef.current(hit));
         if (cancelled) {
           detector.close();
           return;
@@ -347,8 +347,15 @@ export function AssessmentWindow() {
     let cancelled = false;
     let consecutiveErrors = 0;
     const voter = deviceVoterRef.current;
+    deviceResultRef.current = (hit) => {
+      if (cancelled || hit === null || !voter.push(hit)) return;
+      violationsRef.current.device_detected += 1;
+      setTerminationReason(
+        "An external device (phone, laptop, TV, or remote) was detected in your camera — the assessment was stopped immediately."
+      );
+      handleSubmit();
+    };
     const MAX_CONSECUTIVE_ERRORS = 5;
-    let lastObjectRun = 0;
     let lastPoseRun = 0;
 
     const detect = () => {
@@ -360,26 +367,10 @@ export function AssessmentWindow() {
           // keeps the page responsive and detections prompt on a CPU-only
           // runtime.
           const nowMs = performance.now();
-          // Device detection runs in a background worker (see proctoring.ts),
-          // so it never shares this frame's budget with the pose model.
-          const objectDetector = objectDetectorRef.current;
-          if (objectDetector && nowMs - lastObjectRun >= OBJECT_INTERVAL_MS) {
-            const pendingCheck = objectDetector.check(video);
-            if (pendingCheck) {
-              lastObjectRun = nowMs;
-              pendingCheck.then((hit) => {
-                if (cancelled || !voter.push(hit)) return;
-                violationsRef.current.device_detected += 1;
-                setTerminationReason(
-                  "An external device (phone, laptop, TV, or remote) was detected in your camera — the assessment was stopped immediately."
-                );
-                handleSubmit();
-              });
-            }
-          }
+          const ranDeviceCheck = objectDetectorRef.current ? objectDetectorRef.current.tick(video, nowMs) : false;
 
           const poseLandmarker = poseLandmarkerRef.current;
-          if (poseLandmarker && nowMs - lastPoseRun >= POSE_INTERVAL_MS) {
+          if (poseLandmarker && !ranDeviceCheck && nowMs - lastPoseRun >= POSE_INTERVAL_MS) {
             lastPoseRun = nowMs;
             const timestamp = Math.max(nowMs, lastPoseTimestampRef.current + 1);
             lastPoseTimestampRef.current = timestamp;
@@ -423,6 +414,7 @@ export function AssessmentWindow() {
 
     return () => {
       cancelled = true;
+      deviceResultRef.current = () => {};
       if (detectLoopRef.current) cancelAnimationFrame(detectLoopRef.current);
       voter.reset();
       framingIssueSinceRef.current = null;

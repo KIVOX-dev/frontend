@@ -6,14 +6,13 @@ import {
   ABSENT_COUNTDOWN_AFTER_MS,
   ABSENT_LIMIT_MS,
   FACE_INTERVAL_MS,
-  OBJECT_INTERVAL_MS,
   POSE_INTERVAL_MS,
   createDeviceVoter,
   createFaceDetector,
-  createDeviceDetector,
+  createDeviceWatch,
   createPoseLandmarker,
   isPersonAbsent,
-  type DeviceDetector,
+  type DeviceWatch,
   primaryFace,
 } from "@/lib/proctoring";
 import { api } from "@/lib/api";
@@ -328,7 +327,10 @@ export function LearnerMockInterview() {
   const poseLoopRef = useRef<number | null>(null);
   const postureIssueSinceRef = useRef<number | null>(null);
   const lastPoseTimestampRef = useRef(0);
-  const objectDetectorRef = useRef<DeviceDetector | null>(null);
+  const objectDetectorRef = useRef<DeviceWatch | null>(null);
+  // The device watch is created once on mount, but what a result should do
+  // (vote, stop the interview) belongs to the live-interview effect below.
+  const deviceResultRef = useRef<(hit: boolean | null) => void>(() => {});
   const deviceVoterRef = useRef(createDeviceVoter());
   const faceDetectorRef = useRef<FaceDetector | null>(null);
   const lastFaceTimestampRef = useRef(0);
@@ -340,6 +342,10 @@ export function LearnerMockInterview() {
   // dependencies it reads); the detection loop reaches it through this ref.
   const terminateRef = useRef<(reason: string) => void>(() => {});
   const [objectModelReady, setObjectModelReady] = useState(false);
+  // "ok" only after a device check has actually returned — the tile used to
+  // say "Clear" as soon as the model loaded, even when every check after
+  // that was failing and nothing was being detected at all.
+  const [deviceStatus, setDeviceStatus] = useState<"loading" | "checking" | "ok" | "error">("loading");
   const [absentSecondsLeft, setAbsentSecondsLeft] = useState<number | null>(null);
   const [terminationReason, setTerminationReason] = useState<string | null>(null);
   const [mediaStatus, setMediaStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
@@ -388,15 +394,17 @@ export function LearnerMockInterview() {
     })();
     (async () => {
       try {
-        const detector = await createDeviceDetector();
+        const detector = await createDeviceWatch((hit) => deviceResultRef.current(hit));
         if (cancelled) {
           detector.close();
           return;
         }
         objectDetectorRef.current = detector;
         setObjectModelReady(true);
+        setDeviceStatus("checking");
       } catch (err) {
         console.error("Failed to load device-detection model:", err);
+        setDeviceStatus("error");
       }
     })();
     (async () => {
@@ -510,11 +518,24 @@ export function LearnerMockInterview() {
     // no visible error to the user. After a handful of consecutive failures
     // this gives up for good instead of hammering a broken pipeline forever.
     let cancelled = false;
+    let failedDeviceChecks = 0;
     let consecutiveErrors = 0;
     const voter = deviceVoterRef.current;
+    deviceResultRef.current = (hit) => {
+      if (cancelled || terminatedRef.current) return;
+      if (hit === null) {
+        failedDeviceChecks += 1;
+        if (failedDeviceChecks >= 3) setDeviceStatus("error");
+        return;
+      }
+      failedDeviceChecks = 0;
+      setDeviceStatus("ok");
+      if (voter.push(hit)) {
+        terminateRef.current("A phone or other device was detected in your camera — the interview was stopped immediately.");
+      }
+    };
     const MAX_CONSECUTIVE_ERRORS = 5;
     let lastPoseRun = 0;
-    let lastObjectRun = 0;
     let lastFaceRun = 0;
     // Latest findings from each model; the warning shown is whichever is set,
     // framing first since it's the more actionable fix.
@@ -574,22 +595,13 @@ export function LearnerMockInterview() {
           const objectDetector = objectDetectorRef.current;
           const landmarker = poseLandmarkerRef.current;
 
-          // Runs in a worker, so it doesn't count against this frame's one
-          // on-page model; a new check starts once the previous one returns.
-          if (objectDetector && nowMs - lastObjectRun >= OBJECT_INTERVAL_MS) {
-            const pendingCheck = objectDetector.check(video);
-            if (pendingCheck) {
-              lastObjectRun = nowMs;
-              pendingCheck.then((hit) => {
-                if (cancelled || terminatedRef.current) return;
-                if (voter.push(hit)) {
-                  terminateRef.current("A phone or other device was detected in your camera — the interview was stopped immediately.");
-                }
-              });
-            }
-          }
+          // Device check first and never starved by the other models: when
+          // its on-page model runs this frame, face/pose wait for the next.
+          const ranDeviceCheck = objectDetector ? objectDetector.tick(video, nowMs) : false;
 
-          if (faceDetector && nowMs - lastFaceRun >= FACE_INTERVAL_MS) {
+          if (ranDeviceCheck) {
+            // one on-page model per frame
+          } else if (faceDetector && nowMs - lastFaceRun >= FACE_INTERVAL_MS) {
             lastFaceRun = nowMs;
             const face = primaryFace(faceDetector.detectForVideo(video, stamp(lastFaceTimestampRef, nowMs)), video.videoWidth, video.videoHeight);
             if (!face) {
@@ -637,6 +649,7 @@ export function LearnerMockInterview() {
 
     return () => {
       cancelled = true;
+      deviceResultRef.current = () => {};
       if (poseLoopRef.current) cancelAnimationFrame(poseLoopRef.current);
       postureIssueSinceRef.current = null;
       absentSinceRef.current = null;
@@ -1130,7 +1143,12 @@ export function LearnerMockInterview() {
   const cameraChecks = [
     { label: "Face", ok: feedOk && !!faceBox, text: !feedOk ? "No feed" : faceBox ? "In view" : absentSecondsLeft != null ? `Missing ${absentSecondsLeft}s` : "Searching" },
     { label: "Posture", ok: feedOk && !!faceBox && !postureWarning, text: !feedOk || !faceBox ? "—" : postureWarning ? "Adjust" : "Good" },
-    { label: "Devices", ok: feedOk && objectModelReady, text: !feedOk ? "—" : objectModelReady ? "Clear" : "Loading" },
+    {
+      label: "Devices",
+      ok: feedOk && deviceStatus === "ok",
+      warn: deviceStatus === "error",
+      text: !feedOk ? "—" : { loading: "Loading", checking: "Checking…", ok: "Clear", error: "Unavailable" }[deviceStatus],
+    },
     { label: "Mic", ok: listening, text: listening ? "Listening" : "Off" },
   ];
   const toneColor = { good: "#16a34a", warn: "#d97706", info: "var(--accent)" } as const;
@@ -1354,8 +1372,8 @@ export function LearnerMockInterview() {
               {cameraChecks.map((c) => (
                 <div key={c.label} style={{ padding: "7px 9px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", minWidth: 0 }}>
                   <div style={{ fontSize: "10.5px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px" }}>{c.label}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12.5px", fontWeight: 700, color: c.ok ? "var(--teal)" : "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: c.ok ? "#22c55e" : "#cbd5e1", flexShrink: 0 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12.5px", fontWeight: 700, color: c.ok ? "var(--teal)" : "warn" in c && c.warn ? "#d97706" : "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: c.ok ? "#22c55e" : "warn" in c && c.warn ? "#f59e0b" : "#cbd5e1", flexShrink: 0 }} />
                     {c.text}
                   </div>
                 </div>

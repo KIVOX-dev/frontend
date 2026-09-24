@@ -26,9 +26,8 @@ const FACE_MODEL_URL =
 
 /** Detection cadence. Running the models on every animation frame on the CPU
  *  pegs the main thread (laggy typing, and late detections because each frame
- *  queues behind the last); fixed intervals keep the page smooth. The device
- *  check runs in a worker and simply starts again as soon as the last one
- *  finishes, at most every OBJECT_INTERVAL_MS. */
+ *  queues behind the last); fixed intervals keep the page smooth. See
+ *  createDeviceWatch for how device detection is scheduled. */
 export const POSE_INTERVAL_MS = 120;
 export const OBJECT_INTERVAL_MS = 250;
 
@@ -45,24 +44,118 @@ function loadFileset() {
   return filesetPromise;
 }
 
-export type DeviceDetector = {
-  /** Checks the current frame for a phone/laptop/TV/remote unless a check is
-   *  already in flight. Resolves to whether one was seen; returns null when
-   *  skipped (busy, or no frame yet). Never blocks the calling frame. */
-  check(video: HTMLVideoElement): Promise<boolean> | null;
+export type DeviceWatch = {
+  /** Call once per animation frame. Runs the on-page Lite0 check when it's
+   *  due (every OBJECT_INTERVAL_MS — this blocks ~100-200ms, so returns true
+   *  to let the caller skip its other models this frame) and keeps the
+   *  background Lite2 worker busy. Every result, from either source, goes to
+   *  the onResult callback: true/false, or null when a check failed. */
+  tick(video: HTMLVideoElement, nowMs: number): boolean;
   close(): void;
 };
 
-/** Device detection: EfficientDet-Lite2 in a background worker, falling back
- *  to Lite0 on the main thread if workers/ImageBitmap aren't available. */
-export async function createDeviceDetector(): Promise<DeviceDetector> {
+// A worker check normally returns in about a second; one that hasn't after
+// this long has hung, and the worker is dropped (the on-page check carries on).
+const WORKER_CHECK_TIMEOUT_MS = 5000;
+
+/** Phone/laptop/TV/remote detection from two sources feeding one callback:
+ *
+ *  1. Primary — EfficientDet-Lite0 on the page, every OBJECT_INTERVAL_MS.
+ *     This is the original, proven path: fast, and it works anywhere the
+ *     face/pose models work.
+ *  2. Bonus — EfficientDet-Lite2 in a background worker, which catches
+ *     harder cases (tilted, half-covered, at the frame edge) but is slow and
+ *     depends on a WebGL context inside the worker, which fails on some
+ *     machines. When it fails or hangs it's simply dropped — detection never
+ *     depends on it. */
+export async function createDeviceWatch(onResult: (hit: boolean | null) => void): Promise<DeviceWatch> {
+  // The page detector is what detection relies on, so it doesn't wait for the
+  // worker's larger model to download; the worker joins whenever it's ready.
+  const workerLoad = createWorkerDetector();
+  let worker: WorkerDetector | null = null;
+  let closed = false;
+  let page: ObjectDetector | null = null;
   try {
-    return await createWorkerDeviceDetector();
+    page = await createPageDetector();
   } catch (err) {
-    console.warn("Device-detection worker unavailable, falling back to the main thread:", err);
+    console.error("Device detection: on-page detector failed to load.", err);
   }
+  if (page) {
+    workerLoad.then(
+      (w) => {
+        if (closed) w.close();
+        else worker = w;
+      },
+      (err) => console.warn("Device detection: background worker unavailable.", err)
+    );
+  } else {
+    try {
+      worker = await workerLoad;
+    } catch (err) {
+      throw new Error(`No device detector could be loaded: ${String(err)}`);
+    }
+  }
+
+  let lastPageRun = 0;
+  let pageTimestamp = 0;
+  let pageErrorLogged = false;
+  let workerBusy = false;
+
+  const dropWorker = (reason: unknown) => {
+    console.warn("Device detection: background worker stopped; continuing with the on-page detector.", reason);
+    worker?.close();
+    worker = null;
+    workerBusy = false;
+  };
+
+  return {
+    tick(video, nowMs) {
+      if (worker && !workerBusy && video.videoWidth) {
+        const pending = worker.check(video);
+        workerBusy = true;
+        const current = worker;
+        const timer = setTimeout(() => {
+          if (worker === current) dropWorker(new Error("Device check timed out"));
+        }, WORKER_CHECK_TIMEOUT_MS);
+        pending.then(
+          (hit) => {
+            clearTimeout(timer);
+            if (worker !== current) return;
+            workerBusy = false;
+            onResult(hit);
+          },
+          (err) => {
+            clearTimeout(timer);
+            if (worker === current) dropWorker(err);
+          }
+        );
+      }
+
+      if (!page || nowMs - lastPageRun < OBJECT_INTERVAL_MS) return false;
+      lastPageRun = nowMs;
+      // VIDEO mode needs strictly increasing timestamps.
+      pageTimestamp = Math.max(nowMs, pageTimestamp + 1);
+      try {
+        onResult(detectsExternalDevice(page.detectForVideo(video, pageTimestamp), LITE0_THRESHOLDS));
+      } catch (err) {
+        if (!pageErrorLogged) console.error("Device detection: on-page check failed.", err);
+        pageErrorLogged = true;
+        onResult(null);
+      }
+      return true;
+    },
+    close() {
+      closed = true;
+      page?.close();
+      worker?.close();
+      worker = null;
+    },
+  };
+}
+
+async function createPageDetector(): Promise<ObjectDetector> {
   const fileset = await loadFileset();
-  const detector = await ObjectDetector.createFromOptions(fileset, {
+  return ObjectDetector.createFromOptions(fileset, {
     baseOptions: { modelAssetPath: OBJECT_MODEL_LITE0_URL, delegate: "CPU" },
     runningMode: "VIDEO",
     scoreThreshold: LITE0_THRESHOLDS.phone,
@@ -70,21 +163,15 @@ export async function createDeviceDetector(): Promise<DeviceDetector> {
     // Only the four device classes are post-processed and returned.
     categoryAllowlist: DEVICE_CLASSES,
   });
-  let lastTimestamp = 0;
-  return {
-    check(video) {
-      // VIDEO mode needs strictly increasing timestamps.
-      const ts = Math.max(performance.now(), lastTimestamp + 1);
-      lastTimestamp = ts;
-      return Promise.resolve(detectsExternalDevice(detector.detectForVideo(video, ts), LITE0_THRESHOLDS));
-    },
-    close() {
-      detector.close();
-    },
-  };
 }
 
-function createWorkerDeviceDetector(): Promise<DeviceDetector> {
+type WorkerDetector = {
+  /** Rejects if the worker errors. */
+  check(video: HTMLVideoElement): Promise<boolean>;
+  close(): void;
+};
+
+function createWorkerDetector(): Promise<WorkerDetector> {
   return new Promise((resolve, reject) => {
     if (typeof Worker === "undefined" || typeof createImageBitmap === "undefined") {
       reject(new Error("Worker or createImageBitmap not supported"));
@@ -92,14 +179,13 @@ function createWorkerDeviceDetector(): Promise<DeviceDetector> {
     }
     const worker = new Worker(new URL("./deviceDetector.worker.ts", import.meta.url));
     let ready = false;
-    let dead = false;
-    let pending: ((hit: boolean) => void) | null = null;
+    let pending: { resolve: (hit: boolean) => void; reject: (err: Error) => void } | null = null;
 
     const fail = (message: string) => {
-      dead = true;
       worker.terminate();
-      if (!ready) reject(new Error(message));
-      pending?.(false);
+      const err = new Error(message);
+      if (!ready) reject(err);
+      pending?.reject(err);
       pending = null;
     };
 
@@ -107,32 +193,30 @@ function createWorkerDeviceDetector(): Promise<DeviceDetector> {
       const msg = event.data;
       if (msg.type === "ready") {
         ready = true;
-        resolve(api);
+        resolve(detector);
       } else if (msg.type === "result") {
         const done = pending;
         pending = null;
-        done?.(Boolean(msg.hit));
+        done?.resolve(Boolean(msg.hit));
       } else if (msg.type === "error") {
         fail(msg.message || "Device-detection worker error");
       }
     };
     worker.onerror = (event) => fail(event.message || "Device-detection worker crashed");
 
-    const api: DeviceDetector = {
+    const detector: WorkerDetector = {
       check(video) {
-        if (dead || pending || !video.videoWidth) return null;
-        return new Promise<boolean>((done) => {
-          pending = done;
+        return new Promise<boolean>((res, rej) => {
+          pending = { resolve: res, reject: rej };
           createImageBitmap(video)
             .then((bitmap) => worker.postMessage({ type: "detect", bitmap }, [bitmap]))
-            .catch(() => {
+            .catch((err) => {
               pending = null;
-              done(false);
+              rej(err instanceof Error ? err : new Error(String(err)));
             });
         });
       },
       close() {
-        dead = true;
         pending = null;
         worker.terminate();
       },
@@ -169,8 +253,10 @@ export function primaryFace(result: FaceDetectorResult, frameWidth: number, fram
 
 /** Rolling vote over the last `window` detector runs: true once `needed` of
  *  them saw a device. A phone held in the hand flickers in and out of
- *  detection frame to frame, so "N in a row" kept resetting and never fired. */
-export function createDeviceVoter(window = 5, needed = 3) {
+ *  detection frame to frame, so "N in a row" kept resetting and never fired.
+ *  Two hits (not one) so a single misread frame can't end a test; with the
+ *  thresholds in deviceDetection.ts an empty hand scores no hits at all. */
+export function createDeviceVoter(window = 4, needed = 2) {
   const history: boolean[] = [];
   return {
     push(hit: boolean): boolean {
