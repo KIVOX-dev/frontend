@@ -146,7 +146,7 @@ export function LearnerDashboard() {
           <div className="sv" id="dash-stat-streak">
             {loading ? "..." : stats?.streak || 0}
           </div>
-          <div className="sl">Day Streak 🔥</div>
+          <div className="sl">Day Streak</div>
           <div className="sd neu">Start your first session</div>
         </div>
         <div className="sc">

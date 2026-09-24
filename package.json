@@ -9,9 +9,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",
@@ -66,17 +64,6 @@
     "postcss": "^8.5.25",
     "tailwindcss": "^4.3.3",
     "typescript": "^5",
-    "vitest": "^4.1.11",
-    "storybook": "^10.6.0",
-    "@storybook/nextjs-vite": "^10.6.0",
-    "@chromatic-com/storybook": "latest",
-    "@storybook/addon-vitest": "^10.6.0",
-    "@storybook/addon-a11y": "^10.6.0",
-    "@storybook/addon-docs": "^10.6.0",
-    "@storybook/addon-mcp": "^10.6.0",
-    "vite": "latest",
-    "eslint-plugin-storybook": "^10.6.0",
-    "@vitest/browser-playwright": "4.1.11",
-    "playwright": "latest"
+    "vitest": "^4.1.11"
   }
 }

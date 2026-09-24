@@ -38,6 +38,3 @@ Thumbs.db
 
 # vercel
 .vercel
-
-*storybook.log
-storybook-static
