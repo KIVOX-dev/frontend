@@ -34,7 +34,7 @@ export function CampusNav({ audience }: { audience: CampusAudience }) {
           <Link href={cfg.help}>Help</Link>
         </nav>
         <div className="nav-r">
-          <Link className="login" href={cfg.login}>
+          <Link className="btn btn-line btn-sm login" href={cfg.login}>
             Log in
           </Link>
           <a className="btn btn-dark btn-sm" href={landingHref(audience, cfg.cta.href)}>

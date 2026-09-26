@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import Lenis from "lenis";
+import "lenis/dist/lenis.css";
 import "./campus.css";
 import type { CampusAudience } from "./audiences";
 import { CampusFooter } from "./CampusFooter";
 import { CampusNav } from "./CampusNav";
 import { campusFonts } from "./fonts";
 import { IconSprite } from "./primitives";
+
+// Scroll feel. Lower lerp = slower, softer catch-up (Lenis default 0.1);
+// WHEEL_MULTIPLIER < 1 moves less per wheel notch.
+const SCROLL_LERP = 0.055;
+const WHEEL_MULTIPLIER = 0.75;
+// Sticky nav height plus a little air.
+const NAV_OFFSET = 96;
 
 // Everything that fades, rises or draws in when it scrolls into view.
 const REVEAL = ".rv,.rows,.path,.chart,.steps4,.rule,.anim,.fword,.tl";
@@ -40,16 +49,46 @@ export function CampusShell({ audience, children }: { audience: CampusAudience; 
     const motion = !reduce && "IntersectionObserver" in window;
     const cleanups: (() => void)[] = [];
 
-    // Anchor links glide, and land below the sticky nav rather than under it.
+    // Anchors (and keyboard/find-in-page jumps) land below the sticky nav.
     const html = document.documentElement;
-    const prevBehavior = html.style.scrollBehavior;
     const prevPadding = html.style.scrollPaddingTop;
-    if (!reduce) html.style.scrollBehavior = "smooth";
-    html.style.scrollPaddingTop = "96px";
+    html.style.scrollPaddingTop = `${NAV_OFFSET}px`;
     cleanups.push(() => {
-      html.style.scrollBehavior = prevBehavior;
       html.style.scrollPaddingTop = prevPadding;
     });
+
+    // Slow, eased scrolling: Lenis smooths the real window scroll (so the
+    // scroll listeners, IntersectionObserver and sticky rows below all keep
+    // working). Wheel and trackpad only; touch keeps native momentum.
+    // Nested scrollers (troubleshooting index, cookie panel) scroll natively.
+    if (!reduce) {
+      const lenis = new Lenis({ lerp: SCROLL_LERP, wheelMultiplier: WHEEL_MULTIPLIER, smoothWheel: true, allowNestedScroll: true });
+      let raf = requestAnimationFrame(function tick(time) {
+        lenis.raf(time);
+        raf = requestAnimationFrame(tick);
+      });
+      // Same-page anchor links glide there too. Handled here rather than by
+      // Lenis's `anchors` option, which doesn't cancel the browser's own jump.
+      const onClick = (e: MouseEvent) => {
+        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        const a = (e.target as Element).closest?.("a[href*='#']") as HTMLAnchorElement | null;
+        if (!a) return;
+        const url = new URL(a.href);
+        if (url.origin !== location.origin || url.pathname !== location.pathname || !url.hash) return;
+        const target = document.getElementById(decodeURIComponent(url.hash.slice(1)));
+        if (!target) return;
+        e.preventDefault();
+        history.pushState(null, "", url.hash);
+        // No offset: Lenis already honours the scroll-padding-top set above.
+        lenis.scrollTo(target, { duration: 1.6 });
+      };
+      document.addEventListener("click", onClick);
+      cleanups.push(() => {
+        document.removeEventListener("click", onClick);
+        cancelAnimationFrame(raf);
+        lenis.destroy();
+      });
+    }
 
     // Stroke-draw lengths for the institutions chart.
     root.querySelectorAll<SVGPathElement>(".chart path.ln").forEach((p) => {

@@ -326,7 +326,7 @@
 .tsl .links a:hover::after,.tsl .links a[aria-current="page"]::after{transform:scaleX(1);transform-origin:left}
 .tsl .links a[aria-current="page"]{font-weight:600}
 .tsl .nav-r{display:flex;align-items:center;gap:20px}
-.tsl .nav-r .login{font-size:16px;text-decoration:none}
+/* Log in shares the outline button style (btn btn-line btn-sm). */
 
 /* ---------- hero ---------- */
 .tsl .hero{padding:clamp(64px,8vw,112px) clamp(8px,3vw,40px) clamp(48px,6vw,80px);text-align:center;display:flex;flex-direction:column;align-items:center;gap:26px}
