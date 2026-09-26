@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
-  title: "Changelog — TalentSnaps",
+  title: "Changelog",
   description: "What's shipped on TalentSnaps, roughly in the order it happened.",
 };
 

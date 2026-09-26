@@ -89,20 +89,33 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+// Structured data Google uses for the site name, logo and knowledge panel in
+// search results. The two entities reference each other by @id.
+// Add official profile URLs (LinkedIn, YouTube, X...) to `sameAs` once they
+// exist; Google uses them to link the brand's social profiles.
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
+  "@id": `${SITE_URL}/#organization`,
   name: "TalentSnaps",
   url: SITE_URL,
-  logo: `${SITE_URL}/icon-512.png`,
-  description: "One intelligent platform connecting HR, students, faculty, and administrators across your institution's placement cell.",
+  logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png`, width: 512, height: 512 },
+  email: "admin@talentsnaps.com",
+  description:
+    "Campus placement platform connecting students, colleges and hiring teams: eligibility-checked drives, round-by-round tracking, verified assessments and NIRF-ready reports.",
+  contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: "admin@talentsnaps.com", areaServed: "IN" },
+  sameAs: [] as string[],
 };
 
 const websiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
+  "@id": `${SITE_URL}/#website`,
   name: "TalentSnaps",
+  alternateName: ["Talent Snaps", "talentsnaps.com"],
   url: SITE_URL,
+  inLanguage: "en-IN",
+  publisher: { "@id": `${SITE_URL}/#organization` },
 };
 
 export default function RootLayout({

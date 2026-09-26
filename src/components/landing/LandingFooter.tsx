@@ -25,7 +25,6 @@ const footerLinks = {
     { label: "FAQ", href: "#faq" },
     { label: "For Employers", href: "/for-hr" },
     { label: "For Institutions", href: "/for-institutions" },
-    { label: "Partner Colleges", href: "/partner-colleges" },
     { label: "Verification", href: "/verification" },
     { label: "Profile Setup", href: "/profile-setup" },
     { label: "Changelog", href: "/changelog" },

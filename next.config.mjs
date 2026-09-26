@@ -187,6 +187,11 @@ const nextConfig = {
       { source: "/:path*", headers: securityHeaders() },
       { source: "/learner/:path*", headers: securityHeaders({ allowEval: true }) },
       { source: "/institutional/:path*", headers: securityHeaders({ allowEval: true }) },
+      // Never in search results, even if a link to it leaks. Not listed in
+      // robots.txt on purpose: that file is public and would advertise it.
+      { source: "/superadmin/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }] },
+      // Unlisted page: reachable by direct link only.
+      { source: "/partner-colleges", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }] },
     ];
   },
 };

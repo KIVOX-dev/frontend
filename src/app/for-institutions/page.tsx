@@ -3,7 +3,7 @@ import { CampusShell } from "@/components/landing/campus/CampusShell";
 import { InstitutionsLanding } from "@/components/landing/campus/InstitutionsLanding";
 
 export const metadata: Metadata = {
-  title: "TalentSnaps for Institutions",
+  title: "Placement Management Software for Colleges",
   description:
     "Run your whole placement season from one place: announce drives, collect applications, run screening, track selections and collect offer letters, with numbers ready for NIRF.",
   openGraph: {

@@ -13,7 +13,6 @@ export default function robots(): MetadataRoute.Robots {
           "/hr/",
           "/institutional/",
           "/faculty/",
-          "/superadmin/",
           "/learner/",
           "/register/",
           "/reset-password/",

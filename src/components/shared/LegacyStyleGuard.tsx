@@ -3,20 +3,16 @@
 import { useLayoutEffect } from "react";
 import { usePathname } from "next/navigation";
 
-// Routes whose layout imports legacy-shell.css (the old dashboard stylesheet).
-const LEGACY_ROUTES = [
-  "/learner",
-  "/hr",
-  "/institutional",
-  "/faculty",
-  "/superadmin",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-  "/verify-email",
-];
+const RELOAD_KEY = "ts_legacy_reload_at";
 
-const isLegacyRoute = (path: string) => LEGACY_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
+/**
+ * Rendered by every layout that imports legacy-shell.css (the old dashboard
+ * stylesheet), so the guard below can tell those pages apart without a
+ * hard-coded list of routes shipping in the client bundle.
+ */
+export function LegacyRouteMarker() {
+  return <span data-legacy-route hidden />;
+}
 
 /**
  * Next.js never unloads a route's CSS after client-side navigation, so once
@@ -30,9 +26,19 @@ export function LegacyStyleGuard() {
   const pathname = usePathname();
 
   useLayoutEffect(() => {
-    if (isLegacyRoute(pathname)) return;
+    // Effects run after the page's own layout has rendered its marker.
+    if (document.querySelector("[data-legacy-route]")) return;
     const leaked = getComputedStyle(document.documentElement).getPropertyValue("--legacy-shell").trim() !== "";
     if (!leaked) return;
+    // At most once a minute, so a page that legitimately loads the legacy
+    // CSS but forgot its marker can't reload in a loop.
+    try {
+      const last = Number(sessionStorage.getItem(RELOAD_KEY) || 0);
+      if (Date.now() - last < 60_000) return;
+      sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+    } catch {
+      // Storage blocked: one reload is still safe.
+    }
     // Hide the half-styled page for the moment before the reload lands.
     document.documentElement.style.visibility = "hidden";
     window.location.reload();

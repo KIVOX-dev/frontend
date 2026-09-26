@@ -3,7 +3,7 @@ import { CampusShell } from "@/components/landing/campus/CampusShell";
 import { HrLanding } from "@/components/landing/campus/HrLanding";
 
 export const metadata: Metadata = {
-  title: "TalentSnaps for HR",
+  title: "Hire From Campus With Verified Records",
   description:
     "Hire from campus with verified records: post a drive once, receive only eligible applicants, screen them round by round and share results with every placement cell.",
   openGraph: {

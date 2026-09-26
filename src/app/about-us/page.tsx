@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
-  title: "About Us — TalentSnaps",
+  title: "About Us",
   description: "Why TalentSnaps exists, and who's building it.",
 };
 

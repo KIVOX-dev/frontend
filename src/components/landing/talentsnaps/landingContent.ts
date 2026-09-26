@@ -322,7 +322,6 @@ export const ROOT_CONTENT: LandingContent = {
         head: "COMPANY",
         items: [
           { label: "About Us", href: "/about-us" },
-          { label: "Partner Colleges", href: "/partner-colleges" },
           { label: "Careers", href: "/careers" },
           { label: "Verification", href: "/verification" },
           { label: "Profile Setup", href: "/profile-setup" },
@@ -564,7 +563,6 @@ export const HR_CONTENT: LandingContent = {
         head: "COMPANY",
         items: [
           { label: "About Us", href: "/about-us" },
-          { label: "Partner Colleges", href: "/partner-colleges" },
           { label: "Careers", href: "/careers" },
           { label: "Verification", href: "/verification" },
           { label: "Profile Setup", href: "/profile-setup" },

@@ -18,7 +18,6 @@ const NAV_GROUPS = [
     head: "Company",
     items: [
       { slug: "about-us", label: "About Us" },
-      { slug: "partner-colleges", label: "Partner Colleges" },
       { slug: "careers", label: "Careers" },
     ],
   },
@@ -82,7 +81,8 @@ export function SitePageLayout({
   /** Which of the six pages this is, so the sidebar can link the other
       five and highlight the current one — one connected nav across
       Company and Legal, instead of two separate page systems. */
-  active: PageSlug;
+  /** Highlights this page in the menu; omit for pages that aren't listed there. */
+  active?: PageSlug;
   /** Section headings for the right-hand "On this page" nav. Each id must
       match an `id` on the corresponding <h2> in `children`. */
   toc?: TocEntry[];

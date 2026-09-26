@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { List, X, ArrowRight, CaretDown, GraduationCap, Briefcase, Buildings, ShieldCheck } from "@phosphor-icons/react";
+import { List, X, ArrowRight, CaretDown, GraduationCap, Briefcase, Buildings } from "@phosphor-icons/react";
 import { ResponsiveLogo } from "@/components/shared/Logo";
 import { Button, ButtonIconChip } from "@/components/ui/Button";
 import { AUDIENCES, type AudienceKey } from "./audiences";
@@ -32,7 +32,6 @@ const loginRoles = [
   { label: "Student", href: "/learner", icon: GraduationCap },
   { label: "HR Team", href: "/hr", icon: Briefcase },
   { label: "Institution (Admin & Faculty)", href: "/institutional", icon: Buildings },
-  { label: "Super Admin", href: "/superadmin", icon: ShieldCheck },
 ];
 
 export default function LandingNav({ audience: audienceKey }: { audience: AudienceKey }) {

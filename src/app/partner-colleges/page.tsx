@@ -4,8 +4,10 @@ import { SitePageLayout } from "@/components/shared/SitePageLayout";
 import { partnerColleges } from "@/lib/partnerColleges";
 
 export const metadata: Metadata = {
-  title: "Partner Colleges — TalentSnaps",
+  title: "Partner Colleges",
   description: "What onboarding your college onto TalentSnaps actually looks like.",
+  // Unlisted: not linked anywhere or in the sitemap, and kept out of search.
+  robots: { index: false, follow: false },
 };
 
 const TOC = [
@@ -17,7 +19,7 @@ const TOC = [
 
 export default function PartnerCollegesPage() {
   return (
-    <SitePageLayout title="What partnering with us looks like." active="partner-colleges" toc={TOC}>
+    <SitePageLayout title="What partnering with us looks like." eyebrow="Company" toc={TOC}>
       <section>
         <p>
           Onboarding a college isn&apos;t a self-serve signup — someone from our team works with

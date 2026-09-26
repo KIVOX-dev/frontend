@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
-  title: "Profile Setup — TalentSnaps",
+  title: "Profile Setup",
   description: "How a student goes from signing up to appearing on the Talent Board.",
 };
 
@@ -28,7 +28,7 @@ export default function ProfileSetupPage() {
         <h2 id="one-getting-in">1. Get added by your college</h2>
         <p>
           Your placement cell (or faculty) creates your account as part of onboarding your batch —
-          see <a href="/partner-colleges">Partner Colleges</a> for how that works on the
+          see <a href="/for-institutions">TalentSnaps for Institutions</a> for how that works on the
           institution&apos;s side. You log in as a student once that&apos;s done.
         </p>
       </section>
