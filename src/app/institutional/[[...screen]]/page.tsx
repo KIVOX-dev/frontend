@@ -33,7 +33,6 @@ const MyLearnings = dynamic(() => import("@/components/learner/MyLearnings").the
 const YoutubeCourseImport = dynamic(() => import("@/components/learner/YoutubeCourseImport").then((m) => m.YoutubeCourseImport));
 const AssessmentWindow = dynamic(() => import("@/components/learner/AssessmentWindow").then((m) => m.AssessmentWindow));
 const PracticeModule = dynamic(() => import("@/components/learner/PracticeModule").then((m) => m.PracticeModule));
-const MNCTestModule = dynamic(() => import("@/components/learner/MNCTestModule").then((m) => m.MNCTestModule));
 const LearnerMockInterview = dynamic(() => import("@/components/learner/LearnerMockInterview").then((m) => m.LearnerMockInterview));
 const ResumeBuilder = dynamic(() => import("@/components/learner/ResumeBuilder").then((m) => m.ResumeBuilder));
 const Leaderboard = dynamic(() => import("@/components/learner/Leaderboard").then((m) => m.Leaderboard));
@@ -60,7 +59,7 @@ const INSTITUTIONAL_ROLES = ["college_admin", "institution_admin", "faculty", "s
 // which then 403s fetching /users instead of showing anything sensible.
 const ADMIN_SCREENS = new Set(["dash", "placements", "drives", "users", "security", "assessments", "tracking", "chat", "profile-info", "settings", "my-activity", "search-results"]);
 const FACULTY_SCREENS = new Set(["dash", "tracking", "add-student", "upload", "chat", "profile-info", "settings", "my-activity", "search-results"]);
-const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "mnc", "iv", "chat", "profile-info", "settings", "my-activity", "learnings", "youtube-course-import", "lesson-assessment", "setup"];
+const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "iv", "chat", "profile-info", "settings", "my-activity", "learnings", "youtube-course-import", "lesson-assessment", "setup"];
 const INSTITUTIONAL_STUDENT_EXTRA_SCREENS = ["placements", "profile", "resume", "lb"];
 
 function InstitutionalContent() {
@@ -224,8 +223,6 @@ function InstitutionalContent() {
         return <AptitudeTests />;
       case "practice":
         return <PracticeModule />;
-      case "mnc":
-        return <MNCTestModule />;
       case "iv":
         return <LearnerMockInterview />;
       case "learnings":

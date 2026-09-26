@@ -33,6 +33,11 @@ const STEPS = [
   { title: "1. Copy the video or playlist link", body: "Open the YouTube video or playlist you want to convert and copy its link from the browser's address bar or the Share button." },
   { title: "2. Paste it and convert", body: "Paste the link into the converter and press Convert — it becomes a course with a video player, lesson list, notes, and an assessment for each video." },
   { title: "3. Start your Learnings", body: "Find it any time under Learnings, pick up where you left off, and mark lessons complete as you go." },
+  // Mirrors course.service.js#_awardSkillProgress: one badge per new skill-tagged lesson passed at 60%+.
+  {
+    title: "4. Earn skill badges",
+    body: `Score 60% or more on a lesson's assessment to earn a badge for its skill. Collect ${BADGES_PER_CERTIFICATE} badges in a skill to get its certificate.`,
+  },
 ];
 
 /**

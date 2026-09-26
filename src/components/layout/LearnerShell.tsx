@@ -38,7 +38,6 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
   const PRACTICE_TOOLS_GROUP_ID = "practice-tools";
   const practiceToolsChildren = [
     { id: "practice", label: "Mock Practice", icon: <PracticeIcon /> },
-    { id: "mnc", label: "MNC Test", icon: <MncIcon /> },
     { id: "iv", label: "Mock Interviewer", icon: <IvIcon /> },
   ];
 
@@ -218,7 +217,7 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             </span>
-            <input type="text" placeholder="Search lessons, tests, or MNCs..." />
+            <input type="text" placeholder="Search lessons, tests, or companies..." />
           </div>
           <div className="tbr">
             <div className="ib" style={{ position: "relative" }}>
@@ -304,15 +303,6 @@ function TestsIcon() {
       <line x1="16" y1="13" x2="8" y2="13" />
       <line x1="16" y1="17" x2="8" y2="17" />
       <line x1="10" y1="9" x2="8" y2="9" />
-    </svg>
-  );
-}
-
-function MncIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-      <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
     </svg>
   );
 }

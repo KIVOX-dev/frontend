@@ -46,7 +46,7 @@ export default function ProfileSetupPage() {
       <section>
         <h2 id="three-get-verified">3. Take the verification tests</h2>
         <p>
-          Aptitude Tests, the MNC Test, and the Mock Interviewer are what actually produce your
+          Aptitude Tests and the Mock Interviewer (a written round, then a spoken one) are what actually produce your
           Score and Skill Report — see <a href="/verification">Verification</a> for what each one
           checks and how the score is built. Nothing on your profile counts as verified until you&apos;ve
           taken it.

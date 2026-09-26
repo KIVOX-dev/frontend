@@ -20,6 +20,8 @@ import { toast } from "@/lib/toast";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import { COMPANY_LOGOS, companyLogoFor } from "@/lib/companyLogos";
+import { InterviewMcqRound, type McqRoundResult } from "@/components/learner/InterviewMcqRound";
+import { companyTestName } from "@/lib/companyTestBanks";
 
 const ROLE_OPTIONS = [
   "Software Engineer", "Frontend Developer", "Backend Developer", "Full Stack Developer",
@@ -304,6 +306,10 @@ export function LearnerMockInterview() {
 
 
   const [interviewComplete, setInterviewComplete] = useState(false);
+  // Round 1 (written MCQ test) runs between setup and the spoken round;
+  // its score is shown again on the final screen.
+  const [mcqActive, setMcqActive] = useState(false);
+  const [mcqResult, setMcqResult] = useState<McqRoundResult | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -739,6 +745,7 @@ export function LearnerMockInterview() {
     setListening(true);
   }, [listening, questions, currentQuestionIndex, answers]);
 
+  // Round 2: the spoken interview, started from Round 1's results screen.
   const startInterview = async () => {
     setLoading(true);
     try {
@@ -746,6 +753,7 @@ export function LearnerMockInterview() {
       setQuestions(res.data);
       terminatedRef.current = false;
       setTerminationReason(null);
+      setMcqActive(false);
       setSetup(false);
       setTimeLeft(60);
     } catch (err) {
@@ -857,13 +865,28 @@ export function LearnerMockInterview() {
     };
   }, [setup, currentQuestionIndex, interviewComplete, questions, handleNextQuestion]);
 
+  if (setup && mcqActive) {
+    return (
+      <InterviewMcqRound
+        role={role}
+        company={company}
+        continuing={loading}
+        onExit={() => setMcqActive(false)}
+        onContinue={(result) => {
+          setMcqResult(result);
+          startInterview();
+        }}
+      />
+    );
+  }
+
   if (setup) {
     return (
       <div className="screen active" style={{ padding: "32px 40px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px", marginBottom: "24px" }}>
           <div>
             <h2 style={{ fontSize: "24px", marginBottom: "4px", fontWeight: 700, color: "var(--text)" }}>AI Mock Interviewer</h2>
-            <p style={{ color: "var(--muted)" }}>Practice with real AI-generated questions tailored to your role.</p>
+            <p style={{ color: "var(--muted)" }}>A written test, then a spoken interview, both tailored to your role and company.</p>
           </div>
 
           <div style={{ display: "flex", background: "var(--bg)", padding: "4px", borderRadius: "10px", border: "1px solid var(--border)", width: "fit-content" }}>
@@ -936,8 +959,9 @@ export function LearnerMockInterview() {
                 <RoundIcon d="M12 8h.01M12 11v5m9-4a9 9 0 11-18 0 9 9 0 0118 0z" size={18} />
               </span>
               <div>
-                <strong>Strict 1-Minute Rule</strong><br/>
-                You will have exactly 60 seconds to answer each of the 10 questions. Plagiarism checks are active.
+                <strong>Two rounds</strong><br/>
+                <b>Round 1:</b> a timed written test in {companyTestName(company)}&apos;s pattern, with technical questions for a {role} (90 seconds per question).<br/>
+                <b>Round 2:</b> a spoken interview, 10 questions with exactly 60 seconds each. Plagiarism checks are active.
               </div>
             </div>
 
@@ -985,14 +1009,13 @@ export function LearnerMockInterview() {
             <button
               className="btn btn-p"
               style={{ width: "100%", padding: "14px", justifyContent: "center" }}
-              onClick={startInterview}
-              disabled={loading || mediaStatus !== "granted"}
+              onClick={() => {
+                setMcqResult(null);
+                setMcqActive(true);
+              }}
+              disabled={mediaStatus !== "granted"}
             >
-              {loading
-                ? "Preparing AI Engine..."
-                : mediaStatus !== "granted"
-                ? "Enable your camera to continue"
-                : "Start Interview Engine"}
+              {mediaStatus !== "granted" ? "Enable your camera to continue" : "Start Round 1 · Written test"}
             </button>
           </div>
 
@@ -1039,8 +1062,8 @@ export function LearnerMockInterview() {
             </div>
 
             <div className="card" style={{ padding: "24px", borderRadius: "16px" }}>
-              <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>Interview Round</div>
-              <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "2px", marginBottom: "16px" }}>Choose which round you want to practice.</div>
+              <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>Round 2 Focus</div>
+              <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "2px", marginBottom: "16px" }}>Choose what the spoken interview (Round 2) covers.</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "12px" }}>
                 {INTERVIEW_ROUNDS.map((r) => {
                   const active = round === r.id;
@@ -1127,6 +1150,20 @@ export function LearnerMockInterview() {
         <p style={{ color: "var(--muted)", marginBottom: "32px", lineHeight: 1.6 }}>
           {terminationReason ? "Your answers so far have been saved to your history." : "Your responses have been recorded and saved to your history."}
         </p>
+        {mcqResult && (
+          <div className="card" style={{ display: "flex", justifyContent: "space-around", gap: "16px", padding: "18px", marginBottom: "28px" }}>
+            <div>
+              <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Round 1 · Written test</div>
+              <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)" }}>{mcqResult.percentage}%</div>
+              <div style={{ fontSize: "12px", color: "var(--muted)" }}>{mcqResult.correct} of {mcqResult.total} correct</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Round 2 · Spoken interview</div>
+              <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)" }}>{terminationReason ? "Stopped" : "Saved"}</div>
+              <div style={{ fontSize: "12px", color: "var(--muted)" }}>{Object.values(answers).filter((a) => a.trim()).length} of {questions.length} answered</div>
+            </div>
+          </div>
+        )}
         <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
           <button className="btn btn-p" onClick={() => { setSetup(true); setInterviewComplete(false); setTab("history"); }}>View History</button>
           <button className="btn btn-o" onClick={() => setActiveScreen("dash")}>Return to Dashboard</button>
@@ -1169,7 +1206,7 @@ export function LearnerMockInterview() {
             </div>
           )}
           <div>
-            <div style={{ fontWeight: 600, fontSize: "15px" }}>{role} · {ROUND_LABEL[round] ?? "Technical"} Round</div>
+            <div style={{ fontWeight: 600, fontSize: "15px" }}>Round 2 · {role} · {ROUND_LABEL[round] ?? "Technical"}</div>
             <div style={{ fontSize: "12px", color: "var(--muted)" }}>{company} · Plagiarism Monitor Active</div>
           </div>
         </div>

@@ -1,5 +1,5 @@
-// Pure helpers behind the MNC company-test question pools (see
-// components/learner/MNCTestModule.tsx) — split out from that component so
+// Pure helpers behind the company written-test question pools (see
+// lib/companyTestBanks.ts) — split out so
 // dedup/bounds logic can be unit tested without rendering React, and so the
 // cross-file dedup fix (FE-003) and pool-bounds fix (FE-004) in
 // FULL_STACK_AUDIT_REPORT.md live in one obviously-testable place.

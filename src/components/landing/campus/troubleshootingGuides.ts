@@ -197,21 +197,22 @@ const studentModules: Module[] = [
     ],
   },
   {
-    id: "mnc",
-    title: "MNC Test",
-    where: "Sidebar › Practice Tools › MNC Test",
-    fixes: [
-      {
-        q: "“Failed to load test data.”",
-        a: "The company test couldn't be loaded. Refresh, and if it still fails try again later. Other practice tools keep working.",
-      },
-    ],
-  },
-  {
     id: "mock-interview",
     title: "Mock Interviewer",
     where: "Sidebar › Practice Tools › Mock Interviewer",
     fixes: [
+      {
+        q: "Where did MNC Test go?",
+        a: "It's now Round 1 of the Mock Interviewer: pick a role and company, and the written test follows that company's pattern with technical questions for the role. Round 2 is the spoken interview.",
+      },
+      {
+        q: "“Role-specific questions aren't available right now”",
+        a: "The written round couldn't be generated for your role, so it uses the company's aptitude pattern instead. Your score still counts. Try again later for the role's Technical section.",
+      },
+      {
+        q: "“Failed to load test data.”",
+        a: "Round 1 couldn't be loaded. Press Try again, or go back to setup and start again.",
+      },
       {
         q: "“Failed to start interview. Please try again.”",
         a: "Allow camera and microphone for talentsnaps.com (lock icon in the address bar), refresh, and start again.",

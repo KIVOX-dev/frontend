@@ -19,7 +19,7 @@ export default function VerificationPage() {
         <p>
           A resume claim (&quot;proficient in SQL,&quot; &quot;strong problem solver&quot;) costs
           nothing to write and nothing to verify. TalentSnaps doesn&apos;t take that claim at face
-          value — it puts the student through the same aptitude tests, MNC-style rounds, and mock
+          value — it puts the student through the same aptitude tests and two-round mock
           interviews everyone else on the platform takes, and the result is what shows up on their
           profile and the Talent Board.
         </p>
@@ -29,8 +29,8 @@ export default function VerificationPage() {
         <h2 id="whats-verified">What gets verified</h2>
         <ul>
           <li><strong>Aptitude Tests</strong> — the standard quantitative, logical, and verbal rounds most placement drives already screen on.</li>
-          <li><strong>MNC Test</strong> — a company-pattern round modeled on what larger recruiters actually ask.</li>
-          <li><strong>Mock Interviewer</strong> — a practice interview, scored, not just a checklist of &quot;attended.&quot;</li>
+
+          <li><strong>Mock Interviewer</strong> — a written test in the target company&apos;s pattern with technical questions for the role, then a spoken interview, both scored rather than a checklist of &quot;attended.&quot;</li>
         </ul>
         <p>
           Every attempt is timed and graded the same way for every student — there&apos;s no

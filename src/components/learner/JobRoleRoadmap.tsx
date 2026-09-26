@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, ExternalLink, Loader2, Play, Award } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, ListVideo, Play, Award } from "lucide-react";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { useUiStore } from "@/stores/uiStore";
@@ -9,12 +9,12 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
-type RoadmapVideo = {
-  youtubeVideoId: string;
+type RoadmapPlaylist = {
+  youtubePlaylistId: string;
   title: string;
   thumbnailUrl: string | null;
-  durationSeconds: number;
   channelTitle: string | null;
+  itemCount: number;
 };
 
 type BadgeProgress = {
@@ -24,7 +24,7 @@ type BadgeProgress = {
   badges_remaining: number;
 };
 
-type RoadmapStep = { skill: string; videos: RoadmapVideo[]; badge_progress: BadgeProgress };
+type RoadmapStep = { skill: string; playlists: RoadmapPlaylist[]; badge_progress: BadgeProgress };
 
 type Roadmap = {
   role: { id: string; title: string; description: string };
@@ -32,28 +32,22 @@ type Roadmap = {
   role_certificate: { id: string; role_title: string; issued_at: string } | null;
 };
 
-function formatDuration(seconds: number) {
-  if (!seconds) return "";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 /**
  * "Job Role Roadmap" tab of YoutubeCourseImport.tsx — /roadmap/roles/:id
- * (see roadmap.service.js) returns curated, cached video suggestions per
+ * (see roadmap.service.js) returns cached YouTube playlist suggestions per
  * skill for the student's chosen role, plus their real badge progress on
  * each skill. "Add to Learnings" reuses the exact same /courses/import path
- * as the plain URL-paste tab, so an added video gets the same lesson,
- * assessment, and skill-badge pipeline as anything else on Learnings.
+ * as the plain URL-paste tab, so an added playlist becomes one multi-lesson
+ * course with the same assessment and skill-badge pipeline as anything else
+ * on Learnings.
  */
 export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null }) {
   const setActiveScreen = useUiStore((s) => s.setActiveScreen);
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [loading, setLoading] = useState(Boolean(targetJobRole));
   const [error, setError] = useState("");
-  const [addingVideoId, setAddingVideoId] = useState<string | null>(null);
-  const [addedVideoIds, setAddedVideoIds] = useState<Set<string>>(new Set());
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!targetJobRole) {
@@ -69,16 +63,16 @@ export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null
       .finally(() => setLoading(false));
   }, [targetJobRole]);
 
-  const handleAdd = async (video: RoadmapVideo) => {
-    setAddingVideoId(video.youtubeVideoId);
+  const handleAdd = async (playlist: RoadmapPlaylist) => {
+    setAddingId(playlist.youtubePlaylistId);
     setError("");
     try {
-      await api.post("/courses/import", { url: `https://www.youtube.com/watch?v=${video.youtubeVideoId}` });
-      setAddedVideoIds((prev) => new Set(prev).add(video.youtubeVideoId));
+      await api.post("/courses/import", { url: `https://www.youtube.com/playlist?list=${playlist.youtubePlaylistId}` });
+      setAddedIds((prev) => new Set(prev).add(playlist.youtubePlaylistId));
     } catch (err: unknown) {
-      setError(extractErrorMessage(err, "Couldn't add that video"));
+      setError(extractErrorMessage(err, "Couldn't add that playlist"));
     } finally {
-      setAddingVideoId(null);
+      setAddingId(null);
     }
   };
 
@@ -86,7 +80,7 @@ export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null
     return (
       <Card className="max-w-xl mx-auto text-center py-10">
         <h2 className="text-section-title mb-2">Choose a job role first</h2>
-        <p className="text-small mb-6">Pick a target job role in Setup and we&apos;ll suggest a video roadmap for it.</p>
+        <p className="text-small mb-6">Pick a target job role in Setup and we&apos;ll suggest playlist courses for it.</p>
         <Button onClick={() => setActiveScreen("setup")}>Go to Setup</Button>
       </Card>
     );
@@ -145,38 +139,37 @@ export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null
               </span>
             </div>
 
-            {step.videos.length === 0 ? (
-              <p className="text-small text-ink-muted">No videos available for this skill right now.</p>
+            {!step.playlists?.length ? (
+              <p className="text-small text-ink-muted">No playlists available for this skill right now.</p>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {step.videos.map((video) => {
-                  const added = addedVideoIds.has(video.youtubeVideoId);
+                {step.playlists.map((playlist) => {
+                  const added = addedIds.has(playlist.youtubePlaylistId);
                   return (
-                    <div key={video.youtubeVideoId} className="rounded-md border border-line overflow-hidden">
+                    <div key={playlist.youtubePlaylistId} className="rounded-md border border-line overflow-hidden">
                       <div className="relative aspect-video bg-paper-tint">
-                        {video.thumbnailUrl && (
+                        {playlist.thumbnailUrl && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={video.thumbnailUrl} alt={video.title} className="size-full object-cover" />
+                          <img src={playlist.thumbnailUrl} alt={playlist.title} className="size-full object-cover" />
                         )}
-                        {video.durationSeconds > 0 && (
-                          <span className="absolute bottom-1.5 right-1.5 rounded bg-black/75 text-white text-[11px] px-1.5 py-0.5">
-                            {formatDuration(video.durationSeconds)}
-                          </span>
-                        )}
+                        <span className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded bg-black/75 text-white text-[11px] px-1.5 py-0.5">
+                          <ListVideo className="size-3" />
+                          {playlist.itemCount} videos
+                        </span>
                       </div>
                       <div className="p-3">
-                        <p className="text-small font-medium text-ink line-clamp-2 mb-0.5" title={video.title}>
-                          {video.title}
+                        <p className="text-small font-medium text-ink line-clamp-2 mb-0.5" title={playlist.title}>
+                          {playlist.title}
                         </p>
-                        {video.channelTitle && <p className="text-caption mb-2">{video.channelTitle}</p>}
+                        {playlist.channelTitle && <p className="text-caption mb-2">{playlist.channelTitle}</p>}
                         <Button
                           size="sm"
                           variant={added ? "secondary" : "primary"}
                           className="w-full"
-                          disabled={added || addingVideoId === video.youtubeVideoId}
-                          onClick={() => handleAdd(video)}
+                          disabled={added || addingId === playlist.youtubePlaylistId}
+                          onClick={() => handleAdd(playlist)}
                         >
-                          {addingVideoId === video.youtubeVideoId ? (
+                          {addingId === playlist.youtubePlaylistId ? (
                             <Loader2 className="size-3.5 animate-spin" />
                           ) : added ? (
                             <CheckCircle2 className="size-3.5" />
@@ -196,7 +189,7 @@ export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null
       </div>
 
       <p className="text-caption text-ink-muted text-center mt-6 flex items-center justify-center gap-1">
-        <ExternalLink className="size-3" /> Suggested videos are powered by YouTube search.
+        <ExternalLink className="size-3" /> Suggested playlists are powered by YouTube search.
       </p>
     </div>
   );

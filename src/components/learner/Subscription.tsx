@@ -103,7 +103,7 @@ export function Subscription() {
             </li>
             <li style={{ display: "flex", gap: "12px", alignItems: "center", color: "var(--text)" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" width="18" height="18"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              Unlimited MNC Tests
+              Unlimited company written tests
             </li>
             <li style={{ display: "flex", gap: "12px", alignItems: "center", color: "var(--text)" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" width="18" height="18"><polyline points="20 6 9 17 4 12"></polyline></svg>

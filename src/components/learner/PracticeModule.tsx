@@ -153,7 +153,7 @@ export function PracticeModule() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   // Every question's answer so far, keyed by index — same free-navigation
-  // shape as the MNC Company Tests screen (MNCTestModule.tsx) this mirrors:
+  // shape as the mock interview's written round (InterviewMcqRound.tsx) this mirrors:
   // no per-question reveal, jump anywhere via the palette, grade everything
   // together on Submit.
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -223,7 +223,7 @@ export function PracticeModule() {
     }
   };
 
-  // 90s/question, same budget MNCTestModule.tsx uses for its timed company tests.
+  // 90s/question, same budget InterviewMcqRound.tsx uses for its timed written round.
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
@@ -301,7 +301,7 @@ export function PracticeModule() {
   }, [activeCategory, activeTestId, answers, categoryStats, saveStats, sessionQuestions, user?.id]);
 
   // Auto-submit the instant every question has an answer — matches
-  // MNCTestModule.tsx/AptitudeTests.tsx's timer-expiry auto-submit, just
+  // InterviewMcqRound.tsx/AptitudeTests.tsx's timer-expiry auto-submit, just
   // triggered by completion instead of running out of time. Previously a
   // student who answered all 10 had to notice nothing happened and hunt for
   // Submit Test themselves.
@@ -378,7 +378,7 @@ export function PracticeModule() {
   }
 
   // ──── Question Screen ────
-  // Same layout as the MNC Company Tests screen (MNCTestModule.tsx): a
+  // Same layout as the mock interview's written round (InterviewMcqRound.tsx): a
   // timer + Submit Test in the header, free Previous/Next navigation, and a
   // Question Palette to jump to any question — no per-question reveal, all
   // questions get graded together on Submit.

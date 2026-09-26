@@ -17,7 +17,6 @@ const LearnerMockInterview = dynamic(() => import("@/components/learner/LearnerM
 const ResumeBuilder = dynamic(() => import("@/components/learner/ResumeBuilder").then((m) => m.ResumeBuilder));
 const AptitudeTests = dynamic(() => import("@/components/learner/AptitudeTests").then((m) => m.AptitudeTests));
 const PracticeModule = dynamic(() => import("@/components/learner/PracticeModule").then((m) => m.PracticeModule));
-const MNCTestModule = dynamic(() => import("@/components/learner/MNCTestModule").then((m) => m.MNCTestModule));
 const Leaderboard = dynamic(() => import("@/components/learner/Leaderboard").then((m) => m.Leaderboard));
 const Subscription = dynamic(() => import("@/components/learner/Subscription").then((m) => m.Subscription));
 const TestHistory = dynamic(() => import("@/components/learner/TestHistory").then((m) => m.TestHistory));
@@ -82,7 +81,6 @@ function LearnerContent() {
       case "dash": return <LearnerDashboard />;
       case "practice": return <PracticeModule />;
       case "tests": return <AptitudeTests />;
-      case "mnc": return <MNCTestModule />;
       case "iv": return <LearnerMockInterview />;
       case "resume": return <ResumeBuilder />;
       case "lb": return <Leaderboard />;

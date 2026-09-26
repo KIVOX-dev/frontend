@@ -28,7 +28,6 @@ const STUDENT: Record<string, string> = {
   history: "test-history",
   learnings: "learnings",
   practice: "mock-practice",
-  mnc: "mnc-test",
   iv: "mock-interview",
   "youtube-course-import": "youtube-to-course",
   setup: "setup",
@@ -77,7 +76,14 @@ export function screenHref(portal: Portal, screenId: string) {
   return slug ? `${base}/${slug}` : base;
 }
 
+// Old URLs for screens that were merged into another one.
+const SLUG_ALIASES: Record<string, string> = {
+  "mnc-test": "iv", // MNC Test is now Round 1 of the Mock Interviewer
+};
+
 function screenForSlug(portal: Portal, slug: string) {
+  const alias = SLUG_ALIASES[slug];
+  if (alias && PORTAL_ROUTES[portal].screens[alias]) return alias;
   const entry = Object.entries(PORTAL_ROUTES[portal].screens).find(([, s]) => s === slug);
   return entry ? entry[0] : null;
 }
@@ -101,9 +107,11 @@ export function usePortalRoute(portal: Portal, enabled: boolean) {
     const slug = pathname.startsWith(`${base}/`) ? pathname.slice(base.length + 1).split("/")[0] : "";
     const id = slug ? screenForSlug(portal, slug) : null;
     if (!id) return;
+    // An old alias (e.g. /mnc-test): show the screen's current URL instead.
+    if (screens[id] !== slug) window.history.replaceState(null, "", `${base}/${screens[id]}${window.location.search}`);
     shown.current = id;
     if (useUiStore.getState().activeScreen !== id) useUiStore.getState().setActiveScreen(id);
-  }, [pathname, enabled, base, portal]);
+  }, [pathname, enabled, base, portal, screens]);
 
   // Screen → URL: sidebar clicks and every other setActiveScreen().
   useEffect(() => {

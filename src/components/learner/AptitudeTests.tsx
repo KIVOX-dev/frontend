@@ -84,7 +84,7 @@ export function AptitudeTests() {
   const [timerActive, setTimerActive] = useState(false);
 
   // Practice-bank tests embed a fixed session size worth of questions per
-  // MNCTestModule.tsx's own convention — a whole seeded bank (500 for
+  // InterviewMcqRound.tsx's own convention — a whole seeded bank (500 for
   // Verbal Ability) dumped into one sitting with no cap wasn't a usable
   // session either way.
   const PRACTICE_SESSION_SIZE = 20;
