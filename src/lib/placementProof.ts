@@ -11,8 +11,17 @@ import { toast } from "@/lib/toast";
 // `.location` is set once the signed URL comes back — opening the tab itself
 // *after* an await is what most browsers' popup blockers treat as
 // non-user-initiated and block.
+//
+// Not opened with "noopener": per spec, window.open(..., "noopener") returns
+// null even though it opens the tab, so the tab could never be pointed at
+// the document and stayed on about:blank. The opener link is cut by hand
+// instead, which gives the same protection.
 export async function openPlacementProofDocument(recordId: string): Promise<void> {
-  const tab = window.open("", "_blank", "noopener,noreferrer");
+  const tab = window.open("", "_blank");
+  if (tab) {
+    tab.opener = null;
+    tab.document.title = "Opening document…";
+  }
 
   try {
     const res = await api.get<{ url: string }>(`/placement-records/${recordId}/proof-url`);
