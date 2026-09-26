@@ -53,6 +53,18 @@ async function markSquare(size, pad, background = { r: 0, g: 0, b: 0, alpha: 0 }
   return size <= 48 ? canvas.png({ compressionLevel: 9 }).toBuffer() : small(canvas);
 }
 
+// The mark's blue, averaged from its fully opaque blue pixels.
+async function markBlue() {
+  const { data } = await sharp(SRC.mark).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] === 255 && data[i + 2] > 140 && data[i + 2] - data[i] > 50) {
+      r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+    }
+  }
+  return { r: Math.round(r / n), g: Math.round(g / n), b: Math.round(b / n) };
+}
+
 // Dark, unsaturated pixels (the wordmark and tagline) become white; the blue
 // mark and its white figure are left alone. Alpha is preserved, so edges stay smooth.
 async function lightVariant(png) {
@@ -100,6 +112,37 @@ function ico(pngs, sizes) {
   fs.writeFileSync("public/icon-192.png", await markSquare(192, 0.02));
   fs.writeFileSync("public/icon-512.png", await markSquare(512, 0.02));
 
+  // Android "maskable" icons: the launcher crops these to its own shape
+  // (circle, squircle...), keeping only the central 80%. Without one, Android
+  // shrinks the round logo onto a white plate. So: fill the whole square with
+  // the mark's own blue and centre the mark, whose figure sits well inside
+  // that safe zone; the circle's edge disappears into the matching blue.
+  const blue = await markBlue();
+  // Only the white figure goes on the blue square (not the whole circular
+  // mark), so there's no seam where the circle's edge meets the background.
+  // Its opacity comes from the red channel: ~6 in the blue, 255 in the white.
+  const figure = await (async () => {
+    const { data, info } = await sharp(await fillFigure(await trimmed(SRC.mark))).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    // The figure lies well inside the circle; skipping the outer 10% drops
+    // the circle's anti-aliased rim, which would otherwise show as a ring.
+    const cx = info.width / 2, cy = info.height / 2, rMax = (Math.min(info.width, info.height) / 2) * 0.9;
+    for (let i = 0; i < data.length; i += 4) {
+      const px = (i / 4) % info.width, py = Math.floor(i / 4 / info.width);
+      const inside = Math.hypot(px - cx, py - cy) <= rMax;
+      const a = inside ? Math.max(0, Math.min(255, Math.round(((data[i] - blue.r) / (255 - blue.r)) * 255))) * (data[i + 3] / 255) : 0;
+      data[i] = data[i + 1] = data[i + 2] = 255;
+      data[i + 3] = a;
+    }
+    return sharp(data, { raw: info }).png().toBuffer();
+  })();
+  for (const size of [192, 512]) {
+    const mark = await sharp(figure).resize(Math.round(size * 0.92)).toBuffer();
+    fs.writeFileSync(
+      `public/icon-maskable-${size}.png`,
+      await small(sharp({ create: { width: size, height: size, channels: 4, background: { ...blue, alpha: 1 } } }).composite([{ input: mark, gravity: "centre" }])),
+    );
+  }
+
   const sizes = [16, 32, 48];
   const favs = await Promise.all(sizes.map((s) => markSquare(s, 0)));
   fs.writeFileSync("src/app/favicon.ico", ico(favs, sizes));
@@ -114,7 +157,7 @@ function ico(pngs, sizes) {
       .then((b) => small(sharp(b))),
   );
 
-  for (const f of ["public/brand/lockup.png", "public/brand/lockup-light.png", "public/brand/mark.png", "src/app/icon.png", "src/app/apple-icon.png", "src/app/favicon.ico", "public/icon-192.png", "public/icon-512.png", "src/app/opengraph-image.png"]) {
+  for (const f of ["public/icon-maskable-192.png", "public/icon-maskable-512.png", "public/brand/lockup.png", "public/brand/lockup-light.png", "public/brand/mark.png", "src/app/icon.png", "src/app/apple-icon.png", "src/app/favicon.ico", "public/icon-192.png", "public/icon-512.png", "src/app/opengraph-image.png"]) {
     const m = f.endsWith(".ico") ? { width: "16/32/48" } : await sharp(f).metadata();
     console.log(f.padEnd(34), `${m.width}${m.height ? "x" + m.height : ""}`.padEnd(10), `${(fs.statSync(f).size / 1024).toFixed(0)} KB`);
   }
