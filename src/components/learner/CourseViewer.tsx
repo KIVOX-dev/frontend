@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { loadYoutubeIframeApi, type YoutubePlayer } from "@/lib/youtubePlayer";
+import { openCookieSettings, saveConsent, useConsent } from "@/lib/cookieConsent";
 
 type Lesson = {
   id: string;
@@ -110,10 +111,20 @@ export function CourseViewer({
 
   const activeLesson = course?.lessons.find((l) => l.id === activeLessonId) || null;
 
+  // YouTube sets its own cookies, so the player only loads once the learner
+  // has allowed "Embedded media" (see lib/cookieConsent.ts).
+  const { choice } = useConsent();
+  const mediaAllowed = !!choice?.media;
+
   // One player instance per mount, then loadVideoById on lesson switch —
   // avoids tearing down/recreating the iframe (and losing playback) every
   // time the active lesson changes.
   useEffect(() => {
+    if (!mediaAllowed) {
+      // Consent withdrawn mid-lesson: stop playback behind the prompt.
+      playerRef.current?.pauseVideo();
+      return;
+    }
     if (!activeLesson) return;
     let cancelled = false;
     loadYoutubeIframeApi().then(() => {
@@ -130,10 +141,10 @@ export function CourseViewer({
     return () => {
       cancelled = true;
     };
-    // Deliberately only re-runs on lesson switch (via loadVideoById above),
-    // not on every render.
+    // Deliberately only re-runs on lesson switch (via loadVideoById above)
+    // or when embedded-media consent changes, not on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeLesson?.id]);
+  }, [activeLesson?.id, mediaAllowed]);
 
   useEffect(() => {
     return () => {
@@ -201,8 +212,26 @@ export function CourseViewer({
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-6 items-start">
         <div>
-          <div className="aspect-video rounded-lg overflow-hidden bg-black mb-3">
+          {/* The player div stays mounted: the YouTube API swaps it for an
+              iframe, and React unmounting a node it no longer owns throws. */}
+          <div className="relative aspect-video rounded-lg overflow-hidden bg-black mb-3">
             <div id={playerContainerId} className="w-full h-full" />
+            {!mediaAllowed && (
+              <div className="absolute inset-0 grid place-items-center p-6 text-center bg-ink text-white">
+                <div className="max-w-sm">
+                  <p className="font-semibold">This video plays from YouTube</p>
+                  <p className="mt-1.5 text-small text-white/75">
+                    YouTube sets its own cookies when a video loads. Allow embedded media to watch lessons here.
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    <Button onClick={() => saveConsent({ analytics: !!choice?.analytics, media: true })}>Allow and play</Button>
+                    <Button variant="secondary" onClick={openCookieSettings}>
+                      Cookie settings
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-4 mb-6">

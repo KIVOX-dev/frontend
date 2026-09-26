@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AUDIENCE_ORDER, CAMPUS_AUDIENCES, landingHref, type CampusAudience } from "./audiences";
 import { CampusLogo } from "./CampusNav";
 import { FooterWord } from "./primitives";
+import { CookieSettingsButton } from "@/components/shared/CookieSettingsButton";
 
 export function CampusFooter({ audience }: { audience: CampusAudience }) {
   const cfg = CAMPUS_AUDIENCES[audience];
@@ -42,6 +43,8 @@ export function CampusFooter({ audience }: { audience: CampusAudience }) {
               ))}
               <Link href="/privacy-policy">Privacy policy</Link>
               <Link href="/terms-of-service">Terms of service</Link>
+              <Link href="/cookie-policy">Cookie policy</Link>
+              <CookieSettingsButton className="ts-cookie-btn" />
             </div>
           </div>
         </div>

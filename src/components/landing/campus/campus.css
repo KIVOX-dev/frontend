@@ -490,6 +490,8 @@
 .tsl .fgrid h5{margin:0 0 16px;font:600 12.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#8FA7A8}
 .tsl .fgrid a{display:block;text-decoration:none;color:#DCE6E6;padding:6px 0;font-size:15.5px;transition:color .2s,transform .3s var(--ease)}
 .tsl .fgrid a:hover{color:#fff;transform:translateX(4px)}
+.tsl .fgrid .ts-cookie-btn{display:block;padding:6px 0;font:inherit;font-size:15.5px;color:#DCE6E6;background:none;border:0;cursor:pointer;text-align:left;transition:color .2s,transform .3s var(--ease)}
+.tsl .fgrid .ts-cookie-btn:hover{color:#fff;transform:translateX(4px)}
 .tsl .fgrid a.logo{display:flex;padding:0;color:#fff}.tsl .fgrid a.logo:hover{transform:none}
 .tsl .fgrid p{margin-top:16px;color:#A9BDBE;max-width:32ch;font-size:15px}
 .tsl .fword{font:900 clamp(52px,13vw,190px)/.8 var(--display);font-stretch:72%;text-transform:uppercase;letter-spacing:-.02em;color:#fff;text-align:center;padding-top:40px;white-space:nowrap;overflow:hidden}

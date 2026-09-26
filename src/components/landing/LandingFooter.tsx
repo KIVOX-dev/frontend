@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
 
 // Every link here is a real route or a real in-page section id — no "#"
-// placeholders. Blog/Help Center/API Docs/Cookie Policy/social accounts
+// placeholders. Blog/Help Center/API Docs/social accounts
 // were dropped rather than left as dead links: TalentSnaps is an early-stage
 // team (see /about-us) with none of those yet, and Data Protection (a real
 // page) already covers what "Security" would have promised.
@@ -38,6 +38,7 @@ const footerLinks = {
   Legal: [
     { label: "Privacy Policy", href: "/privacy-policy" },
     { label: "Terms of Service", href: "/terms-of-service" },
+    { label: "Cookie Policy", href: "/cookie-policy" },
     { label: "Data Protection", href: "/data-protection" },
   ],
 };

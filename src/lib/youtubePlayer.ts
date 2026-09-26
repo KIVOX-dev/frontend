@@ -9,6 +9,7 @@ const SCRIPT_ID = "youtube-iframe-api";
 export interface YoutubePlayer {
   getCurrentTime: () => number;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  pauseVideo: () => void;
   loadVideoById: (videoId: string) => void;
   destroy: () => void;
 }

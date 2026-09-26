@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/careers", priority: 0.6, changeFrequency: "monthly" },
     { path: "/privacy-policy", priority: 0.3, changeFrequency: "yearly" },
     { path: "/terms-of-service", priority: 0.3, changeFrequency: "yearly" },
+    { path: "/cookie-policy", priority: 0.3, changeFrequency: "yearly" },
     { path: "/data-protection", priority: 0.3, changeFrequency: "yearly" },
   ];
 
