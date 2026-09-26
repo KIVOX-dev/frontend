@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import { onOpenCookieSettings, saveConsent, useConsent, type ConsentChoice } from "@/lib/cookieConsent";
@@ -63,17 +64,16 @@ export function CookieConsent() {
       aria-labelledby={titleId}
       className="fixed inset-x-3 bottom-3 z-[90] sm:inset-x-auto sm:left-5 sm:bottom-5 sm:w-[440px] rounded-xl border border-line bg-paper text-ink shadow-[0_24px_60px_-20px_rgba(17,24,39,.35)] motion-safe:animate-[cc-in_.45s_cubic-bezier(.2,.8,.2,1)_both]"
     >
-      <style>{"@keyframes cc-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}"}</style>
+      <style>{"@keyframes cc-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}@keyframes cc-wobble{from{opacity:0;transform:scale(.6) rotate(-35deg)}to{opacity:1;transform:none}}"}</style>
       <div className="p-5 max-h-[80vh] overflow-y-auto">
         <div className="flex items-start gap-3">
-          <span aria-hidden="true" className="grid place-items-center shrink-0 w-9 h-9 rounded-lg bg-emerald-light text-forest">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.8A9 9 0 1 1 11.2 3a4 4 0 0 0 4.8 4.8 4 4 0 0 0 5 5z" />
-              <circle cx="8.5" cy="11.5" r=".8" fill="currentColor" />
-              <circle cx="12" cy="16" r=".8" fill="currentColor" />
-              <circle cx="15.5" cy="13" r=".8" fill="currentColor" />
-            </svg>
-          </span>
+          <Image
+            src="/images/cookie.jpg"
+            alt=""
+            width={52}
+            height={52}
+            className="shrink-0 -mt-1 -ml-1 rounded-full motion-safe:animate-[cc-wobble_.9s_cubic-bezier(.34,1.56,.64,1)_.25s_both]"
+          />
           <div className="min-w-0">
             <h2 id={titleId} className="text-[17px] font-bold leading-tight">
               {custom ? "Cookie settings" : "Cookies on TalentSnaps"}

@@ -330,7 +330,7 @@
 
 /* ---------- hero ---------- */
 .tsl .hero{padding:clamp(64px,8vw,112px) clamp(8px,3vw,40px) clamp(48px,6vw,80px);text-align:center;display:flex;flex-direction:column;align-items:center;gap:26px}
-.tsl .hero .h1{max-width:15ch}
+.tsl .hero .h1{max-width:20ch}
 .tsl .ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .tsl .ln{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.04em}
 .tsl .ln > span{display:inline-block;transform:translateY(105%);transition:transform 1s var(--ease);transition-delay:calc(var(--w,0) * 55ms)}
@@ -375,7 +375,7 @@
 .tsl .show{position:relative;height:clamp(460px,52vw,700px);overflow:hidden}
 .tsl .show .pan-bg{--pc:var(--p-blue)}
 .tsl .show .pan-photo{background-position:center 75%}
-.tsl .show-ui{position:absolute;left:50%;bottom:0;transform:translate(-50%,var(--py,80px));width:min(1060px,calc(100% - 48px));display:flex;justify-content:center;z-index:1;transition:transform .2s linear}
+.tsl .show-ui{position:absolute;left:50%;bottom:0;transform:translate(-50%,var(--py,80px));width:min(1240px,calc(100% - 48px));display:flex;justify-content:center;z-index:1;transition:transform .2s linear}
 .tsl .show-ui .win{border-radius:14px 14px 0 0;border-bottom:0;width:100%;box-shadow:0 40px 90px -30px rgb(6 38 43 / .55)}
 .tsl .show-ui .phone-stage{align-items:flex-end}
 .tsl .show-ui .phone{border-radius:44px 44px 0 0;padding-bottom:0}
