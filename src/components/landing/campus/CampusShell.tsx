@@ -73,6 +73,9 @@ export function CampusShell({ audience, children }: { audience: CampusAudience; 
       root.classList.replace("motion", "no-motion");
       root.querySelectorAll(".path,.steps4,.fword,.chart").forEach((el) => el.classList.add("in"));
     }
+    // Reveals are now in this effect's hands; stands down campus.css's
+    // time-based failsafe, which only exists for when this never runs.
+    root.classList.add("armed");
 
     // Shrink the footer wordmark until it fits on one line.
     const fitWords = () => {
