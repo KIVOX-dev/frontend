@@ -14,6 +14,8 @@ import { IconSprite } from "./primitives";
 // WHEEL_MULTIPLIER < 1 moves less per wheel notch.
 const SCROLL_LERP = 0.055;
 const WHEEL_MULTIPLIER = 0.75;
+// How long each FAQ question stays open while the list auto-plays.
+const FAQ_STEP_MS = 5000;
 // Sticky nav height plus a little air.
 const NAV_OFFSET = 96;
 
@@ -115,6 +117,95 @@ export function CampusShell({ audience, children }: { audience: CampusAudience; 
     // Reveals are now in this effect's hands; stands down campus.css's
     // time-based failsafe, which only exists for when this never runs.
     root.classList.add("armed");
+
+    // FAQ auto-play: once a FAQ list scrolls into view, open each question in
+    // turn for FAQ_STEP_MS, looping. Hover or keyboard focus pauses it;
+    // opening a question yourself hands control to you for good. With
+    // reduced motion it just opens the first question and stays put.
+    root.querySelectorAll<HTMLElement>(".faq").forEach((list) => {
+      const items = Array.from(list.querySelectorAll<HTMLDetailsElement>("details"));
+      if (items.length < 2) return;
+      list.style.setProperty("--faq-step", `${FAQ_STEP_MS}ms`);
+      if (!motion) {
+        items[0].open = true;
+        return;
+      }
+      let index = -1;
+      let timer = 0;
+      let stopped = false;
+      let paused = false;
+      let remaining = FAQ_STEP_MS;
+      let startedAt = 0;
+      let programmatic = false;
+
+      const show = (i: number) => {
+        index = i;
+        programmatic = true;
+        items.forEach((d, k) => {
+          d.open = k === i;
+          d.classList.toggle("cycling", k === i);
+        });
+        // `toggle` fires async; clear the flag after those events have run.
+        setTimeout(() => (programmatic = false), 0);
+        schedule(FAQ_STEP_MS);
+      };
+      const schedule = (ms: number) => {
+        clearTimeout(timer);
+        remaining = ms;
+        startedAt = performance.now();
+        timer = window.setTimeout(() => show((index + 1) % items.length), ms);
+      };
+      const pause = () => {
+        if (stopped || paused || index < 0) return;
+        paused = true;
+        clearTimeout(timer);
+        remaining -= performance.now() - startedAt;
+        list.classList.add("paused");
+      };
+      const resume = () => {
+        if (stopped || !paused) return;
+        paused = false;
+        list.classList.remove("paused");
+        schedule(Math.max(remaining, 400));
+      };
+      const stop = () => {
+        stopped = true;
+        clearTimeout(timer);
+        items.forEach((d) => d.classList.remove("cycling"));
+        list.classList.remove("paused");
+      };
+
+      const onToggle = (e: Event) => {
+        if (programmatic || index < 0 || stopped) return;
+        const auto = items[index];
+        stop();
+        // You opened a different question: close the one auto-play had open.
+        const opened = e.currentTarget as HTMLDetailsElement;
+        if (opened.open && opened !== auto) auto.open = false;
+      };
+      items.forEach((d) => d.addEventListener("toggle", onToggle));
+      list.addEventListener("pointerenter", pause);
+      list.addEventListener("pointerleave", resume);
+      list.addEventListener("focusin", pause);
+      list.addEventListener("focusout", (e) => {
+        if (!list.contains(e.relatedTarget as Node | null)) resume();
+      });
+
+      const io = new IntersectionObserver(
+        ([e]) => {
+          if (!e.isIntersecting || index >= 0) return;
+          io.disconnect();
+          show(0);
+        },
+        { threshold: 0.4 },
+      );
+      io.observe(list);
+      cleanups.push(() => {
+        io.disconnect();
+        clearTimeout(timer);
+        items.forEach((d) => d.removeEventListener("toggle", onToggle));
+      });
+    });
 
     // Shrink the footer wordmark until it fits on one line.
     const fitWords = () => {

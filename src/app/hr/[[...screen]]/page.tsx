@@ -13,19 +13,44 @@ import { usePortalRoute } from "@/lib/portalRoutes";
 // Pure — reads only its own argument, nothing from component scope — so it
 // lives at module scope rather than being redeclared (and needing to be
 // listed as a dependency of fetchLeaderboard below) on every render.
-function normalizeLeaderboardScore(entry: any) {
+// One row of GET /leaderboard. `score` is what the backend ranks by (tests
+// completed x average accuracy), so it rewards both volume and quality;
+// `accuracy` is the student's average test score out of 100, which is the
+// number shown to recruiters.
+type TalentRow = {
+  id: string;
+  name: string;
+  college: string;
+  department: string | null;
+  tests_completed: number;
+  accuracy: number;
+  score: number;
+  rank: number;
+};
+
+function toTalentRow(entry: any): TalentRow {
   const accuracy = Number(entry?.accuracy);
-  if (Number.isFinite(accuracy) && accuracy >= 0) {
-    return Math.min(100, Math.max(0, accuracy));
-  }
-
-  const rawScore = Number(entry?.score);
-  if (!Number.isFinite(rawScore) || rawScore <= 0) {
-    return 0;
-  }
-
-  return Math.min(100, Math.max(0, rawScore > 100 ? rawScore / 10 : rawScore));
+  return {
+    id: String(entry?.id ?? ""),
+    name: String(entry?.name ?? "Unnamed student"),
+    college: String(entry?.college ?? "Independent"),
+    department: entry?.department ? String(entry.department) : null,
+    tests_completed: Number(entry?.tests_completed) || 0,
+    accuracy: Number.isFinite(accuracy) ? Math.min(100, Math.max(0, accuracy)) : 0,
+    score: Number(entry?.score) || 0,
+    rank: Number(entry?.rank) || 0,
+  };
 }
+
+// Department filters. Real department names are things like "CSE",
+// "B.E. Computer Science" or "MBA", so match common patterns, not one word.
+const DEPARTMENT_FILTERS: Record<string, RegExp> = {
+  Engineering: /engineer|\bb\.?\s?e\b|b\.?\s?tech|m\.?\s?tech|\bcse\b|\bece\b|\beee\b|\bit\b|\bmech|\bcivil|computer|electronic|electrical|information tech/i,
+  Management: /manage|\bmba\b|\bbba\b|commerce|\bb\.?\s?com\b|business/i,
+};
+
+// A student counts as placement ready at this average score or above.
+const PLACEMENT_READY_AT = 70;
 
 // Separate component so useSearchParams (via usePortalRoute) is inside a
 // Suspense boundary, same as the learner and institutional portals.
@@ -36,7 +61,7 @@ function HrContent() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [allJobs, setAllJobs] = useState<any[]>([]);
   const [applicants, setApplicants] = useState<any[]>([]);
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<TalentRow[]>([]);
   const [lbFilter, setLbFilter] = useState("Global Talent");
   const [lbSearch, setLbSearch] = useState("");
 
@@ -86,13 +111,9 @@ function HrContent() {
     try {
       const res = await api.get("/leaderboard");
       if (res.data.success) {
-        setLeaderboard(
-          (res.data.data || []).map((entry: any) => ({
-            ...entry,
-            displayScore: normalizeLeaderboardScore(entry),
-            tests_completed: Number(entry?.tests_completed) || 0,
-          }))
-        );
+        // With nobody scored yet the endpoint falls back to every student at
+        // score 0, all tied at #1; a sourcing board lists scored profiles only.
+        setLeaderboard((res.data.data || []).map(toTalentRow).filter((r: TalentRow) => r.tests_completed > 0));
       }
     } catch (err) {
       console.error("Error fetching leaderboard", err);
@@ -478,119 +499,168 @@ function HrContent() {
 
             </div>
 
-            <div className="lb-metric-strip" style={{ position: "relative", zIndex: 1 }}>
-              <div className="lb-metric-card creative-tilt-card">
-                <div className="lb-metric-icon" style={{ background: "#FEF3C7", color: "#D97706" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20">
-                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 00-3-3.87" />
-                    <path d="M16 3.13a4 4 0 010 7.75" />
-                  </svg>
-                </div>
-                <div className="lb-metric-val">{leaderboard.length}</div>
-                <div className="lb-metric-lbl">Total Profiles Scored</div>
-              </div>
-              <div className="lb-metric-card creative-tilt-card">
-                <div className="lb-metric-icon" style={{ background: "#DCFCE7", color: "#16A34A" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20">
-                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                </div>
-                <div className="lb-metric-val">{leaderboard.filter(l => l.displayScore >= 70).length}</div>
-                <div className="lb-metric-lbl">Placement Ready</div>
-              </div>
-              <div className="lb-metric-card creative-tilt-card">
-                <div className="lb-metric-icon" style={{ background: "#FCE7F3", color: "#DB2777" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20">
-                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                    <line x1="4" y1="22" x2="4" y2="15" />
-                  </svg>
-                </div>
-                <div className="lb-metric-val">{new Set(allJobs.map(j => j.company_name)).size}</div>
-                <div className="lb-metric-lbl">Partner Companies</div>
-              </div>
-              <div className="lb-metric-card creative-tilt-card">
-                <div className="lb-metric-icon" style={{ background: "#E0E7FF", color: "#4F46E5" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                  </svg>
-                </div>
-                <div className="lb-metric-val">
-                  {leaderboard.length > 0 ? Math.round(leaderboard.reduce((acc, curr) => acc + curr.displayScore, 0) / leaderboard.length) : 0}%
-                </div>
-                <div className="lb-metric-lbl">Top percentile avg</div>
-              </div>
-            </div>
+            {(() => {
+              const colleges = new Set(leaderboard.map((r) => r.college).filter((c) => c && c !== "Independent"));
+              const avg = leaderboard.length ? Math.round(leaderboard.reduce((sum, r) => sum + r.accuracy, 0) / leaderboard.length) : 0;
+              // Top 1% by rank (at least one student); ties at the cut-off are included.
+              const topCut = leaderboard.length ? leaderboard[Math.max(0, Math.ceil(leaderboard.length * 0.01) - 1)].rank : 0;
+              const rankCounts = leaderboard.reduce<Record<number, number>>((m, r) => {
+                m[r.rank] = (m[r.rank] || 0) + 1;
+                return m;
+              }, {});
+              const q = lbSearch.trim().toLowerCase();
+              const rows = leaderboard.filter((s) => {
+                if (q && ![s.name, s.college, s.department ?? ""].some((v) => v.toLowerCase().includes(q))) return false;
+                if (lbFilter === "Top 1% Profiles" && s.rank > topCut) return false;
+                const dept = DEPARTMENT_FILTERS[lbFilter];
+                if (dept && !(s.department && dept.test(s.department))) return false;
+                return true;
+              });
+              const metrics = [
+                {
+                  value: leaderboard.length,
+                  label: "Scored Profiles",
+                  hint: "Students with at least one completed test",
+                  bg: "#FEF3C7",
+                  fg: "#D97706",
+                  icon: (
+                    <>
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                      <path d="M16 3.13a4 4 0 010 7.75" />
+                    </>
+                  ),
+                },
+                {
+                  value: leaderboard.filter((r) => r.accuracy >= PLACEMENT_READY_AT).length,
+                  label: "Placement Ready",
+                  hint: `Average score of ${PLACEMENT_READY_AT}% or higher`,
+                  bg: "#DCFCE7",
+                  fg: "#16A34A",
+                  icon: (
+                    <>
+                      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </>
+                  ),
+                },
+                {
+                  value: colleges.size,
+                  label: "Partner Colleges",
+                  hint: "Colleges with students on this board",
+                  bg: "#FCE7F3",
+                  fg: "#DB2777",
+                  icon: <path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6" />,
+                },
+                {
+                  value: `${avg}%`,
+                  label: "Average Score",
+                  hint: "Mean test score across scored profiles",
+                  bg: "#E0E7FF",
+                  fg: "#4F46E5",
+                  icon: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />,
+                },
+              ];
+              return (
+                <>
+                  <div className="lb-metric-strip" style={{ position: "relative", zIndex: 1 }}>
+                    {metrics.map((m) => (
+                      <div key={m.label} className="lb-metric-card creative-tilt-card" title={m.hint}>
+                        <div className="lb-metric-icon" style={{ background: m.bg, color: m.fg }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20">
+                            {m.icon}
+                          </svg>
+                        </div>
+                        <div className="lb-metric-val">{m.value}</div>
+                        <div className="lb-metric-lbl">{m.label}</div>
+                      </div>
+                    ))}
+                  </div>
 
-            <div className="lb-control-bar" style={{ position: "relative", zIndex: 1 }}>
-              <div className="lb-search-wrap">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                <input type="text" placeholder="Search by name, college, or role..." value={lbSearch} onChange={e => setLbSearch(e.target.value)} />
-              </div>
-              {["Global Talent", "Top 1% Profiles", "Engineering", "Management"].map(pill => (
-                <div key={pill} className={`lb-filter-pill ${lbFilter === pill ? "active" : ""}`} onClick={() => setLbFilter(pill)}>
-                  {pill}
-                </div>
-              ))}
-            </div>
+                  <div className="lb-control-bar" style={{ position: "relative", zIndex: 1 }}>
+                    <div className="lb-search-wrap">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                      <input
+                        type="text"
+                        placeholder="Search by name, college, or department..."
+                        aria-label="Search the talent board"
+                        value={lbSearch}
+                        onChange={(e) => setLbSearch(e.target.value)}
+                      />
+                    </div>
+                    {["Global Talent", "Top 1% Profiles", "Engineering", "Management"].map((pill) => (
+                      <button
+                        type="button"
+                        key={pill}
+                        className={`lb-filter-pill ${lbFilter === pill ? "active" : ""}`}
+                        aria-pressed={lbFilter === pill}
+                        onClick={() => setLbFilter(pill)}
+                      >
+                        {pill}
+                      </button>
+                    ))}
+                  </div>
 
-            <div className="lb-table-container extreme-glass" style={{ position: "relative", zIndex: 1 }}>
-              <div style={{ overflowX: "auto" }}>
-              <table className="lb-table">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Candidate</th>
-                    <th>Department</th>
-                    <th>Tests</th>
-                    <th>Score</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboard.filter(s => {
-                    if (lbSearch && !s.name.toLowerCase().includes(lbSearch.toLowerCase())) return false;
-                    if (lbFilter === "Top 1% Profiles" && s.displayScore < 90) return false;
-                    if (lbFilter === "Engineering" && (!s.department || !s.department.toLowerCase().includes("engineer"))) return false;
-                    if (lbFilter === "Management" && (!s.department || !s.department.toLowerCase().includes("manage"))) return false;
-                    return true;
-                  }).length === 0 ? (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>No students found in leaderboard.</td>
-                    </tr>
-                  ) : (
-                    leaderboard.filter(s => {
-                      if (lbSearch && !s.name.toLowerCase().includes(lbSearch.toLowerCase())) return false;
-                      if (lbFilter === "Top 1% Profiles" && s.displayScore < 90) return false;
-                      if (lbFilter === "Engineering" && (!s.department || !s.department.toLowerCase().includes("engineer"))) return false;
-                      if (lbFilter === "Management" && (!s.department || !s.department.toLowerCase().includes("manage"))) return false;
-                      return true;
-                    }).map((student) => (
-                      <tr key={student.id}>
-                        <td>
-                          <div className={`lbrk ${student.rank === 1 ? 'gold' : student.rank === 2 ? 'silver' : student.rank === 3 ? 'bronze' : ''}`} style={{ display: "inline-flex" }}>
-                            #{student.rank}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="tn">{student.name}</div>
-                        </td>
-                        <td>{student.department || "Unknown"}</td>
-                        <td>{student.tests_completed} completed</td>
-                        <td><span style={{ fontWeight: 700, color: "var(--teal)" }}>{student.displayScore.toFixed(1)}/100</span></td>
-                        <td><button className="btn btn-o btn-sm">Invite</button></td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-              </div>
-            </div>
+                  <div className="lb-table-container extreme-glass" style={{ position: "relative", zIndex: 1 }}>
+                    <div style={{ overflowX: "auto" }}>
+                      <table className="lb-table">
+                        <thead>
+                          <tr>
+                            <th>Rank</th>
+                            <th>Candidate</th>
+                            <th>Department</th>
+                            <th>Tests</th>
+                            <th title="Average score across completed tests">Avg Score</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>
+                                {leaderboard.length === 0
+                                  ? "No scored profiles yet. Students appear here once they complete a test."
+                                  : "No students match this search or filter."}
+                              </td>
+                            </tr>
+                          ) : (
+                            rows.map((student) => {
+                              const ties = (rankCounts[student.rank] || 0) - 1;
+                              return (
+                                <tr key={student.id}>
+                                  <td>
+                                    <div
+                                      className={`lbrk ${student.rank === 1 ? "gold" : student.rank === 2 ? "silver" : student.rank === 3 ? "bronze" : ""}`}
+                                      style={{ display: "inline-flex" }}
+                                      title={ties > 0 ? `Tied with ${ties} other${ties === 1 ? "" : "s"} on the same score` : undefined}
+                                    >
+                                      {ties > 0 ? "=" : "#"}
+                                      {student.rank}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <div className="tn">{student.name}</div>
+                                    <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "2px" }}>{student.college}</div>
+                                  </td>
+                                  <td>{student.department || <span style={{ color: "var(--muted)" }}>Not set</span>}</td>
+                                  <td>{student.tests_completed} completed</td>
+                                  <td>
+                                    <span style={{ fontWeight: 700, color: "var(--teal)" }}>{student.accuracy.toFixed(1)}%</span>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

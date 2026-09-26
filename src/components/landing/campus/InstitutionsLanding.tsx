@@ -849,6 +849,28 @@ export function InstitutionsLanding() {
                   the system instead of compiled by hand.
                 </p>
               </details>
+              <details className="rv">
+                <summary>
+                  How do we add our students?
+                  <span className="pm">
+                    <Icon name="plus" style={{ width: "16px", height: "16px" }} />
+                  </span>
+                </summary>
+                <p className="ans">
+                  Upload a spreadsheet (.xlsx, .xls or .csv) with names, emails and roll numbers, or add students one at a time. Students who register themselves wait for your approval.
+                </p>
+              </details>
+              <details className="rv">
+                <summary>
+                  Can we export our data?
+                  <span className="pm">
+                    <Icon name="plus" style={{ width: "16px", height: "16px" }} />
+                  </span>
+                </summary>
+                <p className="ans">
+                  Yes, at any time. Students, drives, offers and reports export as .xlsx, .csv or .pdf, and nothing you put in is locked in.
+                </p>
+              </details>
             </div>
           </div>
         </div>

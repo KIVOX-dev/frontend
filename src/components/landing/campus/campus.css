@@ -448,6 +448,15 @@
 .tsl summary .pm{width:30px;height:30px;border:1.5px solid var(--ink);border-radius:4px;display:grid;place-items:center;flex:none;transition:transform .45s var(--ease),background .3s,color .3s}
 .tsl details[open] summary .pm{transform:rotate(45deg);background:var(--ink);color:#fff}
 .tsl .ans{padding:0 0 22px;color:var(--ink-2);font-size:16px;max-width:60ch}
+/* FAQ auto-play (CampusShell): the open question shows a bar filling over its turn; hover or focus freezes it. */
+.tsl .faq details{position:relative}
+.tsl .faq details.cycling::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--accent);transform-origin:left center;animation:faq-step var(--faq-step,5s) linear forwards}
+.tsl .faq.paused details.cycling::after{animation-play-state:paused}
+@keyframes faq-step{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+/* Smooth open/close where supported (Chrome 131+); elsewhere answers just appear. */
+.tsl .faq{interpolate-size:allow-keywords}
+.tsl .faq details::details-content{block-size:0;overflow:hidden;transition:block-size .5s var(--ease),content-visibility .5s allow-discrete}
+.tsl .faq details[open]::details-content{block-size:auto}
 
 /* ---------- CTA + footer ---------- */
 .tsl .cta2{display:grid;grid-template-columns:1.1fr 1fr;min-height:520px}

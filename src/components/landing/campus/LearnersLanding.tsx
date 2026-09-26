@@ -957,6 +957,28 @@ export function LearnersLanding() {
                 </summary>
                 <p className="ans">Yes. Drives, round results, reports and uploads all work on a phone.</p>
               </details>
+              <details className="rv">
+                <summary>
+                  Do companies see my data?
+                  <span className="pm">
+                    <Icon name="plus" style={{ width: "16px", height: "16px" }} />
+                  </span>
+                </summary>
+                <p className="ans">
+                  When you apply to a drive, that recruiter sees your profile, academic details and assessment results. Hiring teams can also view the Talent Board, which ranks students by test score and shows name, college and score.
+                </p>
+              </details>
+              <details className="rv">
+                <summary>
+                  Can I use it if my college isn&apos;t on TalentSnaps yet?
+                  <span className="pm">
+                    <Icon name="plus" style={{ width: "16px", height: "16px" }} />
+                  </span>
+                </summary>
+                <p className="ans">
+                  Yes. Sign up yourself to use aptitude tests, mock interviews, courses and practice. Drives and placements unlock once your college adds you.
+                </p>
+              </details>
             </div>
           </div>
         </div>

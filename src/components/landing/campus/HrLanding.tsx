@@ -819,6 +819,28 @@ export function HrLanding() {
                   compared directly.
                 </p>
               </details>
+              <details className="rv">
+                <summary>
+                  What do we see about each applicant?
+                  <span className="pm">
+                    <Icon name="plus" style={{ width: "16px", height: "16px" }} />
+                  </span>
+                </summary>
+                <p className="ans">
+                  Their profile, academic record and assessment scores, in one format whichever college they come from. You move each applicant through your rounds and every result is recorded.
+                </p>
+              </details>
+              <details className="rv">
+                <summary>
+                  How do colleges get the results?
+                  <span className="pm">
+                    <Icon name="plus" style={{ width: "16px", height: "16px" }} />
+                  </span>
+                </summary>
+                <p className="ans">
+                  When you record a round or publish a shortlist, it reaches every placement cell involved at once, so no one has to chase results over email.
+                </p>
+              </details>
             </div>
           </div>
         </div>
