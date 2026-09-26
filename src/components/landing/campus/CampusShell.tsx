@@ -9,7 +9,7 @@ import { campusFonts } from "./fonts";
 import { IconSprite } from "./primitives";
 
 // Everything that fades, rises or draws in when it scrolls into view.
-const REVEAL = ".rv,.rows,.path,.chart,.steps4,.rule,.anim,.fword";
+const REVEAL = ".rv,.rows,.path,.chart,.steps4,.rule,.anim,.fword,.tl";
 
 // Shown to no-JS visitors: the root server-renders with .motion (so nothing
 // flashes before hydration), which would otherwise leave reveals hidden.
@@ -17,7 +17,11 @@ const NO_SCRIPT_CSS = `
 .tsl.motion .rv,.tsl.motion .rows > *{opacity:1;transform:none}
 .tsl .ln > span,.tsl .fword span{transform:none;opacity:1}
 .tsl .pan-bg{clip-path:inset(0 0 0 0)}.tsl .pan-photo{opacity:1}
-.tsl.motion .track i,.tsl.motion .fn .bb i{transform:none}`;
+.tsl.motion .track i,.tsl.motion .fn .bb i{transform:none}
+.tsl.motion .drop .ln > span,.tsl.motion .drop .rv:not(.in),.tsl.motion .path .step.rv:not(.in){transform:none}
+.tsl.motion .path .step::after{transform:none}
+.tsl.motion .path:not(.in) .step .node{background:var(--info-bg);border-color:var(--action);color:var(--accent);transform:none}
+.tsl.motion .tl .yr::before,.tsl.motion .tl .yr > h3,.tsl.motion .tl li,.tsl.motion .tl li .ico,.tsl.motion .tl .seal,.tsl.motion .tl .now::after{opacity:1;transform:none}`;
 
 /**
  * Page chrome and motion for the three public landings (/, /for-hr,
@@ -47,8 +51,8 @@ export function CampusShell({ audience, children }: { audience: CampusAudience; 
       html.style.scrollPaddingTop = prevPadding;
     });
 
-    // Stroke-draw lengths for the institutions chart and placement path.
-    root.querySelectorAll<SVGPathElement>(".chart path.ln, .path path.draw").forEach((p) => {
+    // Stroke-draw lengths for the institutions chart.
+    root.querySelectorAll<SVGPathElement>(".chart path.ln").forEach((p) => {
       p.style.setProperty("--len", String(Math.ceil(p.getTotalLength())));
     });
 

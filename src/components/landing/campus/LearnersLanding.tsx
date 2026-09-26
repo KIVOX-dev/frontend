@@ -831,7 +831,7 @@ export function LearnersLanding() {
 
       <div className="rule"></div>
 
-      <div className="row" id="l-skill">
+      <div className="row drop" id="l-skill">
         <div className="head split2">
           <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             <span className="eb rv">
@@ -847,8 +847,8 @@ export function LearnersLanding() {
           </p>
         </div>
         <div style={{ paddingBottom: "72px" }}>
-          <div className="years">
-            <div className="yr f rv" style={{ "--i": "0" }}>
+          <div className="years tl">
+            <div className="yr f" style={{ "--i": "0" }}>
               <h3>First year</h3>
               <ul>
                 <li>
@@ -861,7 +861,7 @@ export function LearnersLanding() {
                 </li>
               </ul>
             </div>
-            <div className="yr f rv" style={{ "--i": "1" }}>
+            <div className="yr f" style={{ "--i": "1" }}>
               <h3>Second year</h3>
               <ul>
                 <li>
@@ -874,7 +874,7 @@ export function LearnersLanding() {
                 </li>
               </ul>
             </div>
-            <div className="yr f rv" style={{ "--i": "2" }}>
+            <div className="yr f now" style={{ "--i": "2" }}>
               <h3>Third year</h3>
               <ul>
                 <li>
@@ -887,7 +887,7 @@ export function LearnersLanding() {
                 </li>
               </ul>
             </div>
-            <div className="yr rv" style={{ "--i": "3" }}>
+            <div className="yr" style={{ "--i": "3" }}>
               <h3>Final year</h3>
               <ul>
                 <li>
@@ -900,7 +900,7 @@ export function LearnersLanding() {
                 </li>
               </ul>
             </div>
-            <div className="seal rv" style={{ "--i": "4" }}>
+            <div className="seal" style={{ "--i": "4" }}>
               <span>
                 <Icon name="seal" />
                 VERIFIED

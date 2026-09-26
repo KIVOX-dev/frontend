@@ -718,10 +718,6 @@ export function InstitutionsLanding() {
       <div className="row">
         <div style={{ padding: "8px clamp(20px,4vw,48px) 72px" }}>
           <div className="path" id="path">
-            <svg className="line" viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true">
-              <path d="M34 0 C 130 0, 150 50, 234 50 S 340 0, 434 0 S 540 50, 634 50 S 740 0, 834 0"></path>
-              <path className="draw" d="M34 0 C 130 0, 150 50, 234 50 S 340 0, 434 0 S 540 50, 634 50 S 740 0, 834 0"></path>
-            </svg>
             <ol className="steps">
               <li className="step rv">
                 <div className="node">

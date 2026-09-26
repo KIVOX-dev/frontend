@@ -215,13 +215,16 @@
 .tsl .legend span{display:flex;align-items:center;gap:8px}
 .tsl .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .tsl .path{position:relative;margin-top:56px}
-.tsl .path svg.line{position:absolute;left:0;top:34px;width:100%;height:60px;overflow:visible;pointer-events:none}
-.tsl .path svg.line path{fill:none;stroke:var(--stone-2);stroke-width:2;stroke-dasharray:6 7}
-.tsl .path svg.line path.draw{stroke:var(--action);stroke-dasharray:none;stroke-width:2.5}
-.tsl .steps{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:20px;list-style:none;margin:0;padding:0}
-.tsl .step{display:flex;flex-direction:column;gap:12px}
+.tsl .steps{--gap:20px;--node:68px;position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap);list-style:none;margin:0;padding:0}
+.tsl .step{position:relative;display:flex;flex-direction:column;gap:12px}
+/* connector from each node to the next, at node-centre height: a dashed track with the accent fill over it */
+.tsl .step:not(:last-child)::before,.tsl .step:not(:last-child)::after{content:"";position:absolute;top:calc(var(--node) / 2 - 1px);left:calc(var(--node) + 12px);width:calc(100% + var(--gap) - var(--node) - 24px);height:2px;pointer-events:none}
+.tsl .step:not(:last-child)::before{background:repeating-linear-gradient(90deg,var(--stone-2) 0 6px,transparent 6px 13px)}
+.tsl .step:not(:last-child)::after{background:var(--action);transform-origin:left center}
 .tsl .step .node{width:68px;height:68px;border-radius:18px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;color:var(--forest);box-shadow:0 10px 24px -16px rgb(var(--shadow) / .5)}
 .tsl .step .node .ico{width:28px;height:28px}
+.tsl .step .node{transition:background .45s var(--ease),border-color .45s var(--ease),color .45s var(--ease),transform .5s cubic-bezier(.34,1.56,.64,1)}
+.tsl .path .step .node{background:var(--info-bg);border-color:var(--action)}
 .tsl .step h3{font-family:var(--sans);font-size:17px;font-weight:700;letter-spacing:-.01em;margin-top:6px}
 .tsl .step p{font-size:14.5px;color:var(--ink-2)}
 .tsl .step .k{font-size:12px;font-weight:700;color:var(--ink-3);letter-spacing:.06em}
@@ -475,8 +478,12 @@
 .tsl .facts{border-top:1px dashed var(--dash)}
 .tsl .fact + .fact{border-left:1px dashed var(--dash)}
 .tsl .fact b{font-family:var(--display);font-weight:900;font-stretch:72%;text-transform:uppercase;color:var(--ink)}
-.tsl .yr{border-top-color:var(--stone-2)}.tsl .yr.f{border-top-color:var(--accent)}
-.tsl .seal{background:var(--accent);box-shadow:0 0 0 6px var(--bg),0 0 0 7px var(--dash)}
+/* four-year timeline: a stone track under every year, the accent fill laid over the finished ones */
+.tsl .yr,.tsl .yr.f{position:relative;border-top-color:var(--stone-2)}
+.tsl .yr.f::before{content:"";position:absolute;left:0;right:0;top:-4px;height:4px;background:var(--accent);transform-origin:left center}
+.tsl .yr.now::after{content:"";position:absolute;right:-6px;top:-8px;width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--bg)}
+.tsl .seal{position:relative;background:var(--accent);box-shadow:0 0 0 6px var(--bg),0 0 0 7px var(--dash)}
+.tsl .seal::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);opacity:0;pointer-events:none}
 .tsl .soon{border-radius:4px}
 
 /* ---------- motion ---------- */
@@ -490,8 +497,31 @@
 @keyframes drawv{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 .tsl.motion .rule::before,.tsl.motion .rule::after{transform:scale(0) rotate(-90deg)}
 .tsl.motion .rule.in::before,.tsl.motion .rule.in::after{transform:none}
-.tsl .path path.draw{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 1.8s var(--ease)}
-.tsl .path.in path.draw{stroke-dashoffset:0}
+/* sections marked .drop enter from above instead of below */
+.tsl.motion .drop .ln > span{transform:translateY(-105%)}
+.tsl.motion .drop .in .ln > span{transform:none}
+.tsl.motion .drop .rv:not(.in){transform:translateY(-18px)}
+/* timeline: the fill sweeps year by year, each column drops in behind it, then the seal lands */
+.tsl.motion .tl{--step:420ms}
+.tsl.motion .tl .yr::before{transform:scaleX(0);transition:transform .52s cubic-bezier(.45,0,.55,1);transition-delay:calc(var(--i,0) * var(--step) + 150ms)}
+.tsl.motion .tl .yr > h3,.tsl.motion .tl li{opacity:0;transform:translateY(-16px);transition:opacity .6s var(--ease),transform .6s var(--ease);transition-delay:calc(var(--i,0) * var(--step) + 300ms)}
+.tsl.motion .tl li:nth-child(1){transition-delay:calc(var(--i,0) * var(--step) + 420ms)}
+.tsl.motion .tl li:nth-child(2){transition-delay:calc(var(--i,0) * var(--step) + 540ms)}
+.tsl.motion .tl li .ico{transform:scale(0) rotate(-120deg);transition:transform .6s cubic-bezier(.34,1.56,.64,1);transition-delay:inherit}
+.tsl.motion .tl .now::after{opacity:0;transform:scale(0);transition:opacity .3s,transform .5s cubic-bezier(.34,1.56,.64,1);transition-delay:calc(3 * var(--step) + 100ms)}
+.tsl.motion .tl .seal{opacity:0;transform:translateY(-70px) scale(.6) rotate(-25deg);transition:opacity .5s var(--ease),transform .9s cubic-bezier(.34,1.56,.64,1);transition-delay:calc(4 * var(--step) + 200ms)}
+.tsl.motion .tl.in .yr::before,.tsl.motion .tl.in .yr > h3,.tsl.motion .tl.in li,.tsl.motion .tl.in li .ico,.tsl.motion .tl.in .seal{opacity:1;transform:none}
+.tsl.motion .tl.in .now::after{opacity:1;transform:none;animation:tlpulse 2s ease-out calc(3 * var(--step) + 700ms) infinite}
+.tsl.motion .tl.in .seal::after{animation:tlring 2.4s ease-out calc(4 * var(--step) + 1.1s) infinite}
+@keyframes tlpulse{0%{box-shadow:0 0 0 3px var(--bg),0 0 0 3px rgb(5 99 249 / .45)}100%{box-shadow:0 0 0 3px var(--bg),0 0 0 14px rgb(5 99 249 / 0)}}
+@keyframes tlring{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(1.45)}}
+/* placement path: nodes drop in, then the line runs node to node, lighting each one as it arrives */
+.tsl.motion .path{--step:340ms}
+.tsl.motion .path .step.rv:not(.in){transform:translateY(-22px)}
+.tsl.motion .path .step::after{transform:scaleX(0);transition:transform .38s cubic-bezier(.45,0,.55,1);transition-delay:calc(var(--i,0) * var(--step) + 500ms)}
+.tsl.motion .path:not(.in) .step .node{background:var(--surface);border-color:var(--line);color:var(--ink-3);transform:scale(.86)}
+.tsl.motion .path .step .node{transition-delay:calc(var(--i,0) * var(--step) + 380ms)}
+.tsl.motion .path.in .step::after{transform:none}
 .tsl .chart .ln{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 1.6s var(--ease) .3s}
 .tsl .in .chart .ln,.tsl .chart.done .ln{stroke-dashoffset:0}
 @media (prefers-reduced-motion: reduce){
@@ -527,7 +557,7 @@
 }
 @media (max-width:900px){
   .tsl .steps{grid-template-columns:1fr;gap:28px}
-  .tsl .path svg.line{display:none}
+  .tsl .step::before,.tsl .step::after{display:none!important}
   .tsl .step{flex-direction:row;gap:18px;align-items:flex-start}
   .tsl .facts{grid-template-columns:1fr 1fr}
   .tsl .fact:nth-child(3){padding-left:0;border-left:0}
@@ -586,5 +616,5 @@
   .tsl .pan-bg{clip-path:inset(0 0 0 0)}
   .tsl .pan-photo{opacity:1}
   .tsl.motion .track i,.tsl.motion .fn .bb i{transform:none}
-  .tsl .path path.draw,.tsl .chart .ln{stroke-dashoffset:0}
+  .tsl .chart .ln{stroke-dashoffset:0}
 }
