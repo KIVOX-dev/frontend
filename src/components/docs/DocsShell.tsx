@@ -322,10 +322,7 @@ export function DocsShell({ audience, doc, nav, search, availableIn }: Props) {
       <header className="sticky top-0 z-40 border-b border-[#E9EEEE] bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-[72px] max-w-[1500px] items-center gap-4 px-4 sm:px-8">
           <Link href="/" className="flex shrink-0 items-center gap-2.5" style={{ color: INK }} aria-label="TalentSnaps home">
-            <Image src="/images/landing/logo-mark.png" alt="" width={34} height={34} className="rounded-full" priority />
-            <span className="text-[23px] font-light leading-none tracking-[-0.01em] [font-family:var(--font-tsl-brand)]">
-              <b className="font-semibold">Talent</b>Snaps
-            </span>
+            <Image src="/brand/lockup.png" alt="TalentSnaps: skill meets opportunities" width={1400} height={308} sizes="200px" priority className="h-[40px] w-auto" />
             <span className="ml-1 hidden rounded border border-[#D5DDDD] px-1.5 py-0.5 text-[12px] font-semibold uppercase tracking-wide text-[#6E7E7F] sm:inline">Docs</span>
           </Link>
           <button

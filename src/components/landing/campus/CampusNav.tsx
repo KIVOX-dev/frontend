@@ -2,13 +2,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { AUDIENCE_ORDER, CAMPUS_AUDIENCES, landingHref, type CampusAudience } from "./audiences";
 
-export function CampusLogo({ href }: { href: string }) {
+// The official horizontal lockup (mark + wordmark + tagline), built from
+// public/logos/brand-logo.png by scripts/build-brand-assets.cjs. 1400x308.
+const LOCKUP = { width: 1400, height: 308 };
+
+/** Official TalentSnaps logo. `tone="light"` is the white-text version for dark backgrounds. */
+export function CampusLogo({ href, tone = "dark" }: { href: string; tone?: "dark" | "light" }) {
   return (
     <Link className="logo" href={href} aria-label="TalentSnaps home">
-      <Image className="mark" src="/images/landing/logo-mark.png" alt="" width={36} height={36} priority />
-      <span className="wm">
-        <b>Talent</b>Snaps
-      </span>
+      <Image
+        className="lockup"
+        src={tone === "light" ? "/brand/lockup-light.png" : "/brand/lockup.png"}
+        alt="TalentSnaps: skill meets opportunities"
+        width={LOCKUP.width}
+        height={LOCKUP.height}
+        sizes="220px"
+        priority={tone === "dark"}
+      />
     </Link>
   );
 }

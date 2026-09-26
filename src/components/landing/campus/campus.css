@@ -325,8 +325,9 @@
 .tsl .nav.scrolled{box-shadow:0 1px 0 var(--dash)}
 .tsl .nav-in{display:flex;align-items:center;justify-content:space-between;gap:24px;height:80px;padding-inline:var(--gut)}
 .tsl .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
-.tsl .logo .mark{width:36px;height:36px;border-radius:50%}
-.tsl .wm{font:300 24px/1 var(--brandf);letter-spacing:-.01em}.tsl .wm b{font-weight:600}
+/* Official lockup image; height sets the size, width follows its aspect ratio. */
+.tsl .logo .lockup{height:46px;width:auto;display:block}
+.tsl .fgrid .logo .lockup{height:52px}
 .tsl .links{display:flex;gap:30px;font-size:16.5px}
 .tsl .links a{text-decoration:none;color:var(--ink);position:relative;padding:6px 0}
 .tsl .links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1.5px;background:var(--ink);transform:scaleX(0);transform-origin:right;transition:transform .35s var(--ease)}
@@ -588,7 +589,8 @@
   .tsl .app{grid-template-columns:1fr;gap:10px}
 }
 @media (max-width:760px){
-  .tsl .nav-r .login{display:none}
+  /* Phones keep Log in: both nav buttons go compact instead. */
+  .tsl .nav-r{gap:8px}
   .tsl .nav .mseg{display:flex}
   .tsl .hr-body{grid-template-columns:1fr}
   .tsl .pipe{display:none}
@@ -617,8 +619,15 @@
   .tsl .pan-ui .demo{min-width:520px}
   .tsl .show-ui .win{min-width:0}
   .tsl .nav-in{height:68px}
+  .tsl .nav .logo .lockup{height:38px}
   .tsl .nav .btn-sm{padding:10px 14px;font-size:14px}
   .tsl .rule::before,.tsl .rule::after{display:none}
+}
+/* Narrow phones: smaller logo and buttons so Log in and the main button both fit. */
+@media (max-width:420px){
+  .tsl .nav-in{gap:10px}
+  .tsl .nav .logo .lockup{height:30px}
+  .tsl .nav .btn-sm{padding:9px 11px;font-size:13px}
 }
 .tsl .mseg{display:none;gap:6px;justify-content:center;padding:14px var(--gut) 0}
 .tsl .mseg a{font:600 13px/1 var(--mono);text-transform:uppercase;text-decoration:none;padding:9px 12px;border:1px solid var(--dash);border-radius:4px}

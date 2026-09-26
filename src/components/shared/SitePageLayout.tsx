@@ -98,10 +98,7 @@ export function SitePageLayout({
           {/* Same logo lockup and button as the landing nav (campus.css
               .logo / .btn.btn-dark), so moving between them feels like one site. */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0 text-[#06262B]" aria-label="TalentSnaps home">
-            <Image src="/images/landing/logo-mark.png" alt="" width={36} height={36} className="rounded-full" priority />
-            <span className="text-2xl leading-none font-light tracking-[-0.01em] [font-family:var(--font-tsl-brand)]">
-              <b className="font-semibold">Talent</b>Snaps
-            </span>
+            <Image src="/brand/lockup.png" alt="TalentSnaps: skill meets opportunities" width={1400} height={308} sizes="200px" priority className="h-[44px] w-auto" />
           </Link>
           <Link
             href="/"

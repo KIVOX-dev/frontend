@@ -82,7 +82,8 @@ export const metadata: Metadata = {
     description: "One intelligent platform connecting HR, students, faculty, and administrators across your institution's placement cell.",
   },
   twitter: {
-    card: "summary",
+    // Large card: shows app/opengraph-image.png (the official stacked logo).
+    card: "summary_large_image",
     title: "TalentSnaps",
     description: "Campus Placement & Assessment Management Platform",
   },

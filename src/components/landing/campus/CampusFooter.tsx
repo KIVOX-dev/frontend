@@ -14,7 +14,7 @@ export function CampusFooter({ audience }: { audience: CampusAudience }) {
         <div className="row">
           <div className="fgrid">
             <div>
-              <CampusLogo href={cfg.path} />
+              <CampusLogo href={cfg.path} tone="light" />
               <p>{footer.blurb}</p>
             </div>
             <div>
