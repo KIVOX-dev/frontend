@@ -31,7 +31,7 @@ function YoutubeIcon({ className }: { className?: string }) {
 
 const STEPS = [
   { title: "1. Copy the video or playlist link", body: "Open the YouTube video or playlist you want to convert and copy its link from the browser's address bar or the Share button." },
-  { title: "2. Paste it and convert", body: "Paste the link above and press Convert — it becomes a course with a video player, lesson list, notes, and an assessment for each video." },
+  { title: "2. Paste it and convert", body: "Paste the link into the converter and press Convert — it becomes a course with a video player, lesson list, notes, and an assessment for each video." },
   { title: "3. Start your Learnings", body: "Find it any time under Learnings, pick up where you left off, and mark lessons complete as you go." },
 ];
 
@@ -87,7 +87,7 @@ export function YoutubeCourseImport() {
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-4xl mx-auto">
+    <div className="p-6 md:p-10 max-w-6xl mx-auto">
       <div className="mb-6">
         <h1 className="text-heading-l mb-1">YouTube to Course</h1>
         <p className="text-body text-ink-muted">Convert a link, or follow a video roadmap for your chosen job role.</p>
@@ -111,98 +111,100 @@ export function YoutubeCourseImport() {
 
       {mode === "link" ? (
         <>
-          <div className="grid md:grid-cols-2 gap-6 items-start">
-            <Card className="text-center py-10">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <YoutubeIcon className="size-7" />
-                <h2 className="text-section-title">Convert YouTube Playlist</h2>
-              </div>
-              <p className="text-small mb-6">Paste your YouTube video or playlist URL and convert it into a course.</p>
-
-              <Input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="Paste the content/playlist link here"
-                className="mb-2"
-                onKeyDown={(e) => e.key === "Enter" && handleConvert()}
-              />
-              {error && <p className="text-small text-danger mt-2 mb-2">{error}</p>}
-
-              <p className="text-caption my-3">Powered by YouTube</p>
-              <Button onClick={handleConvert} loading={importing} disabled={!url.trim()}>
-                Convert →
-              </Button>
-            </Card>
-
-            {!targetJobRole ? (
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] gap-6 items-start">
+            <div className="space-y-6">
               <Card className="text-center py-10">
-                <h2 className="text-section-title mb-2">Badges Needed For Your Job Role</h2>
-                <p className="text-small mb-6">Pick a target job role in Setup to see the badges it takes to get certified.</p>
-                <Button onClick={() => setActiveScreen("setup")}>Go to Setup</Button>
-              </Card>
-            ) : roadmapLoading ? (
-              <Card className="flex items-center justify-center py-10">
-                <Loader2 className="size-5 animate-spin text-ink-muted" />
-              </Card>
-            ) : roadmapSummary ? (
-              <Card>
-                <div className="flex items-center justify-between gap-3 mb-4">
-                  <div>
-                    <h2 className="text-section-title mb-0.5">Badges Needed For Your Job Role</h2>
-                    <p className="text-caption">{roadmapSummary.role.title}</p>
-                  </div>
-                  {roadmapSummary.role_certificate ? (
-                    <span className="inline-flex items-center gap-1 text-caption font-semibold text-success shrink-0">
-                      <SkillBadgeIcon size={16} /> Role certified
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setMode("roadmap")}
-                      className="text-caption font-semibold text-primary hover:underline shrink-0"
-                    >
-                      View full roadmap
-                    </button>
-                  )}
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <YoutubeIcon className="size-7" />
+                  <h2 className="text-section-title">Convert YouTube Playlist</h2>
                 </div>
-                <div className="space-y-2.5">
-                  {roadmapSummary.steps.map((step) => (
-                    <div key={step.skill} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        {step.badge_progress.certificate_issued ? (
-                          <CheckCircle2 className="size-4 text-success shrink-0" />
-                        ) : (
-                          <SkillBadgeIcon size={18} className="shrink-0 opacity-40" />
-                        )}
-                        <span className="text-small text-ink">{step.skill}</span>
-                      </div>
-                      <span
-                        className={cn(
-                          "text-caption font-medium rounded-full px-2.5 py-0.5 border shrink-0",
-                          step.badge_progress.certificate_issued ? "border-success/40 text-success" : "border-line text-ink-muted"
-                        )}
-                      >
-                        {step.badge_progress.certificate_issued
-                          ? "Certified"
-                          : `${step.badge_progress.badge_count}/${BADGES_PER_CERTIFICATE} badges`}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-small mb-6">Paste your YouTube video or playlist URL and convert it into a course.</p>
+  
+                <Input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="Paste the content/playlist link here"
+                  className="mb-2"
+                  onKeyDown={(e) => e.key === "Enter" && handleConvert()}
+                />
+                {error && <p className="text-small text-danger mt-2 mb-2">{error}</p>}
+  
+                <p className="text-caption my-3">Powered by YouTube</p>
+                <Button onClick={handleConvert} loading={importing} disabled={!url.trim()}>
+                  Convert →
+                </Button>
               </Card>
-            ) : null}
-          </div>
-
-          <div className="mt-12">
-            <h3 className="text-section-title text-center mb-6">How to convert a YouTube link to a course?</h3>
-            <div className="grid sm:grid-cols-3 gap-6">
-              {STEPS.map((step) => (
-                <Card key={step.title}>
-                  <p className="font-semibold text-ink mb-1">{step.title}</p>
-                  <p className="text-small">{step.body}</p>
+  
+              {!targetJobRole ? (
+                <Card className="text-center py-10">
+                  <h2 className="text-section-title mb-2">Badges Needed For Your Job Role</h2>
+                  <p className="text-small mb-6">Pick a target job role in Setup to see the badges it takes to get certified.</p>
+                  <Button onClick={() => setActiveScreen("setup")}>Go to Setup</Button>
                 </Card>
-              ))}
+              ) : roadmapLoading ? (
+                <Card className="flex items-center justify-center py-10">
+                  <Loader2 className="size-5 animate-spin text-ink-muted" />
+                </Card>
+              ) : roadmapSummary ? (
+                <Card>
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h2 className="text-section-title mb-0.5">Badges Needed For Your Job Role</h2>
+                      <p className="text-caption">{roadmapSummary.role.title}</p>
+                    </div>
+                    {roadmapSummary.role_certificate ? (
+                      <span className="inline-flex items-center gap-1 text-caption font-semibold text-success shrink-0">
+                        <SkillBadgeIcon size={16} /> Role certified
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setMode("roadmap")}
+                        className="text-caption font-semibold text-primary hover:underline shrink-0"
+                      >
+                        View full roadmap
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2.5">
+                    {roadmapSummary.steps.map((step) => (
+                      <div key={step.skill} className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          {step.badge_progress.certificate_issued ? (
+                            <CheckCircle2 className="size-4 text-success shrink-0" />
+                          ) : (
+                            <SkillBadgeIcon size={18} className="shrink-0 opacity-40" />
+                          )}
+                          <span className="text-small text-ink">{step.skill}</span>
+                        </div>
+                        <span
+                          className={cn(
+                            "text-caption font-medium rounded-full px-2.5 py-0.5 border shrink-0",
+                            step.badge_progress.certificate_issued ? "border-success/40 text-success" : "border-line text-ink-muted"
+                          )}
+                        >
+                          {step.badge_progress.certificate_issued
+                            ? "Certified"
+                            : `${step.badge_progress.badge_count}/${BADGES_PER_CERTIFICATE} badges`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              ) : null}
             </div>
+
+            <aside className="lg:sticky lg:top-6">
+              <h3 className="text-section-title mb-4">How to convert a YouTube link to a course?</h3>
+              <div className="space-y-4">
+                {STEPS.map((step) => (
+                  <Card key={step.title}>
+                    <p className="font-semibold text-ink mb-1">{step.title}</p>
+                    <p className="text-small">{step.body}</p>
+                  </Card>
+                ))}
+              </div>
+            </aside>
           </div>
         </>
       ) : (

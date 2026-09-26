@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
-import { LandingPageBody } from "@/components/landing/LandingPageBody";
+import { CampusShell } from "@/components/landing/campus/CampusShell";
+import { InstitutionsLanding } from "@/components/landing/campus/InstitutionsLanding";
 
 export const metadata: Metadata = {
   title: "TalentSnaps for Institutions",
   description:
-    "Run placement drives with HR, create and assign assessments, and oversee every department — all from one connected platform.",
+    "Run your whole placement season from one place: announce drives, collect applications, run screening, track selections and collect offer letters, with numbers ready for NIRF.",
   openGraph: {
     title: "TalentSnaps for Institutions",
-    description: "Empower employability with one connected placement platform for your college.",
+    description: "Run your whole placement season from one place.",
     type: "website",
   },
 };
 
 export default function ForInstitutionsPage() {
-  return <LandingPageBody audience="institutional" />;
+  return (
+    <CampusShell audience="institutions">
+      <InstitutionsLanding />
+    </CampusShell>
+  );
 }
