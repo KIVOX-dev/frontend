@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Space_Grotesk, Source_Sans_3 } from "next/font/googl
 import { ConsentedAnalytics } from "@/components/shared/ConsentedAnalytics";
 import { CookieConsent } from "@/components/shared/CookieConsent";
 import { LegacyStyleGuard } from "@/components/shared/LegacyStyleGuard";
+import { STALE_BUILD_GUARD_SCRIPT } from "@/lib/staleBuild";
 import "./globals.css";
 import { Toaster } from "@/components/ui/Toaster";
 import { TooltipProvider } from "@/components/ui/Tooltip";
@@ -111,6 +112,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* First thing on the page, so it's listening before any of the
+            site's own script files load — see lib/staleBuild.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: STALE_BUILD_GUARD_SCRIPT }} />
+      </head>
       <body
         className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${sourceSansPro.variable} ${displayJakarta.variable} ${displayGrotesk.variable} ${sourceSansPro.className}`}
         suppressHydrationWarning
