@@ -7,6 +7,8 @@ type AudienceConfig = {
   path: string;
   /** Portal the "Log in" link opens; each portal shows its own login screen. */
   login: string;
+  /** Troubleshooting guide for this portal. */
+  help: string;
   cta: FooterLink;
   faq: string;
   footer: { blurb: string; tag: string; product: FooterLink[]; more: FooterLink[] };
@@ -17,6 +19,7 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
     label: "Learners",
     path: "/",
     login: "/learner",
+    help: "/troubleshooting",
     cta: { label: "Get started", href: "#l-cta" },
     faq: "#l-faq",
     footer: {
@@ -39,6 +42,7 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
     label: "HR teams",
     path: "/for-hr",
     login: "/hr",
+    help: "/for-hr/troubleshooting",
     cta: { label: "Book a demo", href: "#h-cta" },
     faq: "#h-faq",
     footer: {
@@ -61,6 +65,7 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
     label: "Institutions",
     path: "/for-institutions",
     login: "/institutional",
+    help: "/for-institutions/troubleshooting",
     cta: { label: "Book a demo", href: "#i-cta" },
     faq: "#i-faq",
     footer: {
@@ -82,3 +87,12 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
 };
 
 export const AUDIENCE_ORDER: CampusAudience[] = ["learners", "hr", "institutions"];
+
+/**
+ * Nav and footer hrefs point at sections of the landing ("#l-faq"). Prefixed
+ * with the landing's path so they still work from a subpage such as the
+ * troubleshooting guide; on the landing itself the browser just scrolls.
+ */
+export function landingHref(audience: CampusAudience, href: string) {
+  return href.startsWith("#") ? `${CAMPUS_AUDIENCES[audience].path}${href}` : href;
+}

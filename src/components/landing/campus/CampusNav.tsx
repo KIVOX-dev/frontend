@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AUDIENCE_ORDER, CAMPUS_AUDIENCES, type CampusAudience } from "./audiences";
+import { AUDIENCE_ORDER, CAMPUS_AUDIENCES, landingHref, type CampusAudience } from "./audiences";
 
 export function CampusLogo({ href }: { href: string }) {
   return (
@@ -30,13 +30,14 @@ export function CampusNav({ audience }: { audience: CampusAudience }) {
         <CampusLogo href={cfg.path} />
         <nav className="links" aria-label="Choose your landing">
           <AudienceLinks audience={audience} />
-          <a href={cfg.faq}>FAQ</a>
+          <a href={landingHref(audience, cfg.faq)}>FAQ</a>
+          <Link href={cfg.help}>Help</Link>
         </nav>
         <div className="nav-r">
           <Link className="login" href={cfg.login}>
             Log in
           </Link>
-          <a className="btn btn-dark btn-sm" href={cfg.cta.href}>
+          <a className="btn btn-dark btn-sm" href={landingHref(audience, cfg.cta.href)}>
             {cfg.cta.label}
           </a>
         </div>

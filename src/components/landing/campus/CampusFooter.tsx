@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AUDIENCE_ORDER, CAMPUS_AUDIENCES, type CampusAudience } from "./audiences";
+import { AUDIENCE_ORDER, CAMPUS_AUDIENCES, landingHref, type CampusAudience } from "./audiences";
 import { CampusLogo } from "./CampusNav";
 import { FooterWord } from "./primitives";
 
@@ -19,7 +19,7 @@ export function CampusFooter({ audience }: { audience: CampusAudience }) {
             <div>
               <h5>Product</h5>
               {footer.product.map((l) => (
-                <a key={l.href} href={l.href}>
+                <a key={l.href} href={landingHref(audience, l.href)}>
                   {l.label}
                 </a>
               ))}
@@ -27,10 +27,11 @@ export function CampusFooter({ audience }: { audience: CampusAudience }) {
             <div>
               <h5>More</h5>
               {footer.more.map((l) => (
-                <a key={l.href} href={l.href}>
+                <a key={l.href} href={landingHref(audience, l.href)}>
                   {l.label}
                 </a>
               ))}
+              <Link href={cfg.help}>Troubleshooting</Link>
             </div>
             <div>
               <h5>Also on TalentSnaps</h5>
