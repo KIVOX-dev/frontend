@@ -2,18 +2,18 @@
 
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
+// GET /students/:id/dashboard — cached counters off the student's own row.
 type DashboardStats = {
   tests_completed: number;
   avg_accuracy: number;
   interviews_completed: number;
   streak: number;
-  national_rank: number | string;
-  placement_status: string;
+  placement_status: string | null;
   recent_activity?: {
-    id: number;
+    id: string;
     title: string;
     score: number;
     max_score: number;
@@ -22,46 +22,107 @@ type DashboardStats = {
   }[];
 };
 
+// GET /students/profile/summary — per-category averages and next steps,
+// computed from real attempts (same data as Profile › Performance Summary).
+type CategoryTrend = { category: string; label: string; avg_percentage: number; attempts: number };
+type ProfileSummary = {
+  has_data: boolean;
+  overall_readiness: number;
+  top_skill: string | null;
+  category_trends: CategoryTrend[];
+  focus_areas: { severity: "gap" | "weak"; text: string }[];
+};
+
+// GET /leaderboard — the top 100 students nationally, ranked; `id` is the user id.
+type LeaderboardRow = { id: string; rank: number };
+
+// GET /students/:id/tests — raw attempts, the only place time taken is kept.
+type Attempt = { time_taken_seconds?: number | null };
+
+// Shown in "Today's Challenges" before the summary has any category data
+// (it returns an empty list until a first attempt) — same 4 practice banks.
+const CATEGORIES = ["Quantitative Aptitude", "Logical Reasoning", "Verbal Ability", "Data Interpretation"];
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+function formatDuration(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return m > 0 ? `${m}m ${String(s).padStart(2, "0")}s` : `${s}s`;
+}
+
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
 export function LearnerDashboard() {
   const { setActiveScreen } = useUiStore();
   const { user } = useAuthStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [summary, setSummary] = useState<ProfileSummary | null>(null);
+  const [rank, setRank] = useState<number | null>(null);
+  const [avgTestSeconds, setAvgTestSeconds] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    if (user?.id) {
-      api.get(`/students/${user.id}/dashboard`)
-        .then(res => setStats(res.data))
-        .catch(err => console.error("Failed to fetch stats", err))
-        .finally(() => setLoading(false));
+  const [failed, setFailed] = useState(false);
+
+  // Four independent requests: each card falls back on its own if its
+  // endpoint fails, rather than one error blanking the whole dashboard.
+  const load = useCallback(async () => {
+    if (!user?.id) return;
+    setLoading(true);
+    setFailed(false);
+    const [dash, sum, board, tests] = await Promise.allSettled([
+      api.get<DashboardStats>(`/students/${user.id}/dashboard`),
+      api.get<ProfileSummary>("/students/profile/summary"),
+      api.get<{ data: LeaderboardRow[] }>("/leaderboard?scope=national"),
+      api.get<Attempt[]>(`/students/${user.id}/tests`),
+    ]);
+
+    if (dash.status === "fulfilled") setStats(dash.value.data);
+    else {
+      console.error("Failed to fetch stats", dash.reason);
+      setFailed(true);
     }
+    setSummary(sum.status === "fulfilled" ? sum.value.data : null);
+    if (board.status === "fulfilled") {
+      const me = (board.value.data?.data || []).find((r) => r.id === user.id);
+      setRank(me ? me.rank : null);
+    }
+    if (tests.status === "fulfilled") {
+      const timed = (tests.value.data || [])
+        .map((a) => Number(a.time_taken_seconds))
+        .filter((t) => Number.isFinite(t) && t > 0);
+      setAvgTestSeconds(timed.length ? timed.reduce((a, b) => a + b, 0) / timed.length : null);
+    }
+    setLoading(false);
   }, [user?.id]);
-  
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const isInstitutionalStudent = user?.role === 'student' && !!user?.college_id;
-  
-  const hasActivity = stats?.recent_activity && stats.recent_activity.length > 0;
 
-  const defaultChallenges = hasActivity ? [
-    { subject: "Quantitative", topic: "Time & Work", defaultStatus: "Due", defaultBadge: "ba", action: "Start", btnClass: "btn-p" },
-    { subject: "Logical Reasoning", topic: "Arrangements", defaultStatus: "Due", defaultBadge: "ba", action: "Start", btnClass: "btn-p" },
-    { subject: "Data Interpretation", topic: "Bar Charts", defaultStatus: "Weak area", defaultBadge: "br", action: "Start", btnClass: "btn-p" },
-    { subject: "Verbal / English", topic: "Reading Comp.", defaultStatus: "New", defaultBadge: "bb", action: "Start", btnClass: "btn-o" }
-  ] : [
-    { subject: "Quantitative", topic: "Basic Math", defaultStatus: "New", defaultBadge: "bb", action: "Start", btnClass: "btn-p" },
-    { subject: "Logical Reasoning", topic: "Puzzles", defaultStatus: "New", defaultBadge: "bb", action: "Start", btnClass: "btn-p" },
-    { subject: "Data Interpretation", topic: "Tables", defaultStatus: "New", defaultBadge: "bb", action: "Start", btnClass: "btn-p" },
-    { subject: "Verbal / English", topic: "Grammar", defaultStatus: "New", defaultBadge: "bb", action: "Start", btnClass: "btn-o" }
-  ];
+  const testsDone = stats?.tests_completed || 0;
+  const hasActivity = !!stats?.recent_activity?.length;
+  const lastActivity = stats?.recent_activity?.[0];
+  const trends = summary?.category_trends?.length
+    ? summary.category_trends
+    : CATEGORIES.map((label) => ({ category: label, label, avg_percentage: 0, attempts: 0 }));
+  const nextStep = summary?.focus_areas?.[0]?.text;
 
-  const getChallengeData = (c: typeof defaultChallenges[0]) => {
-    const isDone = stats?.recent_activity?.some(act => 
-      act.title.toLowerCase().includes(c.subject.toLowerCase()) || 
-      act.title.toLowerCase().includes("logical re") && c.subject === "Logical Reasoning" ||
-      act.title.toLowerCase().includes("quant") && c.subject === "Quantitative"
-    );
-    if (isDone) return { status: "Done", badge: "bg", action: "Review", btnClass: "btn-g" };
-    return { status: c.defaultStatus, badge: c.defaultBadge, action: c.action, btnClass: c.btnClass };
-  };
+  // Rank only means something once you've scored; the endpoint returns the
+  // top 100, so a scored student who isn't in it is "outside the top 100".
+  const rankValue = testsDone === 0 ? "—" : rank ? `#${rank}` : "100+";
+  const rankNote = testsDone === 0 ? "Take a test to get ranked" : rank ? "Nationally, by score" : "Outside the top 100";
+
+  const challengeStatus = (t: CategoryTrend) =>
+    t.attempts === 0
+      ? { status: "Not started", badge: "bb", action: "Start", btnClass: "btn-p" }
+      : t.avg_percentage < 60
+        ? { status: `Weak · ${t.avg_percentage}%`, badge: "br", action: "Practise", btnClass: "btn-p" }
+        : { status: `Strong · ${t.avg_percentage}%`, badge: "bg", action: "Review", btnClass: "btn-g" };
 
   return (
     <div className="screen active" id="screen-dash">
@@ -70,7 +131,7 @@ export function LearnerDashboard() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="10" height="10">
             <path d="M13 3l-7.931 9.693c-.342.418-.513.627-.514.803a.5.5 0 00.186.394c.138.11.407.11.947.11H12l-1 7 7.93-9.693c.342-.418.513-.627.514-.803a.5.5 0 00-.186-.394C19.12 10 18.85 10 18.31 10H12l1-7z" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          AI operational · 91.4% model accuracy
+          {summary?.has_data ? `Placement readiness · ${summary.overall_readiness}/100` : "Build your aptitude profile"}
         </div>
         <div className="hero-title">
           Fuel Your Aptitude
@@ -78,8 +139,9 @@ export function LearnerDashboard() {
           Score with AI.
         </div>
         <div className="hero-sub">
-          Welcome to TalentSnaps. Start a practice session to build your aptitude profile and unlock your national
-          leaderboard ranking.
+          {hasActivity
+            ? `Welcome back${user?.name ? `, ${user.name.split(" ")[0]}` : ""}. ${plural(testsDone, "test")} done so far — keep practising to climb the national leaderboard.`
+            : "Welcome to TalentSnaps. Start a practice session to build your aptitude profile and unlock your national leaderboard ranking."}
         </div>
         <div className="hero-acts">
           <button className="hbtn hbtn-w" onClick={() => setActiveScreen("practice")}>
@@ -112,6 +174,12 @@ export function LearnerDashboard() {
           )}
         </div>
       </div>
+      {failed && (
+        <div role="alert" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", padding: "12px 16px", marginBottom: "14px", borderRadius: "10px", border: "1px solid var(--border)", background: "var(--red-l)", color: "var(--red)", fontSize: "13px", fontWeight: 600 }}>
+          Failed to fetch stats. Some numbers below may be missing.
+          <button className="btn btn-o btn-sm" onClick={load}>Retry</button>
+        </div>
+      )}
       <div className="sg">
         <div className="sc">
           <div className="si2" style={{ background: "var(--accent-l)" }}>
@@ -123,7 +191,7 @@ export function LearnerDashboard() {
             {loading ? "..." : stats?.tests_completed || 0}
           </div>
           <div className="sl">Tests Completed</div>
-          <div className="sd neu">Get started below</div>
+          <div className="sd neu">{loading ? "" : lastActivity ? `Last on ${formatDate(lastActivity.date)}` : "Take your first test"}</div>
         </div>
         <div className="sc">
           <div className="si2" style={{ background: "var(--teal-l)" }}>
@@ -135,7 +203,7 @@ export function LearnerDashboard() {
             {loading ? "..." : stats?.avg_accuracy ? `${stats.avg_accuracy}%` : "—"}
           </div>
           <div className="sl">Avg Accuracy</div>
-          <div className="sd neu">Complete a test</div>
+          <div className="sd neu">{loading ? "" : summary?.top_skill ? `Best: ${summary.top_skill}` : testsDone ? "Across all tests" : "Complete a test"}</div>
         </div>
         <div className="sc">
           <div className="si2" style={{ background: "var(--amber-l)" }}>
@@ -147,7 +215,7 @@ export function LearnerDashboard() {
             {loading ? "..." : stats?.streak || 0}
           </div>
           <div className="sl">Day Streak</div>
-          <div className="sd neu">Start your first session</div>
+          <div className="sd neu">{loading ? "" : stats?.streak ? "Practise today to keep it" : "Practise today to start one"}</div>
         </div>
         <div className="sc">
           <div className="si2" style={{ background: "var(--purple-l)" }}>
@@ -156,10 +224,10 @@ export function LearnerDashboard() {
             </svg>
           </div>
           <div className="sv" id="dash-stat-rank">
-            {loading ? "..." : stats?.national_rank || "—"}
+            {loading ? "..." : rankValue}
           </div>
           <div className="sl">National Rank</div>
-          <div className="sd neu">Practice to unlock</div>
+          <div className="sd neu">{loading ? "" : rankNote}</div>
         </div>
         <div className="sc">
           <div className="si2" style={{ background: "var(--red-l)" }}>
@@ -168,17 +236,17 @@ export function LearnerDashboard() {
             </svg>
           </div>
           <div className="sv" id="dash-stat-speed">
-            —
+            {loading ? "..." : avgTestSeconds ? formatDuration(avgTestSeconds) : "—"}
           </div>
-          <div className="sl">Avg Speed</div>
-          <div className="sd neu">Seconds / Q</div>
+          <div className="sl">Avg Test Time</div>
+          <div className="sd neu">{loading ? "" : avgTestSeconds ? "Per timed test" : "No timed tests yet"}</div>
         </div>
       </div>
       <div className="gms">
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div className="card">
             <div className="ct">
-              Recent Activity <span onClick={() => setActiveScreen("practice")}>View all</span>
+              Recent Activity <span onClick={() => setActiveScreen("history")}>View all</span>
             </div>
             <div id="dash-activity-list">
               {stats?.recent_activity?.length ? (
@@ -211,27 +279,27 @@ export function LearnerDashboard() {
             </div>
           </div>
           <div className="card">
-            <div className="ct">Today&apos;s Challenges</div>
+            <div className="ct">Practice by Category</div>
             <div style={{ overflowX: "auto" }}>
             <table>
               <thead>
                 <tr>
                   <th>Subject</th>
-                  <th>Topic</th>
+                  <th>Progress</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {defaultChallenges.map((c, i) => {
-                  const data = getChallengeData(c);
+                {trends.map((t) => {
+                  const data = challengeStatus(t);
                   return (
-                    <tr key={i}>
+                    <tr key={t.category}>
                       <td>
-                        <div className="tn">{c.subject}</div>
+                        <div className="tn">{t.label}</div>
                       </td>
                       <td>
-                        <div style={{ fontSize: "12px", color: "var(--muted)" }}>{c.topic}</div>
+                        <div style={{ fontSize: "12px", color: "var(--muted)" }}>{t.attempts ? `${plural(t.attempts, "attempt")}` : "No attempts yet"}</div>
                       </td>
                       <td>
                         <span className={`badge ${data.badge}`}>{data.status}</span>
@@ -258,12 +326,13 @@ export function LearnerDashboard() {
             }}
           >
             <div className="ct" style={{ fontSize: "11.5px", color: "var(--accent)" }}>
-              AI Recommendation
+              Your Next Step
             </div>
             <div style={{ fontSize: "13px", color: "var(--text)", lineHeight: 1.62, marginBottom: "12px" }}>
-              {hasActivity 
-                ? "Your Data Interpretation accuracy dropped 12% this week. Practise bar chart questions today to recover."
-                : "Welcome! Take your first assessment to unlock personalized, AI-driven insights and recommendations to improve your skills."}
+              {nextStep ||
+                (hasActivity
+                  ? "You're covering every area. Keep a daily practice session going to hold your streak and rank."
+                  : "Take your first assessment to get a breakdown of your strengths and the areas to work on next.")}
             </div>
             <button className="btn btn-p btn-sm" onClick={() => setActiveScreen("practice")}>
               {hasActivity ? "Train Now" : "Take First Test"}

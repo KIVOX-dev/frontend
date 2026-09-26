@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk, Source_Sans_3 } from "next/font/google";
 import { ConsentedAnalytics } from "@/components/shared/ConsentedAnalytics";
 import { CookieConsent } from "@/components/shared/CookieConsent";
+import { LegacyStyleGuard } from "@/components/shared/LegacyStyleGuard";
 import "./globals.css";
 import { Toaster } from "@/components/ui/Toaster";
 import { TooltipProvider } from "@/components/ui/Tooltip";
@@ -124,6 +125,7 @@ export default function RootLayout({
         />
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         <Toaster />
+        <LegacyStyleGuard />
         <CookieConsent />
         <ConsentedAnalytics />
       </body>

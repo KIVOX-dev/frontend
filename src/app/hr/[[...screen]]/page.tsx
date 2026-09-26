@@ -5,9 +5,10 @@ import { useUiStore } from "@/stores/uiStore";
 import { HrLogin } from "@/components/hr/HrLogin";
 import { HrShell } from "@/components/layout/HrShell";
 import { MyActivity } from "@/components/shared/MyActivity";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { usePortalRoute } from "@/lib/portalRoutes";
 
 // Pure — reads only its own argument, nothing from component scope — so it
 // lives at module scope rather than being redeclared (and needing to be
@@ -26,7 +27,9 @@ function normalizeLeaderboardScore(entry: any) {
   return Math.min(100, Math.max(0, rawScore > 100 ? rawScore / 10 : rawScore));
 }
 
-export default function HrPage() {
+// Separate component so useSearchParams (via usePortalRoute) is inside a
+// Suspense boundary, same as the learner and institutional portals.
+function HrContent() {
   const { isAuthenticated, user } = useAuthStore();
   const { activeScreen, setActiveScreen } = useUiStore();
   const [mounted, setMounted] = useState(false);
@@ -112,6 +115,8 @@ export default function HrPage() {
       fetchLeaderboard();
     }
   }, [activeScreen, setActiveScreen, isAuthenticated, user, fetchJobs, fetchAllJobs, fetchApplicants, fetchLeaderboard]);
+
+  usePortalRoute("hr", mounted && isAuthenticated && (user?.role === "hr" || user?.role === "recruiter"));
 
   if (!mounted) return null;
 
@@ -647,5 +652,13 @@ export default function HrPage() {
         </div>
       )}
     </HrShell>
+  );
+}
+
+export default function HrPage() {
+  return (
+    <Suspense fallback={null}>
+      <HrContent />
+    </Suspense>
   );
 }

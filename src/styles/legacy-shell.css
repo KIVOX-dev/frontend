@@ -11,3 +11,13 @@
 @import "./legacy-portal.css" layer(legacy);
 @import "./legacy-settings.css" layer(legacy);
 @import "./theme-refined.css" layer(legacy);
+
+/* Marker read by LegacyStyleGuard (src/components/shared/LegacyStyleGuard.tsx).
+   Next.js keeps a route's stylesheets loaded after client-side navigation
+   away from it, so once a portal has been opened these global rules (html/
+   body overflow:hidden, .hero, .screen, .card, ...) would leak into the
+   landing and legal pages. The guard sees this marker on a non-portal page
+   and reloads it once, which drops this file. */
+@layer legacy {
+  :root { --legacy-shell: 1; }
+}

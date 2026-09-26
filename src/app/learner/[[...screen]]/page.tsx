@@ -6,6 +6,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { LearnerShell } from "@/components/layout/LearnerShell";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { usePortalRoute } from "@/lib/portalRoutes";
 
 // Only one of these renders at a time (renderScreen switch below) —
 // dynamic-importing keeps every other screen's code out of this route's
@@ -54,6 +55,8 @@ function LearnerContent() {
       useUiStore.getState().setActiveScreen(screenParam);
     }
   }, [screenParam]);
+
+  usePortalRoute("learner", mounted && isAuthenticated && user?.role === "student");
 
   if (!mounted) return null;
 

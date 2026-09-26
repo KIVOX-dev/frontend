@@ -89,6 +89,9 @@ export function CampusShell({ audience, children }: { audience: CampusAudience; 
     // Product UI rises into its panel as the panel scrolls through view.
     const nav = root.querySelector(".nav");
     const pans = Array.from(root.querySelectorAll<HTMLElement>(".pan-ui, .show-ui"));
+    // Footer "curtain": its content trails the scroll and only settles as the
+    // page bottoms out, so the last stretch down to the footer reads slow.
+    const foot = root.querySelector<HTMLElement>(".sitefoot");
     const parallax = () => {
       nav?.classList.toggle("scrolled", window.scrollY > 8);
       if (reduce) return;
@@ -99,6 +102,14 @@ export function CampusShell({ audience, children }: { audience: CampusAudience; 
         const max = p.classList.contains("show-ui") ? 80 : 60;
         p.style.setProperty("--py", `${((1 - t) * max).toFixed(1)}px`);
       });
+      if (foot) {
+        const r = foot.getBoundingClientRect();
+        // 0 as the footer's top edge enters the viewport, 1 once it's fully in
+        // (or fills the screen, for footers taller than the viewport).
+        const t = Math.max(0, Math.min(1, (vh - r.top) / Math.min(r.height, vh)));
+        foot.style.setProperty("--fy", `${((1 - t) * -42).toFixed(1)}%`);
+        foot.style.setProperty("--fo", (0.35 + 0.65 * t).toFixed(3));
+      }
     };
     let ticking = false;
     const onScroll = () => {

@@ -93,7 +93,7 @@ const studentModules: Module[] = [
     fixes: [
       {
         q: "“Failed to fetch stats”",
-        a: "Your stats couldn't be loaded. Refresh the page. New accounts show empty stats until you finish your first test.",
+        a: "Your stats couldn't be loaded. Press Retry on the message, or refresh the page. New accounts show empty stats until you finish your first test.",
       },
     ],
   },

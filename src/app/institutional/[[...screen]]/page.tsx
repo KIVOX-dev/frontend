@@ -9,6 +9,7 @@ import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { usePortalRoute } from "@/lib/portalRoutes";
 
 // Only one of these renders at a time (role selection / renderScreen switch
 // below) — dynamic-importing them keeps every other role's/screen's code
@@ -103,6 +104,8 @@ function InstitutionalContent() {
       setActiveScreen("dash");
     }
   }, [isAuthenticated, user, activeScreen, setActiveScreen]);
+
+  usePortalRoute("institutional", mounted && isAuthenticated && !!user);
 
   if (!mounted) return null;
 

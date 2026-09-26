@@ -15,7 +15,7 @@
   --sans:var(--font-tsl-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono:var(--font-tsl-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
   --brandf:var(--font-tsl-brand), var(--font-tsl-sans), ui-sans-serif, system-ui, sans-serif;
-  --col:1200px; --gut:max(16px, calc((100% - var(--col)) / 2));
+  --col:1700px; --gut:max(clamp(16px, 4vw, 110px), calc((100% - var(--col)) / 2));
 }
 /* shared UI atoms */
 .tsl .win{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 40px 80px -40px rgb(var(--shadow) / .45),0 12px 24px -12px rgb(var(--shadow) / .18)}
@@ -480,7 +480,9 @@
 .tsl .cta2{display:grid;grid-template-columns:1.1fr 1fr;min-height:520px}
 .tsl .cta2 .txt{padding:clamp(48px,7vw,100px) clamp(20px,5vw,80px);display:flex;flex-direction:column;gap:24px;justify-content:center}
 .tsl .cta2 .pan{border-left:1px dashed var(--dash);position:relative}
-.tsl .sitefoot{background:var(--ink);color:#DCE6E6}
+.tsl .sitefoot{background:var(--ink);color:#DCE6E6;overflow:hidden}
+/* Scroll-driven curtain (see CampusShell parallax): content trails the page and settles at the bottom. */
+.tsl .sitefoot > .frame{transform:translateY(var(--fy,0%));opacity:var(--fo,1);will-change:transform,opacity}
 .tsl .sitefoot .frame::before,.tsl .sitefoot .frame::after{border-color:rgb(255 255 255 / .22)}
 .tsl .sitefoot .rule{border-color:rgb(255 255 255 / .22)}
 .tsl .sitefoot .rule::before,.tsl .sitefoot .rule::after{background-color:var(--ink);border-color:#DCE6E6;background-image:linear-gradient(#DCE6E6,#DCE6E6),linear-gradient(#DCE6E6,#DCE6E6)}
@@ -495,7 +497,7 @@
 .tsl .fgrid a.logo{display:flex;padding:0;color:#fff}.tsl .fgrid a.logo:hover{transform:none}
 .tsl .fgrid p{margin-top:16px;color:#A9BDBE;max-width:32ch;font-size:15px}
 .tsl .fword{font:900 clamp(52px,13vw,190px)/.8 var(--display);font-stretch:72%;text-transform:uppercase;letter-spacing:-.02em;color:#fff;text-align:center;padding-top:40px;white-space:nowrap;overflow:hidden}
-.tsl .fword span{display:inline-block;transform:translateY(40%);opacity:0;transition:transform 1.2s var(--ease),opacity 1.2s var(--ease);transition-delay:calc(var(--w,0) * 45ms)}
+.tsl .fword span{display:inline-block;transform:translateY(40%);opacity:0;transition:transform 1.8s var(--ease),opacity 1.8s var(--ease);transition-delay:calc(var(--w,0) * 70ms)}
 .tsl .fword.in span,.tsl.no-motion .fword span{transform:none;opacity:1}
 .tsl .fbot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:22px;font:500 13px/1.4 var(--mono);color:#8FA7A8}
 
