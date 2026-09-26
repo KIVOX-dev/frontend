@@ -19,7 +19,7 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
     label: "Learners",
     path: "/",
     login: "/learner",
-    help: "/troubleshooting",
+    help: "/docs/individuals/troubleshooting",
     cta: { label: "Get started", href: "#l-cta" },
     faq: "#l-faq",
     footer: {
@@ -42,7 +42,7 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
     label: "HR teams",
     path: "/for-hr",
     login: "/hr",
-    help: "/for-hr/troubleshooting",
+    help: "/docs/recruiters/troubleshooting",
     cta: { label: "Book a demo", href: "#h-cta" },
     faq: "#h-faq",
     footer: {
@@ -65,7 +65,7 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
     label: "Institutions",
     path: "/for-institutions",
     login: "/institutional",
-    help: "/for-institutions/troubleshooting",
+    help: "/docs/institutions/troubleshooting",
     cta: { label: "Book a demo", href: "#i-cta" },
     faq: "#i-faq",
     footer: {
@@ -96,3 +96,10 @@ export const AUDIENCE_ORDER: CampusAudience[] = ["learners", "hr", "institutions
 export function landingHref(audience: CampusAudience, href: string) {
   return href.startsWith("#") ? `${CAMPUS_AUDIENCES[audience].path}${href}` : href;
 }
+
+/** Landing audience → docs centre audience (/docs/{audience}/…). */
+export const CAMPUS_TO_DOCS: Record<CampusAudience, "individuals" | "institutions" | "recruiters"> = {
+  learners: "individuals",
+  institutions: "institutions",
+  hr: "recruiters",
+};

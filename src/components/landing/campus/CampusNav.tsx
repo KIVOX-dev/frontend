@@ -31,7 +31,6 @@ export function CampusNav({ audience }: { audience: CampusAudience }) {
         <nav className="links" aria-label="Choose your landing">
           <AudienceLinks audience={audience} />
           <a href={landingHref(audience, cfg.faq)}>FAQ</a>
-          <Link href={cfg.help}>Help</Link>
         </nav>
         <div className="nav-r">
           <Link className="btn btn-line btn-sm login" href={cfg.login}>

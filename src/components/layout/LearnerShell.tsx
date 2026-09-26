@@ -182,9 +182,9 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
             // marketing-site pages (src/app/privacy-policy, .../terms-of-service),
             // not part of this SPA's screen-switcher.
             <div style={{ display: "flex", justifyContent: "center", gap: "8px", padding: "4px 0 8px", fontSize: "11px", color: "var(--muted)" }}>
-              <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Privacy Policy</Link>
+              <Link href="/docs/individuals/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Privacy Policy</Link>
               <span>|</span>
-              <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Terms &amp; Conditions</Link>
+              <Link href="/docs/individuals/terms-and-conditions" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Terms &amp; Conditions</Link>
             </div>
           )}
           <button className="collapse-btn" onClick={toggleSidebar}>

@@ -6,7 +6,7 @@ import { useEffect, useId, useState } from "react";
 import { onOpenCookieSettings, saveConsent, useConsent, type ConsentChoice } from "@/lib/cookieConsent";
 
 const BTN =
-  "h-10 px-4 rounded-lg text-[14px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest";
+  "h-10 px-4 rounded-[4px] text-[14px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest";
 
 const CATEGORIES: { key: keyof ConsentChoice | "necessary"; title: string; body: string }[] = [
   {
@@ -81,7 +81,7 @@ export function CookieConsent() {
             <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">
               We use cookies and browser storage to keep you signed in and the site secure. With your permission we also count
               page views and play course videos from YouTube. Read the{" "}
-              <Link href="/cookie-policy" className="font-semibold text-forest underline underline-offset-2">
+              <Link href="/docs/individuals/cookie-policy" className="font-semibold text-forest underline underline-offset-2">
                 Cookie Policy
               </Link>
               .

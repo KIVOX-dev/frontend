@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AUDIENCE_ORDER, CAMPUS_AUDIENCES, landingHref, type CampusAudience } from "./audiences";
+import { AUDIENCE_ORDER, CAMPUS_AUDIENCES, CAMPUS_TO_DOCS, landingHref, type CampusAudience } from "./audiences";
 import { CampusLogo } from "./CampusNav";
 import { FooterWord } from "./primitives";
 import { CookieSettingsButton } from "@/components/shared/CookieSettingsButton";
@@ -41,9 +41,9 @@ export function CampusFooter({ audience }: { audience: CampusAudience }) {
                   {CAMPUS_AUDIENCES[k].label}
                 </Link>
               ))}
-              <Link href="/privacy-policy">Privacy policy</Link>
-              <Link href="/terms-of-service">Terms of service</Link>
-              <Link href="/cookie-policy">Cookie policy</Link>
+              <Link href={`/docs/${CAMPUS_TO_DOCS[audience]}/privacy-policy`}>Privacy policy</Link>
+              <Link href={`/docs/${CAMPUS_TO_DOCS[audience]}/terms-and-conditions`}>Terms and conditions</Link>
+              <Link href={`/docs/${CAMPUS_TO_DOCS[audience]}/cookie-policy`}>Cookie policy</Link>
               <CookieSettingsButton className="ts-cookie-btn" />
             </div>
           </div>

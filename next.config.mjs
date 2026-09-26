@@ -159,6 +159,23 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
+  // Legal pages and troubleshooting guides moved into the docs centre
+  // (/docs/{audience}/{slug}); old links, bookmarks and search results land
+  // on the new pages.
+  async redirects() {
+    return [
+      { source: "/terms-of-service", destination: "/docs/individuals/terms-and-conditions", permanent: true },
+      { source: "/privacy-policy", destination: "/docs/individuals/privacy-policy", permanent: true },
+      { source: "/cookie-policy", destination: "/docs/individuals/cookie-policy", permanent: true },
+      { source: "/data-protection", destination: "/docs/individuals/data-protection", permanent: true },
+      { source: "/troubleshooting", destination: "/docs/individuals/troubleshooting", permanent: true },
+      { source: "/for-hr/troubleshooting", destination: "/docs/recruiters/troubleshooting", permanent: true },
+      { source: "/for-institutions/troubleshooting", destination: "/docs/institutions/troubleshooting", permanent: true },
+      // Docs landing: the Terms, for the audience given (Individuals by default).
+      { source: "/docs", destination: "/docs/individuals/terms-and-conditions", permanent: false },
+      { source: "/docs/:audience(individuals|institutions|recruiters)", destination: "/docs/:audience/terms-and-conditions", permanent: false },
+    ];
+  },
   async headers() {
     if (process.env.NODE_ENV !== "production") return [];
     return [

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ResponsiveLogo } from "@/components/shared/Logo";
+import Image from "next/image";
+import { campusFonts } from "@/components/landing/campus/fonts";
 
 const NAV_GROUPS = [
   {
@@ -24,10 +25,10 @@ const NAV_GROUPS = [
   {
     head: "Legal",
     items: [
-      { slug: "privacy-policy", label: "Privacy Policy" },
-      { slug: "terms-of-service", label: "Terms of Service" },
-      { slug: "cookie-policy", label: "Cookie Policy" },
-      { slug: "data-protection", label: "Data Protection" },
+      { slug: "docs/individuals/privacy-policy", label: "Privacy Policy" },
+      { slug: "docs/individuals/terms-and-conditions", label: "Terms and Conditions" },
+      { slug: "docs/individuals/cookie-policy", label: "Cookie Policy" },
+      { slug: "docs/individuals/data-protection", label: "Data Protection" },
     ],
   },
 ] as const;
@@ -91,17 +92,26 @@ export function SitePageLayout({
   const activeTocId = useScrollSpy(toc);
 
   return (
-    <main className="bg-paper min-h-screen font-jakarta antialiased">
+    <main className={`bg-paper min-h-screen font-jakarta antialiased ${campusFonts}`}>
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-line-soft">
         <div className="ui-container flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <ResponsiveLogo height={32} priority />
+          {/* Same logo lockup and button as the landing nav (campus.css
+              .logo / .btn.btn-dark), so moving between them feels like one site. */}
+          <Link href="/" className="flex items-center gap-2.5 shrink-0 text-[#06262B]" aria-label="TalentSnaps home">
+            <Image src="/images/landing/logo-mark.png" alt="" width={36} height={36} className="rounded-full" priority />
+            <span className="text-2xl leading-none font-light tracking-[-0.01em] [font-family:var(--font-tsl-brand)]">
+              <b className="font-semibold">Talent</b>Snaps
+            </span>
           </Link>
           <Link
             href="/"
-            className="flex items-center gap-2 rounded-full bg-ink text-white text-sm font-semibold px-4 py-2 hover:bg-ink-hover transition-colors"
+            className="group relative isolate inline-flex items-center gap-2.5 overflow-hidden rounded-[4px] border-[1.5px] border-[#06262B] bg-[#06262B] px-5 py-3 text-[15px] font-semibold leading-none text-white [font-family:var(--font-tsl-sans)] active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0563F9]"
           >
-            <svg viewBox="0 0 16 16" fill="none" className="size-3.5" aria-hidden="true">
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 -z-10 translate-y-[101%] bg-[#0563F9] transition-transform duration-[450ms] ease-[cubic-bezier(.16,1,.3,1)] group-hover:translate-y-0"
+            />
+            <svg viewBox="0 0 16 16" fill="none" className="size-3.5 transition-transform duration-300 group-hover:-translate-x-1" aria-hidden="true">
               <path d="M10 3.5 5 8l5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Back to landing page

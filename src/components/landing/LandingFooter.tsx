@@ -36,10 +36,10 @@ const footerLinks = {
     { label: "Contact Us", href: "#contact" },
   ],
   Legal: [
-    { label: "Privacy Policy", href: "/privacy-policy" },
-    { label: "Terms of Service", href: "/terms-of-service" },
-    { label: "Cookie Policy", href: "/cookie-policy" },
-    { label: "Data Protection", href: "/data-protection" },
+    { label: "Privacy Policy", href: "/docs/individuals/privacy-policy" },
+    { label: "Terms and Conditions", href: "/docs/individuals/terms-and-conditions" },
+    { label: "Cookie Policy", href: "/docs/individuals/cookie-policy" },
+    { label: "Data Protection", href: "/docs/individuals/data-protection" },
   ],
 };
 
