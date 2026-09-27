@@ -731,43 +731,42 @@ export function ProfilePanel() {
       </div>
       {coverError && <p className="text-small text-danger mt-1 px-2">{coverError}</p>}
 
-      {/* Avatar + identity, overlapping the banner */}
-      <div className="flex flex-wrap items-end justify-between gap-4 px-2 -mt-12 md:-mt-14 mb-6">
-        <div className="flex items-end gap-4 min-w-0">
-          <div className="relative shrink-0">
-            <Avatar
-              src={studentProfile?.avatar_url}
-              fallback={initials}
-              size="lg"
-              className="size-24 md:size-28 text-3xl ring-4 ring-white shadow-md"
-            />
-            {isStudent && (
-              <label className="absolute bottom-0 right-0 flex items-center justify-center size-8 rounded-full bg-ink text-white cursor-pointer shadow-md hover:bg-ink/90 transition-colors">
-                <Camera className="size-4" />
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  className="hidden"
-                  onChange={handleUploadAvatar}
-                  disabled={uploadingAvatar}
-                />
-              </label>
-            )}
-          </div>
-          <div className="pb-1 min-w-0">
-            <h1 className="text-heading-l text-ink leading-tight truncate">{user?.name}</h1>
-            <p className="text-small text-ink-muted truncate">{user?.email}</p>
-          </div>
+      {/* Avatar overlaps the banner; name and email sit on their own line
+          below it, so a long name or larger heading never runs into the
+          banner edge. */}
+      <div className="px-2 -mt-12 md:-mt-14 mb-6">
+        <div className="relative inline-block">
+          <Avatar
+            src={studentProfile?.avatar_url}
+            fallback={initials}
+            size="lg"
+            className="size-24 md:size-28 text-3xl ring-4 ring-white shadow-md"
+          />
+          {isStudent && (
+            <label className="absolute bottom-0 right-0 flex items-center justify-center size-8 rounded-full bg-ink text-white cursor-pointer shadow-md hover:bg-ink/90 transition-colors">
+              <Camera className="size-4" />
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={handleUploadAvatar}
+                disabled={uploadingAvatar}
+              />
+            </label>
+          )}
         </div>
-        <Badge tone="success" className="capitalize mb-2 shrink-0">
-          {user?.role?.replace("_", " ")}
-        </Badge>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="min-w-0">
+            <h1 className="text-heading-l text-ink leading-tight truncate">{user?.name}</h1>
+            <p className="text-small text-ink-muted truncate mt-1">{user?.email}</p>
+          </div>
+          <Badge tone="success" className="capitalize shrink-0">
+            {user?.role?.replace("_", " ")}
+          </Badge>
+        </div>
       </div>
 
-      {/* Kept out of the identity row above on purpose — that row uses
-          items-end (bottom-aligns the fixed-height avatar against the
-          name/email text), so any extra line rendered inside it shifts the
-          alignment math and can visually collide with the name heading. */}
+      {/* Avatar upload status, kept below the identity block. */}
       {(avatarError || uploadingAvatar) && (
         <p className={cn("text-small px-2 mb-4 -mt-2", avatarError ? "text-danger" : "text-ink-muted")}>
           {avatarError || "Uploading photo…"}

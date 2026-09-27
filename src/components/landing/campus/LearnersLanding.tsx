@@ -385,7 +385,7 @@ export function LearnersLanding() {
             <div className="cell pan anim">
               <div className="pan-bg" style={{ "--pc": "var(--p-blue)" }}></div>
               <div className="pan-ui">
-                <div className="drives" style={{ marginTop: "40px" }}>
+                <div className="drives">
                   <article className="drive" style={{ "--i": "0" }}>
                     <div className="top">
                       <span className="av">B</span>

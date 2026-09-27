@@ -571,3 +571,23 @@ textarea:focus {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Collapsed sidebar: icons centred in the 58px rail ────────── */
+/* The labels only faded to width 0 and a later rule kept 25px of them,
+   which pushed every icon left; group chevrons (Practice Tools) and the
+   empty Collapse label's gap did the same. Take them out of layout. */
+#sidebar.collapsed .nav-lbl,
+#sidebar.collapsed .nav-item > svg:not(:first-child),
+#sidebar.collapsed .collapse-btn > span {
+  display: none;
+}
+
+#sidebar.collapsed .collapse-btn {
+  gap: 0;
+  width: 42px;
+  margin: 0 auto;
+}
+
+#sidebar.collapsed .s-foot {
+  padding-inline: 0;
+}

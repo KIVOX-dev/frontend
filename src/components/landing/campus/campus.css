@@ -351,18 +351,18 @@
 .tsl .split > .cell + .cell{border-left:1px dashed var(--dash)}
 .tsl .split.flip > .txt{order:2;border-left:1px dashed var(--dash)}
 .tsl .split.flip > .pan{border-left:0!important}
-.tsl .pan{padding:0!important;overflow:hidden;justify-content:flex-end!important}
+/* Product panels: the UI sits centred in its colour panel as a whole card, fully in view */
+.tsl .pan{padding:0!important;overflow:hidden;justify-content:safe center!important;align-items:center}
 .tsl .pan-bg{position:absolute;inset:0;background:var(--pc,var(--p-blue));clip-path:inset(100% 0 0 0);transition:clip-path 1.1s var(--ease)}
 .tsl .in .pan-bg,.tsl.no-motion .pan-bg{clip-path:inset(0 0 0 0)}
 .tsl .pan-photo{position:absolute;inset:0;background-size:cover;background-position:center 70%;opacity:0;transition:opacity 1.2s var(--ease) .2s}
 .tsl .pan-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 20%,rgb(6 38 43 / .25))}
 .tsl .in .pan-photo,.tsl.no-motion .pan-photo{opacity:1}
-.tsl .pan-ui{position:relative;z-index:1;padding:clamp(40px,6vw,72px) 0 0 clamp(28px,5vw,64px);transform:translateY(var(--py,60px));transition:transform .2s linear}
-.tsl .pan-ui .demo{min-width:620px}
-.tsl .pan-ui .drives{grid-template-columns:repeat(3,270px);width:max-content}
-.tsl .pan-ui .demo,.tsl .pan-ui .win{border-radius:12px 0 0 0;border-right:0;border-bottom:0;box-shadow:0 30px 70px -30px rgb(6 38 43 / .45)}
-.tsl .pan-ui.center{padding:48px 24px 0;display:flex;justify-content:center}
-.tsl .pan-ui.center .demo{border-radius:12px 12px 0 0;border-right:1px solid var(--line)}
+.tsl .pan-ui{position:relative;z-index:1;width:100%;padding:16px clamp(24px,3vw,40px);display:flex;justify-content:center;align-items:center;transform:translateY(var(--py,0px));transition:transform .2s linear}
+.tsl .pan-ui .demo{width:100%;max-width:620px;min-width:0}
+.tsl .pan-ui .drives{grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:580px}
+.tsl .pan-ui .drives .drive:nth-child(n+3){display:none}
+.tsl .pan-ui .demo,.tsl .pan-ui .win{border-radius:14px;border:1px solid var(--line);box-shadow:0 30px 70px -30px rgb(6 38 43 / .45)}
 
 /* ---------- stacked feature rows: each row sticks under the nav and the next one slides up over it ---------- */
 .tsl .page{counter-reset:stk}
@@ -464,8 +464,6 @@
 .tsl .cta2 .txt{padding:clamp(48px,7vw,100px) clamp(20px,5vw,80px);display:flex;flex-direction:column;gap:24px;justify-content:center}
 .tsl .cta2 .pan{border-left:1px dashed var(--dash);position:relative}
 .tsl .sitefoot{background:var(--ink);color:#DCE6E6;overflow:hidden}
-/* Scroll-driven curtain (see CampusShell parallax): content trails the page and settles at the bottom. */
-.tsl .sitefoot > .frame{transform:translateY(var(--fy,0%));opacity:var(--fo,1);will-change:transform,opacity}
 .tsl .sitefoot .frame::before,.tsl .sitefoot .frame::after{border-color:rgb(255 255 255 / .22)}
 .tsl .sitefoot .rule{border-color:rgb(255 255 255 / .22)}
 .tsl .sitefoot .rule::before,.tsl .sitefoot .rule::after{background-color:var(--ink);border-color:#DCE6E6;background-image:linear-gradient(#DCE6E6,#DCE6E6),linear-gradient(#DCE6E6,#DCE6E6)}
@@ -620,8 +618,8 @@
   .tsl .fgrid > div + div{border-left:0}
   .tsl .bar span{display:none}
   .tsl .show{height:660px}
-  .tsl .pan-ui{padding:32px 0 0 20px}
-  .tsl .pan-ui .demo{min-width:520px}
+  .tsl .pan-ui{padding:20px}
+  .tsl .pan-ui .demo{min-width:0}
   .tsl .show-ui .win{min-width:0}
   .tsl .nav-in{height:68px}
   .tsl .nav .logo .lockup{height:38px}
