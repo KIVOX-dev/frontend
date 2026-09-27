@@ -15,17 +15,28 @@ import {
 // same guard CollegeAdminDashboard.tsx uses for its own charts).
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-// One brand blue carries every single-series chart (magnitude, not identity),
-// so the page reads as one system. Only the recruiters donut needs distinct
-// hues — it takes the categorical slots below in fixed order.
+// Every colour below comes from one validated categorical palette, in its
+// fixed slot order, so each chart can be colourful without two neighbouring
+// colours becoming indistinguishable (checked for colour-blind separation).
+// Several of these sit below 3:1 on white, so every coloured mark also keeps
+// a visible text label — colour is never the only way to read a value.
 const BLUE = "#0056D2";
-const BLUE_TRACK = "rgba(0, 86, 210, .10)";
 const AXIS = "#C3C2B7";
-const CATEGORICAL = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"];
+const CATEGORICAL = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
 const OTHER = "#94a3b8";
+// Funnel stages in order: applied, shortlisted, interviewed, selected, joined.
+// A re-ordering of the same slots (orange next to yellow or magenta fails the
+// normal-vision check), ending on aqua for the finish line.
+const FUNNEL_COLORS = ["#2a78d6", "#4a3aa7", "#e87ba4", "#eda100", "#1baf7a"];
+// Placement-rate gauge and the trend area: blue into aqua.
+const GRADIENT_FROM = "#2a78d6";
+const GRADIENT_TO = "#1baf7a";
+
+// A pale track in the bar's own colour (8-digit hex, ~14% alpha).
+const track = (hex: string) => `${hex}24`;
 
 const CHART_HEIGHT = 220;
-const TOP_RECRUITERS = CATEGORICAL.length;
+const TOP_RECRUITERS = 5;
 
 const PACKAGE_BANDS = [
   { label: "0–3", min: 0, max: 3 },
@@ -146,7 +157,7 @@ function Stat({ label, value, caption, delta }: { label: string; value: string; 
 
 // Labelled horizontal bar on a full-width track — shared by the funnel and
 // the department list so both read the same way.
-function BarRow({ label, value, pct, note }: { label: React.ReactNode; value: string; pct: number; note?: string }) {
+function BarRow({ label, value, pct, note, color }: { label: React.ReactNode; value: string; pct: number; note?: string; color: string }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px", marginBottom: "6px" }}>
@@ -156,8 +167,8 @@ function BarRow({ label, value, pct, note }: { label: React.ReactNode; value: st
           {note && <span style={{ fontWeight: 500, color: "var(--muted)", marginLeft: "6px" }}>{note}</span>}
         </span>
       </div>
-      <div style={{ height: "8px", background: BLUE_TRACK, borderRadius: "4px", overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${Math.min(100, Math.max(pct, pct > 0 ? 2 : 0))}%`, background: BLUE, borderRadius: "4px", transition: "width .4s ease" }} />
+      <div style={{ height: "8px", background: track(color), borderRadius: "4px", overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${Math.min(100, Math.max(pct, pct > 0 ? 2 : 0))}%`, background: color, borderRadius: "4px", transition: "width .4s ease" }} />
       </div>
     </div>
   );
@@ -274,6 +285,13 @@ export function PlacementDashboard({
   }, [companyLeaderboard]);
 
   // ── Departments ──
+  // Colour follows the department, not its rank: slots go by name order, so a
+  // department keeps its colour as rates change. Past eight, the rest are grey.
+  const departmentColor = useMemo(() => {
+    const names = Array.from(new Set(departments.map(d => d.name))).sort((a, b) => a.localeCompare(b));
+    return new Map(names.map((name, i) => [name, CATEGORICAL[i] ?? OTHER]));
+  }, [departments]);
+
   const departmentStats = useMemo(() => {
     const deptNameById = new Map(departments.map(d => [d.id, d.name]));
     const deptIdByStudentRecordId = new Map(studentRecords.map(s => [s.id, s.department_id]));
@@ -412,13 +430,14 @@ export function PlacementDashboard({
             series={[Math.round(placementRate * 10) / 10]}
             options={{
               chart: { fontFamily: "inherit", sparkline: { enabled: true } },
-              colors: [BLUE],
+              colors: [GRADIENT_FROM],
+              fill: { type: "gradient", gradient: { shade: "light", type: "horizontal", gradientToColors: [GRADIENT_TO], stops: [0, 100] } },
               plotOptions: {
                 radialBar: {
                   startAngle: -110,
                   endAngle: 110,
                   hollow: { size: "62%" },
-                  track: { background: BLUE_TRACK, strokeWidth: "100%" },
+                  track: { background: track(GRADIENT_FROM), strokeWidth: "100%" },
                   dataLabels: {
                     name: { show: true, offsetY: 28, fontSize: "12px", color: "#5A6560" },
                     value: { show: true, offsetY: -12, fontSize: "30px", fontWeight: 800, color: "#0F1512", formatter: (v: number) => `${v}%` },
@@ -452,9 +471,9 @@ export function PlacementDashboard({
               options={{
                 ...BASE_CHART_OPTIONS,
                 chart: { ...BASE_CHART_OPTIONS.chart, type: "area", zoom: { enabled: false } },
-                colors: [BLUE],
+                colors: [GRADIENT_FROM],
                 stroke: { curve: "smooth", width: 2 },
-                fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.28, opacityTo: 0.02, stops: [0, 95, 100] } },
+                fill: { type: "gradient", gradient: { type: "vertical", gradientToColors: [GRADIENT_TO], opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
                 markers: { size: 0, hover: { size: 5 } },
                 xaxis: {
                   categories: monthKeys.map(monthLabel),
@@ -479,7 +498,7 @@ export function PlacementDashboard({
                 const prev = i > 0 ? funnelStages[i - 1].value : 0;
                 const conversion = i > 0 && prev > 0 ? `${Math.round((stage.value / prev) * 100)}%` : undefined;
                 return (
-                  <BarRow key={stage.label} label={stage.label} value={String(stage.value)} note={conversion} pct={(stage.value / funnelMax) * 100} />
+                  <BarRow key={stage.label} label={stage.label} value={String(stage.value)} note={conversion} pct={(stage.value / funnelMax) * 100} color={FUNNEL_COLORS[i]} />
                 );
               })}
             </div>
@@ -498,8 +517,10 @@ export function PlacementDashboard({
               options={{
                 ...BASE_CHART_OPTIONS,
                 chart: { ...BASE_CHART_OPTIONS.chart, type: "bar" },
-                colors: [BLUE],
-                plotOptions: { bar: { columnWidth: "58%", borderRadius: 4, borderRadiusApplication: "end", dataLabels: { position: "top" } } },
+                // One colour per salary band, labelled on the axis and above each bar.
+                colors: CATEGORICAL.slice(0, PACKAGE_BANDS.length),
+                legend: { show: false },
+                plotOptions: { bar: { distributed: true, columnWidth: "58%", borderRadius: 4, borderRadiusApplication: "end", dataLabels: { position: "top" } } },
                 dataLabels: {
                   enabled: true, offsetY: -18,
                   style: { colors: ["#0F1512"], fontSize: "11px", fontWeight: 600 },
@@ -554,7 +575,7 @@ export function PlacementDashboard({
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", paddingTop: "4px" }}>
               {departmentStats.map(d => (
-                <BarRow key={d.department} label={d.department} value={`${d.rate}%`} note={`${d.placed}/${d.total}`} pct={d.rate} />
+                <BarRow key={d.department} label={d.department} value={`${d.rate}%`} note={`${d.placed}/${d.total}`} pct={d.rate} color={departmentColor.get(d.department) ?? OTHER} />
               ))}
             </div>
           )}
