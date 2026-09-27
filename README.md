@@ -68,7 +68,7 @@ This repository is the **frontend**: a Next.js 15 / React 19 application serving
 This frontend is one piece of a three-service system:
 
 ```
-Upscaler-frontend/   ← this repo — Next.js app (Vercel)
+talentsnaps-frontend/ ← this repo — Next.js app (Vercel)
 backend/node-api/    ← Express + MongoDB API (Cloud Run)
 backend/ai-service/  ← FastAPI + Groq — resume analysis, AI features (Cloud Run)
 ```
@@ -85,8 +85,8 @@ The frontend never talks to a database directly — every data operation goes th
 ### Installation
 
 ```bash
-git clone https://github.com/KIVOX-dev/frontend.git upscaler-frontend
-cd upscaler-frontend
+git clone https://github.com/KIVOX-dev/frontend.git talentsnaps-frontend
+cd talentsnaps-frontend
 npm install
 ```
 

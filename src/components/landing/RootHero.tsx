@@ -30,7 +30,7 @@ export default function RootHero() {
             className="mb-8 flex items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-[#0d2f60] to-primary px-6 py-3.5"
           >
             <p className="text-sm font-semibold text-white">
-              Save 20% on UpScaler Pro — unlimited practice, AI doubt solving, and advanced analytics.
+              Save 20% on TalentSnaps Pro — unlimited practice, AI doubt solving, and advanced analytics.
             </p>
             <div className="flex items-center gap-3 shrink-0">
               <Link href="/learner">
@@ -68,7 +68,7 @@ export default function RootHero() {
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white mb-5">
               <Sparkle className="size-3.5" weight="fill" />
-              UpScaler Pro
+              TalentSnaps Pro
             </span>
             <h2 className="text-2xl lg:text-[28px] font-extrabold text-white leading-tight mb-3 max-w-sm">
               Unlimited practice, AI doubt solving, and placement analytics
@@ -95,7 +95,7 @@ export default function RootHero() {
               <span className="text-base font-extrabold leading-none mt-0.5">30%</span>
               <span className="text-[8px] font-semibold leading-none mt-0.5">OFF</span>
             </span>
-            <p className="text-caption font-bold uppercase tracking-wide text-primary mb-2">UpScaler for Institutions</p>
+            <p className="text-caption font-bold uppercase tracking-wide text-primary mb-2">TalentSnaps for Institutions</p>
             <h2 className="text-2xl lg:text-[28px] font-extrabold text-ink leading-tight mb-3 max-w-sm">
               Onboard your whole college and run placements together
             </h2>

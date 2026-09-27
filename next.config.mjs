@@ -107,7 +107,7 @@ function securityHeaders({ allowEval = false } = {}) {
         // gcsClient.js — Cloud Run's own filesystem can't persist these).
         // i.ytimg.com/yt3.ggpht.com: YouTube's video/channel thumbnail CDNs
         // (course/lesson thumbnails — see youtubeClient.js#bestThumbnail).
-        "img-src 'self' data: https://unavatar.io https://upscaler-ai.com https://via.placeholder.com https://t3.gstatic.com https://storage.googleapis.com https://i.ytimg.com https://yt3.ggpht.com",
+        "img-src 'self' data: https://unavatar.io https://www.talentsnaps.com https://via.placeholder.com https://t3.gstatic.com https://storage.googleapis.com https://i.ytimg.com https://yt3.ggpht.com",
         "font-src 'self' data:",
         `connect-src ${connectSrc}`,
         `frame-src https://accounts.google.com ${turnstileOrigin} ${youtubeOrigin}`,
@@ -143,7 +143,7 @@ const nextConfig = {
     // a favicon preview from Google's favicon service and routes it through
     // this app's own /_next/image endpoint — without this it 404s.
     remotePatterns: [
-      { protocol: "https", hostname: "upscaler-ai.com" },
+      { protocol: "https", hostname: "www.talentsnaps.com" },
       { protocol: "https", hostname: "via.placeholder.com" },
       { protocol: "https", hostname: "unavatar.io" },
       { protocol: "https", hostname: "t3.gstatic.com" },

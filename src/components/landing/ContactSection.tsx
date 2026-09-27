@@ -27,10 +27,10 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // No contact-inquiry backend endpoint exists yet (checked both python-service
 // and node-api) — this opens the visitor's own email client via mailto: as an
 // honest, functional fallback rather than faking a "sent" state with nowhere
-// for the message to actually go. Swap CONTACT_EMAIL for the real support
-// inbox, and replace the mailto: call with a real POST once a /contact
-// endpoint exists.
-const CONTACT_EMAIL = "hello@upscaler-ai.com";
+// for the message to actually go. CONTACT_EMAIL is the official support
+// inbox; replace the mailto: call with a real POST once a /contact endpoint
+// exists.
+const CONTACT_EMAIL = "admin@talentsnaps.com";
 
 export default function ContactSection() {
   const ref = useRef(null);
