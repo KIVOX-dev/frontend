@@ -1,16 +1,9 @@
 import axios from "axios";
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
 
-// Falls back to node-api's own default dev port (see node-api/src/config/env.js
-// — PORT defaults to 5000) so a fresh clone works with `npm run dev` and no
-// manual .env.local edit. NEXT_PUBLIC_API_URL always wins when set — this
-// fallback only ever applies in its absence, so any deployment that already
-// sets the env var sees no behavior change at all.
-export const getApiUrl = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
-  if (typeof window !== "undefined") return `http://${window.location.hostname}:5000/api/v1`;
-  return "http://localhost:5000/api/v1";
-};
+import { getApiUrl } from "@/lib/apiUrl";
+
+export { getApiUrl };
 
 export const api = axios.create({
   baseURL: getApiUrl(),
@@ -21,30 +14,79 @@ export const api = axios.create({
   },
 });
 
-import { useAuthStore } from "@/stores/authStore";
+import { useAuthStore, LEGACY_REFRESH_TOKEN_KEY } from "@/stores/authStore";
 import { isOfflineSession } from "@/lib/sampleAuth";
 
-/* localStorage['upscaler_ai_token'] is shared across every tab of this origin,
-   so reading it directly here — instead of this tab's own Zustand session —
-   meant that logging into a different account in ANOTHER tab silently swapped
-   the bearer token out from under a tab that was still showing (and believed
-   it was using) its own, different account. Each tab's Zustand store is its
-   own in-memory instance that other tabs can't overwrite, so prefer that; the
-   raw key is only a fallback for the brief window before Zustand hydrates. */
-const readToken = () => {
-  if (typeof window === "undefined") return null;
-  return useAuthStore.getState().token || localStorage.getItem("upscaler_ai_token") || localStorage.getItem("sk_token");
+/* The access token lives only in this tab's Zustand store (memory, never
+   localStorage — see authStore.ts). Each tab's store is its own instance, so
+   logging into a different account in another tab can't swap the bearer
+   token out from under this one. */
+const readToken = () => (typeof window === "undefined" ? null : useAuthStore.getState().token);
+
+const isAuthUrl = (url: string) =>
+  ["/auth/login", "/auth/register", "/auth/refresh", "/auth/google", "/auth/logout", "/auth/change-initial-password"].some((p) => url.includes(p));
+
+/* A refresh token saved to localStorage before the httpOnly cookie existed.
+   Sent once so the server can move it into the cookie, then deleted. */
+const takeLegacyRefreshToken = () => {
+  try {
+    const token = localStorage.getItem(LEGACY_REFRESH_TOKEN_KEY);
+    if (token) localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
+    return token;
+  } catch {
+    return null;
+  }
 };
 
-const REFRESH_TOKEN_KEY = "upscaler_ai_refresh_token";
+// The `sub` claim of a JWT, without verifying it (the server does that).
+const tokenSubject = (token: string) => {
+  try {
+    const part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return String(JSON.parse(atob(part)).sub ?? "");
+  } catch {
+    return "";
+  }
+};
 
-const readRefreshToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem(REFRESH_TOKEN_KEY) : null;
+/* Access tokens are short-lived, and a reloaded or new tab starts with none.
+   The refresh token is in an httpOnly cookie the browser sends to
+   /auth/refresh by itself, so this just asks for a new access token.
+   Concurrent callers share one request. */
+let refreshPromise: Promise<string> | null = null;
 
-// Request interceptor — attaches the bearer token for this tab's own session
+async function refreshAccessToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const legacy = takeLegacyRefreshToken();
+      const res = await axios.post(`${getApiUrl()}/auth/refresh`, legacy ? { refresh_token: legacy } : {}, { withCredentials: true });
+      const access_token: string = res.data.access_token;
+      // The refresh cookie is shared by every tab. If another tab has since
+      // signed in as someone else, this tab would now be acting as them;
+      // reload so it shows who is actually signed in.
+      const current = useAuthStore.getState().user;
+      if (current?.id != null && tokenSubject(access_token) !== String(current.id)) {
+        window.location.reload();
+        throw new Error("Signed-in account changed in another tab");
+      }
+      useAuthStore.setState({ token: access_token });
+      return access_token;
+    })().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+// Request interceptor — attaches the bearer token for this tab's own session,
+// fetching one first when a signed-in tab has none yet (after a reload).
 api.interceptors.request.use(
-  (config) => {
-    const token = readToken();
+  async (config) => {
+    let token = readToken();
+    if (!token && useAuthStore.getState().isAuthenticated && !isAuthUrl(config.url ?? "")) {
+      // On failure the request goes out without a token and the 401 handler
+      // below signs the tab out.
+      token = await refreshAccessToken().catch(() => null);
+    }
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -53,64 +95,20 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-/* Access tokens expire after 30 minutes (see ACCESS_TOKEN_EXPIRE_MINUTES on the
-   backend); without this, any session older than that hit a 401 on its next
-   request no matter how routine — "create user" included — and got logged out
-   with little explanation. Login/register responses carry a refresh_token
-   alongside the access token, so on a 401 we exchange it for a new access
-   token and retry the original request once before giving up. */
-let refreshPromise: Promise<string> | null = null;
-
-async function refreshAccessToken(): Promise<string> {
-  if (!refreshPromise) {
-    refreshPromise = (async () => {
-      const refreshToken = readRefreshToken();
-      if (!refreshToken) throw new Error("No refresh token available");
-      const res = await axios.post(`${getApiUrl()}/auth/refresh`, { refresh_token: refreshToken });
-      const { access_token, refresh_token } = res.data;
-      localStorage.setItem("upscaler_ai_token", access_token);
-      if (refresh_token) localStorage.setItem(REFRESH_TOKEN_KEY, refresh_token);
-      useAuthStore.setState({ token: access_token });
-      return access_token as string;
-    })().finally(() => {
-      refreshPromise = null;
-    });
-  }
-  return refreshPromise;
-}
-
 // Response interceptor — refreshes an expired access token once before
 // clearing the auth store on 401 (login/refresh calls are exempt).
 api.interceptors.response.use(
   (response) => {
     // Unwrap node-api envelope if present
     if (response.data && typeof response.data === 'object' && 'success' in response.data && 'data' in response.data) {
-      const originalData = response.data;
-      response.data = originalData.data;
-
-      const url = response.config?.url ?? "";
-      if (url.includes("/auth/login") || url.includes("/auth/register") || url.includes("/auth/google")) {
-        const refreshToken = response.data?.refresh_token || originalData.refresh_token;
-        if (refreshToken && typeof window !== "undefined") {
-          localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-        }
-      }
-    } else {
-      const url = response.config?.url ?? "";
-      if (url.includes("/auth/login") || url.includes("/auth/register") || url.includes("/auth/google")) {
-        const refreshToken = response.data?.refresh_token;
-        if (refreshToken && typeof window !== "undefined") {
-          localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-        }
-      }
+      response.data = response.data.data;
     }
     return response;
   },
   async (error) => {
     const url: string = error.config?.url ?? "";
-    const isAuthEndpoint = url.includes("/auth/login") || url.includes("/auth/register") || url.includes("/auth/refresh");
 
-    if (error.response?.status === 401 && !isAuthEndpoint) {
+    if (error.response?.status === 401 && !isAuthUrl(url)) {
       // The offline session's token is never valid upstream; refreshing or
       // tearing the session down on its 401s would bounce the preview
       // straight back to the login page.
@@ -118,14 +116,14 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      if (!error.config._retriedAfterRefresh && readRefreshToken()) {
+      if (!error.config._retriedAfterRefresh && useAuthStore.getState().isAuthenticated) {
         try {
           const newToken = await refreshAccessToken();
           error.config._retriedAfterRefresh = true;
           error.config.headers = { ...error.config.headers, Authorization: `Bearer ${newToken}` };
           return api.request(error.config);
         } catch {
-          // Refresh token is itself invalid/expired — fall through to logout.
+          // Refresh cookie is missing, invalid or expired — fall through to logout.
         }
       }
 

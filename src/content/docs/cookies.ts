@@ -7,7 +7,7 @@ export const cookies: Doc = {
   slug: "cookie-policy",
   title: "Cookie Policy",
   group: "Legal",
-  updated: "26 September 2026",
+  updated: "27 September 2026",
   audiences: ["individuals", "institutions", "recruiters"],
   intro:
     "Which cookies and browser storage TalentSnaps uses, what the services we rely on store, and how to change your choice at any time.",
@@ -39,8 +39,8 @@ export const cookies: Doc = {
           table: {
             head: ["Name", "Purpose"],
             rows: [
-              ["upscaler-ai-auth", "Keeps you signed in and remembers your basic account details between visits."],
-              ["upscaler_ai_token, upscaler_ai_refresh_token", "Sign-in tokens that prove who you are to our servers. Removed when you log out."],
+              ["upscaler-ai-auth", "Remembers your basic account details between visits. Holds no sign-in token."],
+              ["ts_refresh (cookie, api.talentsnaps.com)", "Keeps you signed in for up to 7 days. Our website's scripts can't read it, and it's only sent when you sign in or your session is renewed. Removed when you log out."],
               ["ts_cookie_consent", "Remembers the choice you made in the cookie notice."],
               ["upscaler_ai_practice_stats", "Keeps recent practice results on this device for your trend charts."],
               ["ts_chunk_reload_at (session only)", "Lets the site reload once to pick up a new version after an update, without looping."],

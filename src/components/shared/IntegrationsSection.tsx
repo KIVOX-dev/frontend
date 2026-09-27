@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Unlink } from "lucide-react";
 import { api, type ApiRequestConfig } from "@/lib/api";
@@ -249,6 +249,9 @@ export function IntegrationsSection() {
   const [connectingStackoverflow, setConnectingStackoverflow] = useState(false);
   const [disconnectingStackoverflow, setDisconnectingStackoverflow] = useState(false);
   const [stackoverflowMsg, setStackoverflowMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  // An OAuth code is single-use; StrictMode's double effect run in dev
+  // would otherwise post it to /confirm twice.
+  const handledRedirect = useRef(false);
 
   useEffect(() => {
     if (!isStudent) return;
@@ -261,49 +264,57 @@ export function IntegrationsSection() {
 
   // Lands here right after an OAuth callback redirect (GitHub/LinkedIn/Stack
   // Overflow) sends the browser back with
-  // `?screen=profile-info&tab=integrations&<provider>=connected|error&reason=...`.
+  // `?screen=profile-info&tab=integrations&<provider>=confirm&code=...&state=...`
+  // (or `=error&reason=...`). The backend no longer links on the redirect
+  // itself: this signed-in tab posts code+state to /confirm, and the server
+  // only links if the connect was started by this same account.
   useEffect(() => {
-    const github = searchParams.get("github");
-    const linkedin = searchParams.get("linkedin");
-    const stackoverflow = searchParams.get("stackoverflow");
-    if (!github && !linkedin && !stackoverflow) return;
+    const providers = [
+      { param: "github", api: "/auth/github", label: "GitHub", setMsg: setGithubMsg },
+      { param: "linkedin", api: "/auth/linkedin", label: "LinkedIn", setMsg: setLinkedinMsg },
+      { param: "stackoverflow", api: "/auth/stackexchange", label: "Stack Overflow", setMsg: setStackoverflowMsg },
+    ];
+    const provider = providers.find((p) => searchParams.get(p.param));
+    if (!provider || handledRedirect.current) return;
+    handledRedirect.current = true;
 
-    const reason = searchParams.get("reason") || "";
-    if (github === "connected") {
-      setGithubMsg({ type: "success", text: "GitHub connected." });
-    } else if (github === "error") {
+    const { label, setMsg } = provider;
+    const show = (status: string) => {
+      if (status === "connected") {
+        setMsg({ type: "success", text: `${label} connected.` });
+        return;
+      }
       const reasons: Record<string, string> = {
-        denied: "GitHub authorization was cancelled.",
-        already_linked: "That GitHub account is already connected to another student.",
+        denied: `${label} authorization was cancelled.`,
+        already_linked: `That ${label} account is already connected to another student.`,
         expired: "That connection attempt expired — please try again.",
-        no_profile: "Set up your student profile before connecting GitHub.",
+        no_profile: `Set up your student profile before connecting ${label}.`,
+        wrong_account: `That ${label} connection was started from a different TalentSnaps account, so it wasn't linked.`,
       };
-      setGithubMsg({ type: "error", text: reasons[reason] || "Couldn't connect GitHub — please try again." });
-    }
-    if (linkedin === "connected") {
-      setLinkedinMsg({ type: "success", text: "LinkedIn connected." });
-    } else if (linkedin === "error") {
-      const reasons: Record<string, string> = {
-        denied: "LinkedIn authorization was cancelled.",
-        already_linked: "That LinkedIn account is already connected to another student.",
-        expired: "That connection attempt expired — please try again.",
-        no_profile: "Set up your student profile before connecting LinkedIn.",
-      };
-      setLinkedinMsg({ type: "error", text: reasons[reason] || "Couldn't connect LinkedIn — please try again." });
-    }
-    if (stackoverflow === "connected") {
-      setStackoverflowMsg({ type: "success", text: "Stack Overflow connected." });
-    } else if (stackoverflow === "error") {
-      const reasons: Record<string, string> = {
-        denied: "Stack Overflow authorization was cancelled.",
-        already_linked: "That Stack Overflow account is already connected to another student.",
-        expired: "That connection attempt expired — please try again.",
-        no_profile: "Set up your student profile before connecting Stack Overflow.",
-      };
-      setStackoverflowMsg({ type: "error", text: reasons[reason] || "Couldn't connect Stack Overflow — please try again." });
-    }
+      setMsg({ type: "error", text: reasons[status] || `Couldn't connect ${label} — please try again.` });
+    };
 
+    const value = searchParams.get(provider.param);
+    const code = searchParams.get("code");
+    const state = searchParams.get("state");
+    // Strip code/state from the address bar before anything else.
     router.replace(window.location.pathname, { scroll: false });
+
+    if (value === "confirm" && code && state) {
+      api
+        .post<{ status: string }>(`${provider.api}/confirm`, { code, state })
+        .then((res) => {
+          show(res.data.status);
+          if (res.data.status === "connected") {
+            api.get<IntegrationsProfile>("/students/profile", { cache: false } as ApiRequestConfig).then((r) => setProfile(r.data)).catch(() => {});
+          }
+        })
+        .catch((err: unknown) => setMsg({ type: "error", text: extractErrorMessage(err, `Couldn't connect ${label} — please try again.`) }));
+    } else if (value === "connected") {
+      show("connected");
+    } else {
+      show(searchParams.get("reason") || "");
+    }
     // Only ever meant to process the redirect's own query string once, on
     // arrival — re-running on every searchParams identity change would loop
     // against the replace() above.
