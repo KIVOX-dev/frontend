@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { AUDIENCE_ORDER, CAMPUS_AUDIENCES, CAMPUS_TO_DOCS, landingHref, type CampusAudience } from "./audiences";
 import { CampusLogo } from "./CampusNav";
@@ -16,6 +17,20 @@ export function CampusFooter({ audience }: { audience: CampusAudience }) {
             <div>
               <CampusLogo href={cfg.path} tone="light" />
               <p>{footer.blurb}</p>
+              {/* Level One is a published self-assessment (CAIQ), not a third-party
+                  audit or certification — the label says so. */}
+              <a
+                className="csa-star"
+                href="https://cloudsecurityalliance.org/star/registry/talentsnaps"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Image src="/badges/csa-star-level-1.png" alt="" width={56} height={56} />
+                <span>
+                  CSA STAR Level One
+                  <small>Self-assessment · View listing</small>
+                </span>
+              </a>
             </div>
             <div>
               <h5>Product</h5>

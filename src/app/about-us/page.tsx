@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 
 const TOC = [
   { id: "what-were-building", label: "What we're building" },
+  { id: "security", label: "Security & trust" },
   { id: "where-were-based", label: "Where we're based" },
   { id: "get-in-touch", label: "Get in touch" },
 ];
@@ -38,6 +39,25 @@ export default function AboutUsPage() {
           letters, aptitude, skill tracking — writes to. Not eight disconnected tools that all claim
           to be a &quot;platform.&quot; A student who applies in August and gets an offer letter in
           March should be one row, not six.
+        </p>
+      </section>
+
+      <section>
+        <h2 id="security">Security &amp; trust</h2>
+        <p>
+          TalentSnaps is listed on the{" "}
+          <a href="https://cloudsecurityalliance.org/star/registry/talentsnaps" target="_blank" rel="noopener noreferrer">
+            Cloud Security Alliance STAR Registry
+          </a>{" "}
+          at STAR Level One. That means we&apos;ve published a self-assessment of our security
+          controls against CSA&apos;s Consensus Assessments Initiative Questionnaire (CAIQ), which
+          anyone can read on the registry. It covers how student and placement data is stored,
+          who can access it, and how it&apos;s protected.
+        </p>
+        <p>
+          Level One is a self-assessment, not an independent audit. If your college needs more
+          detail for its own review, write to us at{" "}
+          <a href="mailto:admin@talentsnaps.com">admin@talentsnaps.com</a>.
         </p>
       </section>
 

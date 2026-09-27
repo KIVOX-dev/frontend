@@ -475,6 +475,11 @@
 .tsl .fgrid h5{margin:0 0 16px;font:600 12.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#8FA7A8}
 .tsl .fgrid a{display:block;text-decoration:none;color:#DCE6E6;padding:6px 0;font-size:15.5px;transition:color .2s,transform .3s var(--ease)}
 .tsl .fgrid a:hover{color:#fff;transform:translateX(4px)}
+/* CSA STAR badge under the footer blurb */
+.tsl .fgrid a.csa-star{display:inline-flex;align-items:center;gap:12px;margin-top:20px;padding:8px 14px 8px 8px;border:1px solid rgb(255 255 255 / .18);border-radius:12px;font-size:14px;font-weight:600;line-height:1.3}
+.tsl .fgrid a.csa-star img{flex-shrink:0;background:#fff;border-radius:50%}
+.tsl .fgrid a.csa-star small{display:block;font-size:12px;font-weight:400;color:#8FA7A8}
+.tsl .fgrid a.csa-star:hover{border-color:rgb(255 255 255 / .4)}
 .tsl .fgrid .ts-cookie-btn{display:block;padding:6px 0;font:inherit;font-size:15.5px;color:#DCE6E6;background:none;border:0;cursor:pointer;text-align:left;transition:color .2s,transform .3s var(--ease)}
 .tsl .fgrid .ts-cookie-btn:hover{color:#fff;transform:translateX(4px)}
 .tsl .fgrid a.logo{display:flex;padding:0;color:#fff}.tsl .fgrid a.logo:hover{transform:none}
