@@ -18,8 +18,8 @@ export function HrLanding() {
             cell.
           </p>
           <div className="ctas rv" style={{ "--i": "3" }}>
-            <a className="btn btn-dark" href="#h-cta">
-              Book a demo
+            <a className="btn btn-dark" href="/register?role=hr">
+              Get started
               <Icon name="arrow" />
             </a>
             <a className="btn btn-line" href="#h-post">
@@ -852,17 +852,17 @@ export function HrLanding() {
         <div className="cta2">
           <div className="txt">
             <span className="eb rv">
-              <i></i>Book a demo
+              <i></i>Get started
             </span>
             <Split as="h2" className="dt h2 anim">
               Run your next campus drive with TalentSnaps
             </Split>
             <p className="lede rv" style={{ "--i": "2" }}>
-              In a 30-minute demo we set up a sample drive with your rounds and walk you through applicants and shortlists.
+              Create your recruiter account, post your first drive with your own rounds, and see eligible applicants from partner colleges.
             </p>
             <div className="ctas rv" style={{ "--i": "3", justifyContent: "flex-start" }}>
-              <a className="btn btn-blue" href="#h-post">
-                Book a demo
+              <a className="btn btn-blue" href="/register?role=hr">
+                Get started
                 <Icon name="arrow" />
               </a>
               <a className="btn btn-line" href="#h-features">

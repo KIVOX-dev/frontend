@@ -15,9 +15,10 @@ function isRole(value: string | null): value is Role {
 function RegisterContent() {
   const searchParams = useSearchParams();
   const roleParam = searchParams.get("role");
-  const initialRole = isRole(roleParam) ? roleParam : "student";
-
-  return <RegisterForm initialRole={initialRole} />;
+  // A role in the URL comes from that audience's "Get started": show only
+  // that role's signup. Plain /register keeps the role tabs.
+  if (isRole(roleParam)) return <RegisterForm initialRole={roleParam} lockRole />;
+  return <RegisterForm initialRole="student" />;
 }
 
 export default function RegisterPage() {

@@ -47,7 +47,9 @@ const ROLE_COPY: Record<Role, { heading: string; sub: string; nameLabel: string;
   },
 };
 
-export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }) {
+// lockRole: opened from a role's own "Get started" (/register?role=…), so the
+// form is that role's signup only, with no tabs to switch to another role.
+export function RegisterForm({ initialRole = "student", lockRole = false }: { initialRole?: Role; lockRole?: boolean }) {
   const [role, setRole] = useState<Role>(initialRole);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -121,17 +123,19 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
   return (
     <AuthSplitLayout season="autumn">
       <div className="lp-card">
-        <div className="l-tabs">
-          {ROLE_TABS.map((tab) => (
-            <button
-              key={tab.role}
-              className={`l-tab ${role === tab.role ? "active" : ""}`}
-              onClick={() => handleRoleChange(tab.role)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {!lockRole && (
+          <div className="l-tabs">
+            {ROLE_TABS.map((tab) => (
+              <button
+                key={tab.role}
+                className={`l-tab ${role === tab.role ? "active" : ""}`}
+                onClick={() => handleRoleChange(tab.role)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {submitted ? (
           <div className="l-panel active">

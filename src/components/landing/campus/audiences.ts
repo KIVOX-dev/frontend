@@ -43,7 +43,7 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
     path: "/for-hr",
     login: "/hr",
     help: "/docs/recruiters/troubleshooting",
-    cta: { label: "Book a demo", href: "#h-cta" },
+    cta: { label: "Get started", href: "/register?role=hr" },
     faq: "#h-faq",
     footer: {
       blurb: "Complete, eligible applicants from partner colleges, screened round by round.",
@@ -66,7 +66,7 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
     path: "/for-institutions",
     login: "/institution/login",
     help: "/docs/institutions/troubleshooting",
-    cta: { label: "Book a demo", href: "#i-cta" },
+    cta: { label: "Get started", href: "/register?role=college_admin" },
     faq: "#i-faq",
     footer: {
       blurb: "Digital infrastructure for your training and placement cell.",

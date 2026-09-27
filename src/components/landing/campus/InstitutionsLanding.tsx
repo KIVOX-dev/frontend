@@ -18,8 +18,8 @@ export function InstitutionsLanding() {
             with numbers ready for NIRF.
           </p>
           <div className="ctas rv" style={{ "--i": "3" }}>
-            <a className="btn btn-dark" href="#i-cta">
-              Book a demo
+            <a className="btn btn-dark" href="/register?role=college_admin">
+              Get started
               <Icon name="arrow" />
             </a>
             <a className="btn btn-line" href="#i-path">
@@ -882,17 +882,17 @@ export function InstitutionsLanding() {
         <div className="cta2">
           <div className="txt">
             <span className="eb rv">
-              <i></i>Book a demo
+              <i></i>Get started
             </span>
             <Split as="h2" className="dt h2 anim">
               Bring your placement cell onto one system
             </Split>
             <p className="lede rv" style={{ "--i": "2" }}>
-              We walk through your current process and show TalentSnaps set up with your own departments and drives.
+              Register your institution. Once it&apos;s approved, we set TalentSnaps up with your own departments and drives.
             </p>
             <div className="ctas rv" style={{ "--i": "3", justifyContent: "flex-start" }}>
-              <a className="btn btn-blue" href="#i-announce">
-                Book a demo
+              <a className="btn btn-blue" href="/register?role=college_admin">
+                Get started
                 <Icon name="arrow" />
               </a>
               <a className="btn btn-line" href="#i-path">
