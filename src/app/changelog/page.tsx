@@ -3,7 +3,8 @@ import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
   title: "Changelog",
-  description: "What's shipped on TalentSnaps, roughly in the order it happened.",
+  description:
+    "Every feature and fix shipped on TalentSnaps for students, placement cells and recruiters, month by month.",
 };
 
 const TOC = [

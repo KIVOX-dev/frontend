@@ -15,7 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Public sign-in pages: common search destinations and sitelink candidates.
     { path: "/learner", priority: 0.6, changeFrequency: "yearly" },
     { path: "/hr", priority: 0.6, changeFrequency: "yearly" },
-    { path: "/institutional", priority: 0.6, changeFrequency: "yearly" },
+    { path: "/institution/login", priority: 0.6, changeFrequency: "yearly" },
     { path: "/register", priority: 0.5, changeFrequency: "yearly" },
     { path: "/forgot-password", priority: 0.3, changeFrequency: "yearly" },
     { path: "/changelog", priority: 0.5, changeFrequency: "weekly" },

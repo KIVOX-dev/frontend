@@ -3,7 +3,8 @@ import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
   title: "Careers",
-  description: "Working at TalentSnaps.",
+  description:
+    "Careers at TalentSnaps: join a small Coimbatore team that works directly with the placement cells using the product, with real ownership from day one.",
 };
 
 const TOC = [

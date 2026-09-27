@@ -3,7 +3,8 @@ import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
   title: "About Us",
-  description: "Why TalentSnaps exists, and who's building it.",
+  description:
+    "TalentSnaps is built for college placement cells: drives, eligibility, round-by-round results and NIRF-ready placement records in one place, instead of spreadsheets and WhatsApp groups.",
 };
 
 const TOC = [

@@ -73,13 +73,15 @@ export const metadata: Metadata = {
     default: "TalentSnaps — Campus Placement & Assessment Management Platform",
     template: "%s — TalentSnaps",
   },
-  description: "One intelligent platform connecting HR, students, faculty, and administrators across your institution's placement cell.",
+  description:
+    "TalentSnaps is a campus placement platform where colleges run drives, students prove their skills with verified tests, and recruiters hire from verified records.",
   openGraph: {
     type: "website",
     url: SITE_URL,
     siteName: "TalentSnaps",
     title: "TalentSnaps — Campus Placement & Assessment Management Platform",
-    description: "One intelligent platform connecting HR, students, faculty, and administrators across your institution's placement cell.",
+    description:
+      "TalentSnaps is a campus placement platform where colleges run drives, students prove their skills with verified tests, and recruiters hire from verified records.",
   },
   twitter: {
     // Large card: shows app/opengraph-image.png (the official stacked logo).
