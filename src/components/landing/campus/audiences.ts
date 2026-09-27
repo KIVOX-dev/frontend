@@ -64,7 +64,7 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
   institutions: {
     label: "Institutions",
     path: "/for-institutions",
-    login: "/institutional",
+    login: "/institution/login",
     help: "/docs/institutions/troubleshooting",
     cta: { label: "Book a demo", href: "#i-cta" },
     faq: "#i-faq",

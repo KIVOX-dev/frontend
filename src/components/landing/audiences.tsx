@@ -123,7 +123,7 @@ export const AUDIENCES: Record<AudienceKey, AudienceConfig> = {
       "Department-wide analytics",
     ],
     ctaLabel: "Explore Institution Platform",
-    href: "/institutional",
+    href: "/institution/login",
     photo: {
       src: "/images/audience/institutional.jpg",
       alt: "A college administrator in her office",

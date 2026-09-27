@@ -71,7 +71,7 @@ export default function LandingCta() {
               </Link>
             </MagneticButton>
             <MagneticButton strength={0.25} className="w-full sm:w-auto">
-              <Link href="/institutional">
+              <Link href="/institution/login">
                 <Button variant="secondary" size="lg" shape="pill" className="w-full sm:w-auto justify-center">
                   <SignIn className="size-[18px]" />
                   Institution Login

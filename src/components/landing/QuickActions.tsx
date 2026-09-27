@@ -19,7 +19,7 @@ const ACTIONS = [
   { label: "Try a mock interview", icon: UserFocus, href: "/learner" },
   { label: "Check my rank", icon: Trophy, href: "/learner" },
   { label: "Browse open jobs", icon: Briefcase, href: "/learner" },
-  { label: "Assign an assessment", icon: ClipboardText, href: "/institutional" },
+  { label: "Assign an assessment", icon: ClipboardText, href: "/institution/login" },
 ];
 
 // Mirrors coursera.org's "Ask Coursera" prompt-chip row exactly, including

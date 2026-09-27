@@ -31,7 +31,7 @@ const learnerNavLinks = [
 const loginRoles = [
   { label: "Student", href: "/learner", icon: GraduationCap },
   { label: "HR Team", href: "/hr", icon: Briefcase },
-  { label: "Institution (Admin & Faculty)", href: "/institutional", icon: Buildings },
+  { label: "Institution (Admin & Faculty)", href: "/institution/login", icon: Buildings },
 ];
 
 export default function LandingNav({ audience: audienceKey }: { audience: AudienceKey }) {

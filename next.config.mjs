@@ -174,7 +174,13 @@ const nextConfig = {
       // Docs landing: the Terms, for the audience given (Individuals by default).
       { source: "/docs", destination: "/docs/individuals/terms-and-conditions", permanent: false },
       { source: "/docs/:audience(individuals|institutions|recruiters)", destination: "/docs/:audience/terms-and-conditions", permanent: false },
+      { source: "/institution", destination: "/institution/login", permanent: false },
     ];
+  },
+  // The institutional role picker's public URL. Served by the /institutional
+  // catch-all, which shows the hub to anyone not signed in to that portal.
+  async rewrites() {
+    return [{ source: "/institution/login", destination: "/institutional/login" }];
   },
   async headers() {
     if (process.env.NODE_ENV !== "production") return [];
@@ -187,6 +193,9 @@ const nextConfig = {
       { source: "/:path*", headers: securityHeaders() },
       { source: "/learner/:path*", headers: securityHeaders({ allowEval: true }) },
       { source: "/institutional/:path*", headers: securityHeaders({ allowEval: true }) },
+      // Signing in at /institution/login swaps to the dashboard in the same
+      // document, so it needs the dashboard's CSP too.
+      { source: "/institution/:path*", headers: securityHeaders({ allowEval: true }) },
       // Never in search results, even if a link to it leaks. Not listed in
       // robots.txt on purpose: that file is public and would advertise it.
       { source: "/superadmin/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }] },

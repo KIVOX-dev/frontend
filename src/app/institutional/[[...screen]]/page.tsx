@@ -8,8 +8,8 @@ import { CollegeAdminShell } from "@/components/layout/CollegeAdminShell";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
 import { Logo } from "@/components/shared/Logo";
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { usePortalRoute } from "@/lib/portalRoutes";
+import { usePathname, useSearchParams } from "next/navigation";
+import { PORTAL_ROUTES, loginHref, usePortalRoute } from "@/lib/portalRoutes";
 
 // Only one of these renders at a time (role selection / renderScreen switch
 // below) — dynamic-importing them keeps every other role's/screen's code
@@ -68,6 +68,7 @@ function InstitutionalContent() {
   const [mounted, setMounted] = useState(false);
   const [selectedRole, setSelectedRole] = useState<InstitutionalRole>("none");
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
@@ -106,10 +107,23 @@ function InstitutionalContent() {
 
   usePortalRoute("institutional", mounted && isAuthenticated && !!user);
 
+  const showHub = !isAuthenticated || !INSTITUTIONAL_ROLES.includes(user?.role ?? "");
+
+  // The hub's public URL is /institution/login (rewritten here in
+  // next.config.mjs). Deep links such as /institutional/placement-drives keep
+  // their URL so sign-in still lands on that screen.
+  useEffect(() => {
+    if (!mounted || !showHub) return;
+    const base = PORTAL_ROUTES.institutional.base;
+    if (pathname === base || pathname === `${base}/login`) {
+      window.history.replaceState(null, "", `${loginHref("institutional")}${window.location.search}`);
+    }
+  }, [mounted, showHub, pathname]);
+
   if (!mounted) return null;
 
   // If they're not authenticated for THIS portal, show the Hub or the selected login
-  if (!isAuthenticated || !INSTITUTIONAL_ROLES.includes(user?.role ?? "")) {
+  if (showHub) {
     if (selectedRole === "admin") return <CollegeAdminLogin onBack={() => setSelectedRole("none")} />;
     if (selectedRole === "faculty") return <FacultyLogin onBack={() => setSelectedRole("none")} />;
     if (selectedRole === "student") return <InstitutionalStudentLogin onBack={() => setSelectedRole("none")} />;

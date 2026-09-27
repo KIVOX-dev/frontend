@@ -464,7 +464,7 @@ export const GUIDES: Record<CampusAudience, Guide> = {
   },
   institutions: {
     portal: "Institution",
-    loginPath: "/institutional",
+    loginPath: "/institution/login",
     title: "Troubleshooting for institutions",
     lede: "Fixes for every module your college admins, faculty and students use. Search this page for the exact message on your screen.",
     groups: [
@@ -472,7 +472,7 @@ export const GUIDES: Record<CampusAudience, Guide> = {
         id: "account",
         title: "Account",
         modules: [
-          signIn("institution", "/institutional", [
+          signIn("institution", "/institution/login", [
             {
               q: "I can't see the login form",
               a: "Choose your role first: College Admin, Faculty or Institutional Student. Each has its own sign-in.",

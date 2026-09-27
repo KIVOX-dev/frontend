@@ -88,7 +88,7 @@ const HIGHLIGHTS: Record<AudienceKey, Highlight[]> = {
       title: "Placement Operations Track",
       description: "Run placement drives jointly with HR teams — one pipeline from job posting to offer letter.",
       linkLabel: "Manage placement drives",
-      href: "/institutional",
+      href: "/institution/login",
     },
     {
       icon: ClipboardText,
@@ -96,7 +96,7 @@ const HIGHLIGHTS: Record<AudienceKey, Highlight[]> = {
       title: "Assessment Suite Track",
       description: "Create and assign assessments across departments, with results feeding straight into student records.",
       linkLabel: "Build an assessment",
-      href: "/institutional",
+      href: "/institution/login",
     },
     {
       icon: UsersThree,
@@ -104,7 +104,7 @@ const HIGHLIGHTS: Record<AudienceKey, Highlight[]> = {
       title: "Department Analytics Track",
       description: "Department-wide analytics on student performance, faculty activity, and placement outcomes.",
       linkLabel: "View analytics",
-      href: "/institutional",
+      href: "/institution/login",
     },
   ],
 };

@@ -41,6 +41,8 @@ export const PORTAL_ROUTES = {
   learner: { base: "/learner", screens: STUDENT },
   institutional: {
     base: "/institutional",
+    // Rewritten to /institutional/login in next.config.mjs.
+    login: "/institution/login",
     screens: {
       ...STUDENT,
       // College admin
@@ -74,6 +76,12 @@ export function screenHref(portal: Portal, screenId: string) {
   const { base, screens } = PORTAL_ROUTES[portal];
   const slug = screens[screenId];
   return slug ? `${base}/${slug}` : base;
+}
+
+/** A portal's sign-in URL: its own login page if it has one, else its base. */
+export function loginHref(portal: Portal): string {
+  const routes: { base: string; login?: string } = PORTAL_ROUTES[portal];
+  return routes.login ?? routes.base;
 }
 
 // Old URLs for screens that were merged into another one.
@@ -134,10 +142,11 @@ export function usePortalRoute(portal: Portal, enabled: boolean) {
     params.delete("screen");
     const url = params.size ? `${target}?${params}` : target;
 
-    // Replace rather than push when only tidying the URL (bare /learner, or a
-    // ?screen= link), so Back doesn't step through the untidy version.
-    const tidy = pathname === base || !!queryScreen;
+    // Replace rather than push when only tidying the URL (bare /learner, the
+    // login page just signed in from, or a ?screen= link), so Back doesn't
+    // step through the untidy version.
+    const tidy = pathname === base || pathname === loginHref(portal) || !!queryScreen;
     window.history[tidy ? "replaceState" : "pushState"](null, "", url);
     shown.current = current;
-  }, [activeScreen, enabled, pathname, searchParams, base, screens]);
+  }, [activeScreen, enabled, pathname, searchParams, base, screens, portal]);
 }

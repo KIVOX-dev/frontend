@@ -19,7 +19,7 @@ const footerLinks = {
     { label: "HR Team", href: "/hr" },
     { label: "Students", href: "/learner" },
     { label: "Faculty", href: "/faculty" },
-    { label: "College Admin", href: "/institutional" },
+    { label: "College Admin", href: "/institution/login" },
   ],
   Resources: [
     { label: "FAQ", href: "#faq" },

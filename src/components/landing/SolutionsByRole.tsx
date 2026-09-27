@@ -155,7 +155,7 @@ const roles = [
       "Multi-department test assignment",
     ],
     cta: "Explore Admin Solution",
-    href: "/institutional",
+    href: "/institution/login",
     visual: (
       <div className="space-y-1.5">
         <div className="rounded-md border border-line bg-white px-2.5 py-1.5 flex items-center justify-between">

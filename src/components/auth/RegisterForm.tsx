@@ -143,7 +143,7 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
                   : "Your account was created. Please sign in to continue."}
               </p>
             </div>
-            <a href={role === "college_admin" ? "/institutional" : role === "hr" ? "/hr" : "/learner"} className="l-submit l-submit-blue" style={{ textDecoration: "none" }}>
+            <a href={role === "college_admin" ? "/institution/login" : role === "hr" ? "/hr" : "/learner"} className="l-submit l-submit-blue" style={{ textDecoration: "none" }}>
               Back to Sign In
             </a>
           </div>
@@ -243,7 +243,7 @@ export function RegisterForm({ initialRole = "student" }: { initialRole?: Role }
             <div className="l-footer" style={{ marginTop: "16px" }}>
               Already have an account?{" "}
               <a
-                href={role === "college_admin" ? "/institutional" : role === "hr" ? "/hr" : "/learner"}
+                href={role === "college_admin" ? "/institution/login" : role === "hr" ? "/hr" : "/learner"}
               >
                 Sign in
               </a>
