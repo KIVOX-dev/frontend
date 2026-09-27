@@ -393,7 +393,7 @@ export function PlacementDashboard({
           Academic year {currentAcademicYear()} · Updated {lastUpdated ? fmtRelative(lastUpdated.toISOString()) : "—"}
         </p>
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-          <button className="btn" onClick={onRefresh} disabled={loading} title="Refresh" aria-label="Refresh">
+          <button className="btn btn-icon" onClick={onRefresh} disabled={loading} title="Refresh" aria-label="Refresh">
             <RefreshCw size={14} style={loading ? { animation: "spin 1s linear infinite" } : undefined} />
           </button>
           <button className="btn" onClick={handleExportExcel} disabled={isExporting !== null} title="Export to Excel">

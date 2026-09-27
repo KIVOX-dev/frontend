@@ -36,7 +36,15 @@
 }
 
 /* ── 2. Buttons — spec system: primary = green, danger = red ──── */
+/* Every variant shares one box: a 1px border (transparent unless the variant
+   colours it) and a fixed min-height, so a filled primary and an outlined
+   secondary sitting side by side line up exactly. */
 .btn {
+  justify-content: center;
+  min-height: 36px;
+  border: 1px solid transparent;
+  line-height: 1.2;
+  white-space: nowrap;
   border-radius: var(--r2);
   letter-spacing: -0.01em;
   transition: background 0.25s var(--ease), color 0.25s var(--ease),
@@ -159,6 +167,44 @@
 .btn-g:hover {
   background: var(--surface3);
   color: var(--ink);
+}
+
+/* A bare `.btn` with no variant (toolbar actions, modal Cancel/Close,
+   Previous) used to render as borderless text next to bordered buttons.
+   It is the secondary button. */
+.btn:not(.btn-p):not(.btn-o):not(.btn-g):not(.btn-green):not(.btn-purple):not(.btn-red) {
+  background: var(--surface);
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+.btn:not(.btn-p):not(.btn-o):not(.btn-g):not(.btn-green):not(.btn-purple):not(.btn-red):hover:not(:disabled) {
+  border-color: var(--ink);
+  color: var(--ink);
+  box-shadow: var(--sh);
+  transform: translateY(-1px);
+}
+
+.btn-sm {
+  min-height: 30px;
+}
+
+/* Icon-only: square, same height as its neighbours. */
+.btn-icon {
+  width: 36px;
+  padding: 0;
+}
+
+.btn-sm.btn-icon {
+  width: 30px;
+}
+
+/* One disabled look for every variant. */
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* Destructive keeps its semantic red, tuned to the light surface */
