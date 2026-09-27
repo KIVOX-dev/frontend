@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { api } from "@/lib/api";
 import { openPlacementProofDocument } from "@/lib/placementProof";
+import { useModalA11y } from "@/hooks/useModalA11y";
 
 type Drive = {
   id: string;
@@ -76,6 +77,19 @@ export function PlacementOpportunities() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [reportMsg, setReportMsg] = useState("");
   const [submittingReport, setSubmittingReport] = useState(false);
+
+  const openReportForm = () => {
+    setReportForm(REPORT_FORM_DEFAULT);
+    setProofFile(null);
+    setReportMsg("");
+    setShowReportForm(true);
+  };
+  const closeReportForm = useCallback(() => setShowReportForm(false), []);
+  const { panelRef: reportPanelRef, dialogProps: reportDialogProps } = useModalA11y(
+    showReportForm,
+    closeReportForm,
+    "report-placement-title"
+  );
 
   const load = useCallback(async () => {
     try {
@@ -302,8 +316,8 @@ export function PlacementOpportunities() {
       <div className="card" style={{ padding: "24px", marginTop: "16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div className="ct" style={{ marginBottom: 0 }}>Report Your Placement</div>
-          <button className="btn btn-p btn-sm" onClick={() => { setShowReportForm((v) => !v); setReportMsg(""); setProofFile(null); }}>
-            {showReportForm ? "Cancel" : "+ Report Placement"}
+          <button className="btn btn-p btn-sm" onClick={openReportForm}>
+            + Report Placement
           </button>
         </div>
         <p style={{ fontSize: "13px", color: "var(--muted)", margin: "8px 0 0" }}>
@@ -311,6 +325,32 @@ export function PlacementOpportunities() {
         </p>
 
         {showReportForm && (
+          <div
+            onClick={(e) => { if (e.target === e.currentTarget && !submittingReport) closeReportForm(); }}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}
+          >
+          <div
+            ref={reportPanelRef}
+            {...reportDialogProps}
+            className="card"
+            style={{ width: "100%", maxWidth: "560px", maxHeight: "90vh", overflowY: "auto", padding: "24px" }}
+          >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+            <div>
+              <h3 id="report-placement-title" style={{ fontSize: "18px", fontWeight: 700 }}>Report Your Placement</h3>
+              <p style={{ fontSize: "13px", color: "var(--muted)", marginTop: "4px" }}>
+                Your college verifies these details before they count toward your placement record.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={closeReportForm}
+              aria-label="Close"
+              style={{ width: "32px", height: "32px", flexShrink: 0, borderRadius: "50%", border: "none", background: "var(--bg)", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
+            >
+              ✕
+            </button>
+          </div>
           <form onSubmit={handleReportSubmit} style={{ marginTop: "18px" }}>
             {reportMsg && (
               <div style={{ padding: "10px", marginBottom: "12px", background: "var(--bg)", borderRadius: "8px", color: "var(--accent)", fontSize: "14px" }}>
@@ -365,12 +405,17 @@ export function PlacementOpportunities() {
               />
               <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "6px" }}>PDF, JPG, or PNG — up to 10MB.</p>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <button type="button" className="btn btn-o" onClick={closeReportForm} disabled={submittingReport}>
+                Cancel
+              </button>
               <button type="submit" className="btn btn-p" disabled={submittingReport}>
                 {submittingReport ? "Submitting..." : "Submit for Verification"}
               </button>
             </div>
           </form>
+          </div>
+          </div>
         )}
 
         {records.length > 0 && (
