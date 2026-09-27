@@ -473,6 +473,10 @@ export function CollegeAdminDashboard() {
     return new Map(studentRecords.map(s => [s.id, userById.get(String(s.user_id))]));
   }, [studentRecords, users]);
   const driveById = useMemo(() => new Map(drives.map(d => [String(d.id), d])), [drives]);
+  // Department and batch for the Recent Placements table: both live on the
+  // student record (placements key on its id), not on the user.
+  const studentRecordById = useMemo(() => new Map(studentRecords.map(s => [s.id, s])), [studentRecords]);
+  const departmentNameById = useMemo(() => new Map(departments.map(d => [String(d.id), d.name])), [departments]);
 
   // Assign Test's batch-year filter is an exact match against each student's
   // batch_year (their graduation year, not the calendar year they enrolled
@@ -1110,6 +1114,8 @@ export function CollegeAdminDashboard() {
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "13px" }}>
                 <th style={{ padding: "12px 8px" }}>Student</th>
+                <th style={{ padding: "12px 8px" }}>Department</th>
+                <th style={{ padding: "12px 8px" }}>Batch</th>
                 <th style={{ padding: "12px 8px" }}>Company</th>
                 <th style={{ padding: "12px 8px" }}>Role</th>
                 <th style={{ padding: "12px 8px" }}>Salary (LPA)</th>
@@ -1123,12 +1129,16 @@ export function CollegeAdminDashboard() {
                 .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
                 .map(p => {
                   const student = userByStudentRecordId.get(p.student_id);
+                  const record = studentRecordById.get(p.student_id);
+                  const department = (record?.department_id && departmentNameById.get(String(record.department_id))) || student?.department;
                   return (
                   <tr key={p.id} id={`row-${p.id}`} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "12px 8px", fontWeight: 500 }}>
                       <div style={{ color: "var(--text)" }}>{student?.name || `Student #${p.student_id}`}</div>
                       {student?.email && <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 400 }}>{student.email}</div>}
                     </td>
+                    <td style={{ padding: "12px 8px", fontSize: "14px", color: department ? "var(--text)" : "var(--muted)" }}>{department || "—"}</td>
+                    <td style={{ padding: "12px 8px", fontSize: "14px", color: record?.batch_year ? "var(--text)" : "var(--muted)" }}>{record?.batch_year || "—"}</td>
                     <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <CompanyLogo name={p.company_name} size={22} />
@@ -1179,7 +1189,7 @@ export function CollegeAdminDashboard() {
                   );
                 })}
               {placements.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No students placed yet.</td></tr>
+                <tr><td colSpan={9} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No students placed yet.</td></tr>
               )}
             </tbody>
           </table>
@@ -1487,7 +1497,7 @@ export function CollegeAdminDashboard() {
       )}
 
       {/* Assessments Section */}
-      {(activeScreen === "dash" || activeScreen === "assessments") && (
+      {activeScreen === "assessments" && (
         <div className="card" style={{ padding: "24px" }}>
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
             <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>{showResultsPanel ? "Results" : "Manage Assessments"}</h3>
