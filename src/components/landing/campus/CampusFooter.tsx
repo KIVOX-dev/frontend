@@ -17,18 +17,18 @@ export function CampusFooter({ audience }: { audience: CampusAudience }) {
             <div>
               <CampusLogo href={cfg.path} tone="light" />
               <p>{footer.blurb}</p>
-              {/* Level One is a published self-assessment (CAIQ), not a third-party
-                  audit or certification — the label says so. */}
+              {/* Level One is a published self-assessment (CAIQ) — the badge itself
+                  says so — not a third-party audit or certification. */}
               <a
                 className="csa-star"
                 href="https://cloudsecurityalliance.org/star/registry/talentsnaps"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Image src="/badges/csa-star-level-1.png" alt="" width={56} height={56} />
+                <Image src="/badges/csa-star-level-1.png" alt="" width={72} height={72} />
                 <span>
                   CSA STAR Level One
-                  <small>Self-assessment · View listing</small>
+                  <small>View listing</small>
                 </span>
               </a>
             </div>
