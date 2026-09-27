@@ -20,7 +20,7 @@ export const CAMPUS_AUDIENCES: Record<CampusAudience, AudienceConfig> = {
     path: "/",
     login: "/learner",
     help: "/docs/individuals/troubleshooting",
-    cta: { label: "Get started", href: "#l-cta" },
+    cta: { label: "Get started", href: "/register?role=student" },
     faq: "#l-faq",
     footer: {
       blurb: "Your path from campus to your first offer, in one place from first year.",
