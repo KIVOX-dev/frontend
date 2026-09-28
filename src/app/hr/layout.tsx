@@ -3,6 +3,7 @@ import "@/styles/legacy-shell.css";
 import { LegacyRouteMarker } from "@/components/shared/LegacyStyleGuard";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/hr" },
   title: "HR & Recruiter Login",
   description:
     "Sign in to the TalentSnaps recruiter portal to post vacancies, review applicants from partner colleges and track every round.",

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/verification" },
   title: "Verification",
   description: "What TalentSnaps actually verifies before a student shows up on a Talent Board.",
 };

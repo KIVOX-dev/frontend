@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/profile-setup" },
   title: "Profile Setup",
   description: "How a student goes from signing up to appearing on the Talent Board.",
 };

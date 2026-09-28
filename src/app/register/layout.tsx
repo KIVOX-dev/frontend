@@ -3,6 +3,7 @@ import "@/styles/legacy-shell.css";
 import { LegacyRouteMarker } from "@/components/shared/LegacyStyleGuard";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/register" },
   title: "Create an Account",
   description:
     "Create a free TalentSnaps account to practise aptitude tests and mock interviews, or register your company to hire from campus.",

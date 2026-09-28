@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/about-us" },
   title: "About Us",
   description:
     "TalentSnaps is built for college placement cells: drives, eligibility, round-by-round results and NIRF-ready placement records in one place, instead of spreadsheets and WhatsApp groups.",

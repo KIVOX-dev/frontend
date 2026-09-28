@@ -50,6 +50,15 @@ export function CampusFooter({ audience }: { audience: CampusAudience }) {
               <Link href={cfg.help}>Troubleshooting</Link>
             </div>
             <div>
+              <h5>Contact</h5>
+              <Link href="/talk-to-sales" className="fcta">
+                Talk to Sales <span aria-hidden="true">↗</span>
+              </Link>
+              <a href="mailto:admin@talentsnaps.com">admin@talentsnaps.com</a>
+              <Link href="/about-us">About us</Link>
+              <Link href="/careers">Careers</Link>
+            </div>
+            <div>
               <h5>Also on TalentSnaps</h5>
               {AUDIENCE_ORDER.filter((k) => k !== audience).map((k) => (
                 <Link key={k} href={CAMPUS_AUDIENCES[k].path}>

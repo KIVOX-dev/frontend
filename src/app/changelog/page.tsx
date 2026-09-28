@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/changelog" },
   title: "Changelog",
   description:
     "Every feature and fix shipped on TalentSnaps for students, placement cells and recruiters, month by month.",

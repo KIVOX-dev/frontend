@@ -1,5 +1,5 @@
 /* TalentSnaps landing theme, ported from the "Opportunity Campus" design artifact.
-   Light editorial "blueprint grid": dashed guide lines, uppercase display type, colour-block panels.
+   Light editorial grid: thin solid guide lines that run edge to edge, uppercase display type, colour-block panels.
    Every rule is scoped under .tsl (CampusShell's root) so none of it leaks into the app. */
 .tsl{
   --bg:#FFFFFF; --paper:#F6F7F9; --canvas:#FFFFFF; --canvas-2:#F6F7F9; --surface:#FFFFFF; --surface-2:#F7F9FC;
@@ -8,7 +8,7 @@
   --sage:#E6EEFE; --sage-2:#EEF2F7; --forest:#06262B; --forest-ink:#FFFFFF; --mist:#EDF2F7; --stone:#E4DCCB; --stone-2:#CFC3AC; --gold:#B8914A;
   --line:#E4E8EE; --line-2:#D3DAE3; --shadow:6 38 43;
   --warn:#8A5E0B; --warn-bg:#FBF0D9; --ok:#1C7A43; --ok-bg:#E1F4E8; --info:#0452CC; --info-bg:#E6EEFE; --bad:#A33A2C; --bad-bg:#FBE6E2;
-  --dash:rgb(6 38 43 / .38);
+  --dash:rgb(6 38 43 / .12);
   --p-blue:#C8DAFF; --p-mint:#CBEAD8; --p-sand:#E7DAC0; --p-sky:#CFE3EC; --p-ink:#06262B;
   --ease:cubic-bezier(.16,1,.3,1);
   --display:var(--font-tsl-display), "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
@@ -266,15 +266,12 @@
 
 /* ---------- blueprint frame ---------- */
 .tsl .frame{position:relative}
-.tsl .frame::before,.tsl .frame::after{content:"";position:absolute;top:0;bottom:0;width:0;border-left:1px dashed var(--dash);z-index:5;pointer-events:none;transform-origin:top}
+.tsl .frame::before,.tsl .frame::after{content:"";position:absolute;top:0;bottom:0;width:0;border-left:1px solid var(--dash);z-index:5;pointer-events:none;transform-origin:top}
 .tsl .frame::before{left:var(--gut)}
 .tsl .frame::after{right:var(--gut)}
 .tsl .row{position:relative;padding-inline:var(--gut)}
-.tsl .rule{position:relative;height:0;border-top:1px dashed var(--dash);z-index:4}
-.tsl .rule::before,.tsl .rule::after{content:"";position:absolute;top:-8px;width:15px;height:15px;background:var(--bg);border:1px solid var(--ink);border-radius:3px;
-  background-image:linear-gradient(var(--ink),var(--ink)),linear-gradient(var(--ink),var(--ink));background-size:7px 1px,1px 7px;background-position:center;background-repeat:no-repeat;transition:transform .6s var(--ease)}
-.tsl .rule::before{left:calc(var(--gut) - 7px)}
-.tsl .rule::after{right:calc(var(--gut) - 8px)}
+.tsl .rule{position:relative;height:0;border-top:1px solid var(--dash);z-index:4}
+/* Rules run the full width and meet the side lines with no corner markers. */
 .tsl .inner{padding-inline:clamp(20px,6vw,100px)}
 
 /* ---------- type ---------- */
@@ -348,8 +345,8 @@
 .tsl .split{display:grid;grid-template-columns:1fr 1fr;min-height:560px}
 .tsl .split > .cell,.tsl .cta2 > *{min-width:0}
 .tsl .split > .cell{position:relative;display:flex;flex-direction:column;justify-content:center;gap:24px;padding:clamp(40px,6vw,96px) clamp(20px,5vw,80px)}
-.tsl .split > .cell + .cell{border-left:1px dashed var(--dash)}
-.tsl .split.flip > .txt{order:2;border-left:1px dashed var(--dash)}
+.tsl .split > .cell + .cell{border-left:1px solid var(--dash)}
+.tsl .split.flip > .txt{order:2;border-left:1px solid var(--dash)}
 .tsl .split.flip > .pan{border-left:0!important}
 /* Product panels: the UI sits centred in its colour panel as a whole card, fully in view */
 .tsl .pan{padding:0!important;overflow:hidden;justify-content:safe center!important;align-items:center}
@@ -367,16 +364,12 @@
 /* ---------- stacked feature rows: each row sticks under the nav and the next one slides up over it ---------- */
 .tsl .page{counter-reset:stk}
 .tsl .stack{position:relative}
-.tsl .row.stk{position:sticky;top:94px;background:var(--bg);border-top:1px dashed var(--dash);margin-top:-1px;counter-increment:stk}
+.tsl .row.stk{position:sticky;top:94px;background:var(--bg);border-top:1px solid var(--dash);margin-top:-1px;counter-increment:stk}
 .tsl .row.stk .split{height:clamp(520px,calc(100vh - 94px),720px);min-height:0}
-.tsl .row.stk::before,.tsl .row.stk::after{content:"(" counter(stk) ")";position:absolute;top:-12px;z-index:6;font:700 13px/1 var(--mono);color:var(--ink);background:var(--bg);border:1.5px solid var(--ink);border-radius:5px;padding:4px 4px 3px}
-.tsl .row.stk::before{left:calc(var(--gut) - 17px)}
-.tsl .row.stk::after{right:calc(var(--gut) - 17px)}
 .tsl .row.stk + .rule{margin-top:0}
 @media (max-width:1080px){
   .tsl .row.stk{position:relative;top:auto}
   .tsl .row.stk .split{height:auto}
-  .tsl .row.stk::before,.tsl .row.stk::after{display:none}
 }
 
 /* ---------- hero showcase ---------- */
@@ -408,8 +401,8 @@
 /* ---------- cells grid (bento) ---------- */
 .tsl .cells{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
 .tsl .cells .cl,.tsl .fgrid > div,.tsl .steps4 > *,.tsl .faq2 > *{min-width:0}
-.tsl .cells .cl{position:relative;border-top:1px dashed var(--dash);padding:28px 28px 32px;display:flex;flex-direction:column;gap:14px;transition:background .4s var(--ease)}
-.tsl .cells .cl:not(:nth-child(3n+1)){border-left:1px dashed var(--dash)}
+.tsl .cells .cl{position:relative;border-top:1px solid var(--dash);padding:28px 28px 32px;display:flex;flex-direction:column;gap:14px;transition:background .4s var(--ease)}
+.tsl .cells .cl:not(:nth-child(3n+1)){border-left:1px solid var(--dash)}
 .tsl .cells .cl.w2{grid-column:span 2}
 .tsl .cells .cl:hover{background:var(--paper)}
 .tsl .cl .vis{background:var(--pc,var(--p-blue));border-radius:6px;height:200px;display:flex;align-items:flex-end;justify-content:center;padding:22px 22px 0;overflow:hidden}
@@ -429,9 +422,9 @@
 .tsl .chipx.on{background:var(--info-bg);border-color:transparent;color:var(--info)}
 
 /* ---------- steps ---------- */
-.tsl .steps4{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px dashed var(--dash)}
+.tsl .steps4{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--dash)}
 .tsl .st4{padding:32px 28px 40px;display:flex;flex-direction:column;gap:14px;position:relative}
-.tsl .st4 + .st4{border-left:1px dashed var(--dash)}
+.tsl .st4 + .st4{border-left:1px solid var(--dash)}
 .tsl .st4 .big{font:900 72px/.8 var(--display);font-stretch:70%;color:transparent;-webkit-text-stroke:1.5px var(--ink);transition:color .6s var(--ease),-webkit-text-stroke-color .6s;transition-delay:calc(var(--i,0) * 220ms + 200ms)}
 .tsl .steps4.in .st4 .big{color:var(--accent);-webkit-text-stroke-color:var(--accent)}
 .tsl .st4 h3{font:800 22px/1.05 var(--display);font-stretch:80%;text-transform:uppercase}
@@ -441,7 +434,7 @@
 /* ---------- faq ---------- */
 .tsl .faq2{display:grid;grid-template-columns:1fr 1.3fr}
 .tsl .faq2 > div{padding:clamp(40px,6vw,88px) clamp(20px,5vw,72px)}
-.tsl .faq2 > div + div{border-left:1px dashed var(--dash)}
+.tsl .faq2 > div + div{border-left:1px solid var(--dash)}
 .tsl .faq{display:flex;flex-direction:column;border-top:1px solid var(--ink)}
 .tsl details{border-bottom:1px solid rgb(6 38 43 / .2)}
 .tsl summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 0;font:600 18px/1.35 var(--sans)}
@@ -462,14 +455,14 @@
 /* ---------- CTA + footer ---------- */
 .tsl .cta2{display:grid;grid-template-columns:1.1fr 1fr;min-height:520px}
 .tsl .cta2 .txt{padding:clamp(48px,7vw,100px) clamp(20px,5vw,80px);display:flex;flex-direction:column;gap:24px;justify-content:center}
-.tsl .cta2 .pan{border-left:1px dashed var(--dash);position:relative}
+.tsl .cta2 .pan{border-left:1px solid var(--dash);position:relative}
 .tsl .sitefoot{background:var(--ink);color:#DCE6E6;overflow:hidden}
-.tsl .sitefoot .frame::before,.tsl .sitefoot .frame::after{border-color:rgb(255 255 255 / .22)}
-.tsl .sitefoot .rule{border-color:rgb(255 255 255 / .22)}
-.tsl .sitefoot .rule::before,.tsl .sitefoot .rule::after{background-color:var(--ink);border-color:#DCE6E6;background-image:linear-gradient(#DCE6E6,#DCE6E6),linear-gradient(#DCE6E6,#DCE6E6)}
-.tsl .fgrid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;padding-block:64px}
+.tsl .sitefoot .frame::before,.tsl .sitefoot .frame::after{border-color:rgb(255 255 255 / .14)}
+.tsl .sitefoot .rule{border-color:rgb(255 255 255 / .14)}
+.tsl .fgrid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;padding-block:64px}
+.tsl .fgrid a.fcta{color:#fff;font-weight:600}
 .tsl .fgrid > div{padding-inline:clamp(20px,3vw,40px)}
-.tsl .fgrid > div + div{border-left:1px dashed rgb(255 255 255 / .18)}
+.tsl .fgrid > div + div{border-left:1px solid rgb(255 255 255 / .12)}
 .tsl .fgrid h5{margin:0 0 16px;font:600 12.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#8FA7A8}
 .tsl .fgrid a{display:block;text-decoration:none;color:#DCE6E6;padding:6px 0;font-size:15.5px;transition:color .2s,transform .3s var(--ease)}
 .tsl .fgrid a:hover{color:#fff;transform:translateX(4px)}
@@ -499,8 +492,8 @@
 .tsl .fn:last-child .bb i{background:var(--accent)}
 .tsl .side span.on{background:var(--info-bg);color:var(--info)}
 .tsl .step .node{border-radius:4px;box-shadow:none;color:var(--accent)}
-.tsl .facts{border-top:1px dashed var(--dash)}
-.tsl .fact + .fact{border-left:1px dashed var(--dash)}
+.tsl .facts{border-top:1px solid var(--dash)}
+.tsl .fact + .fact{border-left:1px solid var(--dash)}
 .tsl .fact b{font-family:var(--display);font-weight:900;font-stretch:72%;text-transform:uppercase;color:var(--ink)}
 /* four-year timeline: a stone track under every year, the accent fill laid over the finished ones */
 .tsl .yr,.tsl .yr.f{position:relative;border-top-color:var(--stone-2)}
@@ -519,8 +512,6 @@
 .tsl.motion .in .track i,.tsl.motion .in .fn .bb i{transform:scaleX(1)}
 .tsl.motion .frame::before,.tsl.motion .frame::after{animation:drawv 1.6s var(--ease) both}
 @keyframes drawv{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-.tsl.motion .rule::before,.tsl.motion .rule::after{transform:scale(0) rotate(-90deg)}
-.tsl.motion .rule.in::before,.tsl.motion .rule.in::after{transform:none}
 /* sections marked .drop enter from above instead of below */
 .tsl.motion .drop .ln > span{transform:translateY(-105%)}
 .tsl.motion .drop .in .ln > span{transform:none}
@@ -560,20 +551,21 @@
   .tsl .drives{grid-template-columns:1fr 1fr}
   .tsl .drives .drive:nth-child(3){display:none}
   .tsl .split,.tsl .cta2{grid-template-columns:1fr}
-  .tsl .split > .cell + .cell,.tsl .split.flip > .txt,.tsl .cta2 .pan{border-left:0!important;border-top:1px dashed var(--dash)}
+  .tsl .split > .cell + .cell,.tsl .split.flip > .txt,.tsl .cta2 .pan{border-left:0!important;border-top:1px solid var(--dash)}
   .tsl .split.flip > .txt{order:0}
   .tsl .pan,.tsl .cta2 .pan{min-height:440px}
   .tsl .cells{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tsl .cells .cl{border-left:0!important}
-  .tsl .cells .cl:nth-child(2n){border-left:1px dashed var(--dash)!important}
+  .tsl .cells .cl:nth-child(2n){border-left:1px solid var(--dash)!important}
   .tsl .cells .cl.w2{grid-column:span 2;border-left:0!important}
   .tsl .steps4{grid-template-columns:1fr 1fr}
   .tsl .st4:nth-child(3){border-left:0}
-  .tsl .st4:nth-child(n+3){border-top:1px dashed var(--dash)}
+  .tsl .st4:nth-child(n+3){border-top:1px solid var(--dash)}
   .tsl .faq2{grid-template-columns:1fr}
-  .tsl .faq2 > div + div{border-left:0;border-top:1px dashed var(--dash)}
+  .tsl .faq2 > div + div{border-left:0;border-top:1px solid var(--dash)}
   .tsl .fgrid{grid-template-columns:1fr 1fr;row-gap:36px}
-  .tsl .fgrid > div:nth-child(3){border-left:0}
+  .tsl .fgrid > div:first-child{grid-column:1 / -1}
+  .tsl .fgrid > div:nth-child(2),.tsl .fgrid > div:nth-child(4){border-left:0}
   .tsl .head.split2{grid-template-columns:1fr}
 }
 @media (max-width:900px){
@@ -582,7 +574,7 @@
   .tsl .step{flex-direction:row;gap:18px;align-items:flex-start}
   .tsl .facts{grid-template-columns:1fr 1fr}
   .tsl .fact:nth-child(3){padding-left:0;border-left:0}
-  .tsl .fact:nth-child(n+3){border-top:1px dashed var(--dash)}
+  .tsl .fact:nth-child(n+3){border-top:1px solid var(--dash)}
   .tsl .years{grid-template-columns:1fr 1fr;gap:24px}
   .tsl .seal{margin:0}
   .tsl .in-body{grid-template-columns:1fr}
@@ -602,7 +594,7 @@
   .tsl .drives{grid-template-columns:1fr}
   .tsl .drives .drive:nth-child(3){display:flex}
   .tsl .facts{grid-template-columns:1fr}
-  .tsl .fact,.tsl .fact + .fact{padding-left:0;border-left:0;border-top:1px dashed var(--dash)}
+  .tsl .fact,.tsl .fact + .fact{padding-left:0;border-left:0;border-top:1px solid var(--dash)}
   .tsl .fact:first-child{border-top:0}
   .tsl .phone{width:290px}
   .tsl .in-grid .pn:nth-child(n+2){display:none}
@@ -613,7 +605,7 @@
   .tsl .cl .vis-in{font-size:12px}
   .tsl .cells .cl,.tsl .cells .cl.w2{grid-column:auto;border-left:0!important}
   .tsl .steps4{grid-template-columns:1fr}
-  .tsl .st4 + .st4{border-left:0;border-top:1px dashed var(--dash)}
+  .tsl .st4 + .st4{border-left:0;border-top:1px solid var(--dash)}
   .tsl .fgrid{grid-template-columns:minmax(0,1fr)}
   .tsl .fgrid > div + div{border-left:0}
   .tsl .bar span{display:none}
@@ -624,7 +616,6 @@
   .tsl .nav-in{height:68px}
   .tsl .nav .logo .lockup{height:38px}
   .tsl .nav .btn-sm{padding:10px 14px;font-size:14px}
-  .tsl .rule::before,.tsl .rule::after{display:none}
 }
 /* Narrow phones: smaller logo and buttons so Log in and the main button both fit. */
 @media (max-width:420px){

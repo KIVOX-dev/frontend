@@ -3,6 +3,7 @@ import { CampusShell } from "@/components/landing/campus/CampusShell";
 import { LearnersLanding } from "@/components/landing/campus/LearnersLanding";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/" },
   // Absolute: the site template would otherwise make this "TalentSnaps — TalentSnaps".
   title: { absolute: "TalentSnaps: Campus Placements From First Year to First Offer" },
   description:

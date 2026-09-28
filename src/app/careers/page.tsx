@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SitePageLayout } from "@/components/shared/SitePageLayout";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/careers" },
   title: "Careers",
   description:
     "Careers at TalentSnaps: join a small Coimbatore team that works directly with the placement cells using the product, with real ownership from day one.",

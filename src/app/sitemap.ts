@@ -12,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/for-institutions", priority: 0.9, changeFrequency: "monthly" },
     { path: "/about-us", priority: 0.7, changeFrequency: "monthly" },
     { path: "/careers", priority: 0.6, changeFrequency: "monthly" },
+    { path: "/talk-to-sales", priority: 0.8, changeFrequency: "monthly" },
     // Public sign-in pages: common search destinations and sitelink candidates.
     { path: "/learner", priority: 0.6, changeFrequency: "yearly" },
     { path: "/hr", priority: 0.6, changeFrequency: "yearly" },
