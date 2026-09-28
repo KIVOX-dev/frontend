@@ -41,7 +41,16 @@ const NO_SCRIPT_CSS = `
  * The effect only adds classes and CSS variables to DOM nodes React
  * rendered; the landing markup is static, so React never re-renders over them.
  */
-export function CampusShell({ audience, children }: { audience: CampusAudience; children: ReactNode }) {
+export function CampusShell({
+  audience,
+  standalone = false,
+  children,
+}: {
+  audience: CampusAudience;
+  /** A page of its own rather than an audience landing: no nav tab highlighted. */
+  standalone?: boolean;
+  children: ReactNode;
+}) {
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -271,7 +280,7 @@ export function CampusShell({ audience, children }: { audience: CampusAudience; 
       >
         Skip to content
       </a>
-      <CampusNav audience={audience} />
+      <CampusNav audience={audience} highlight={!standalone} />
       <main id="main-content">
         <div className="page">
           <div className="frame">{children}</div>

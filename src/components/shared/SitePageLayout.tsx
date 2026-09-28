@@ -19,7 +19,6 @@ const NAV_GROUPS = [
     items: [
       { slug: "about-us", label: "About Us" },
       { slug: "careers", label: "Careers" },
-      { slug: "talk-to-sales", label: "Talk to Sales" },
     ],
   },
   {

@@ -23,23 +23,28 @@ export function CampusLogo({ href, tone = "dark" }: { href: string; tone?: "dark
   );
 }
 
-function AudienceLinks({ audience }: { audience: CampusAudience }) {
+function AudienceLinks({ current }: { current: CampusAudience | null }) {
   return AUDIENCE_ORDER.map((key) => (
-    <Link key={key} href={CAMPUS_AUDIENCES[key].path} aria-current={key === audience ? "page" : undefined}>
+    <Link key={key} href={CAMPUS_AUDIENCES[key].path} aria-current={key === current ? "page" : undefined}>
       {CAMPUS_AUDIENCES[key].label}
     </Link>
   ));
 }
 
-/** Sticky top bar; CampusShell toggles .scrolled on it once the page moves. */
-export function CampusNav({ audience }: { audience: CampusAudience }) {
+/**
+ * Sticky top bar; CampusShell toggles .scrolled on it once the page moves.
+ * `highlight={false}` is for pages that aren't one of the audience landings
+ * (e.g. Talk to Sales): no tab is marked as the current page.
+ */
+export function CampusNav({ audience, highlight = true }: { audience: CampusAudience; highlight?: boolean }) {
   const cfg = CAMPUS_AUDIENCES[audience];
+  const current = highlight ? audience : null;
   return (
     <header className="nav">
       <div className="nav-in">
         <CampusLogo href={cfg.path} />
         <nav className="links" aria-label="Choose your landing">
-          <AudienceLinks audience={audience} />
+          <AudienceLinks current={current} />
           <a href={landingHref(audience, cfg.faq)}>FAQ</a>
         </nav>
         <div className="nav-r">
@@ -52,7 +57,7 @@ export function CampusNav({ audience }: { audience: CampusAudience }) {
         </div>
       </div>
       <nav className="mseg" aria-label="Choose your landing">
-        <AudienceLinks audience={audience} />
+        <AudienceLinks current={current} />
       </nav>
     </header>
   );

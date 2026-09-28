@@ -15,9 +15,10 @@ const PRODUCTS = [
 
 const EMPTY = { name: "", organization: "", email: "", phone: "", product: "", message: "" };
 
+// Flat, square-cornered fields: the landing site's own editorial style.
 const inputClass =
-  "mt-1.5 block w-full rounded-lg border border-[#D9E1E1] bg-white px-3.5 py-2.5 text-[15px] text-[#06262B] placeholder:text-[#9AA8A9] outline-none transition-colors focus:border-[#0563F9] focus:ring-2 focus:ring-[#0563F9]/15";
-const labelClass = "block text-[14px] font-semibold text-[#06262B]";
+  "mt-2 block w-full rounded-[4px] border border-[#D5DDDD] bg-white px-3.5 py-3 text-[15px] font-normal text-[#06262B] placeholder:text-[#9AA8A9] outline-none transition-colors focus:border-[#0563F9] focus:ring-2 focus:ring-[#0563F9]/15";
+const labelClass = "block text-[15px] font-medium text-[#06262B]";
 
 export function TalkToSalesForm({ inbox }: { inbox: string }) {
   const [form, setForm] = useState(EMPTY);
@@ -52,9 +53,9 @@ export function TalkToSalesForm({ inbox }: { inbox: string }) {
 
   if (sent) {
     return (
-      <div className="rounded-2xl border border-[#D9E1E1] bg-[#F5F9F9] p-6 sm:p-8" role="status">
-        <p className="text-[20px] font-semibold text-[#06262B]">Thanks, {form.name.split(" ")[0]}.</p>
-        <p className="mt-2 text-[16px]">
+      <div className="rounded-[4px] border border-[#D5DDDD] bg-[#F5F9F9] p-6 sm:p-8" role="status">
+        <p className="text-[22px] font-semibold text-[#06262B]">Thanks, {form.name.split(" ")[0]}.</p>
+        <p className="mt-2 text-[16px] text-[#44585A]">
           Your request is with our team. We&apos;ll reach you at <strong>{form.email}</strong> within 24 hours.
         </p>
       </div>
@@ -62,9 +63,8 @@ export function TalkToSalesForm({ inbox }: { inbox: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-2xl border border-[#D9E1E1] bg-white p-5 shadow-[0_20px_50px_-30px_rgb(6_38_43/0.35)] sm:p-8" noValidate={false}>
-      <p className="text-[13px] font-semibold uppercase tracking-[.06em] text-[#0563F9]">Talk to TalentSnaps</p>
-      <div className="mt-5 grid gap-5 sm:grid-cols-2">
+    <form onSubmit={submit} className="w-full">
+      <div className="grid gap-5">
         <label className={labelClass}>
           Name <span className="text-[#C2410C]">*</span>
           <input className={inputClass} value={form.name} onChange={set("name")} required minLength={2} maxLength={120} autoComplete="name" />
@@ -81,7 +81,7 @@ export function TalkToSalesForm({ inbox }: { inbox: string }) {
           Phone number <span className="text-[#C2410C]">*</span>
           <input className={inputClass} type="tel" value={form.phone} onChange={set("phone")} required pattern="[+0-9 ()\-]{7,20}" autoComplete="tel" placeholder="+91" />
         </label>
-        <label className={`${labelClass} sm:col-span-2`}>
+        <label className={labelClass}>
           What are you exploring? <span className="text-[#C2410C]">*</span>
           <select className={inputClass} value={form.product} onChange={set("product")} required>
             <option value="" disabled>
@@ -94,14 +94,14 @@ export function TalkToSalesForm({ inbox }: { inbox: string }) {
             ))}
           </select>
         </label>
-        <label className={`${labelClass} sm:col-span-2`}>
+        <label className={labelClass}>
           Anything you&apos;d like us to know <span className="font-normal text-[#6E7E7F]">(optional)</span>
           <textarea className={`${inputClass} min-h-[110px] resize-y`} value={form.message} onChange={set("message")} maxLength={2000} placeholder="Batch size, drives per year, timelines…" />
         </label>
       </div>
 
       {error && (
-        <p className="mt-5 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-3.5 py-2.5 text-[14px] text-[#B91C1C]" role="alert">
+        <p className="mt-5 rounded-[4px] border border-[#FCA5A5] bg-[#FEF2F2] px-3.5 py-2.5 text-[14px] text-[#B91C1C]" role="alert">
           {error}
         </p>
       )}
@@ -113,7 +113,7 @@ export function TalkToSalesForm({ inbox }: { inbox: string }) {
       <button
         type="submit"
         disabled={sending}
-        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#0563F9] px-5 py-3 text-[16px] font-semibold text-white transition-colors hover:bg-[#0450CC] disabled:opacity-60 sm:w-auto"
+        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[4px] bg-[#0563F9] px-5 py-3.5 text-[16px] font-semibold text-white transition-colors hover:bg-[#0450CC] disabled:opacity-60"
       >
         {sending ? "Sending…" : "Book my call"}
         {!sending && (
@@ -122,7 +122,7 @@ export function TalkToSalesForm({ inbox }: { inbox: string }) {
           </svg>
         )}
       </button>
-      <p className="mt-3 text-[14px] text-[#6E7E7F]">No spam. You&apos;ll hear from us within 24 hours.</p>
+      <p className="mt-3 text-center text-[13px] text-[#6E7E7F]">No spam. You&apos;ll hear from us within 24 hours.</p>
     </form>
   );
 }
