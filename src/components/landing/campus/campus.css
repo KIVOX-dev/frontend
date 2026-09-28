@@ -345,6 +345,9 @@
 .tsl .split{display:grid;grid-template-columns:1fr 1fr;min-height:560px}
 .tsl .split > .cell,.tsl .cta2 > *{min-width:0}
 .tsl .split > .cell{position:relative;display:flex;flex-direction:column;justify-content:center;gap:24px;padding:clamp(40px,6vw,96px) clamp(20px,5vw,80px)}
+/* .split.top: both columns start at the same line (form pages) instead of centring. */
+.tsl .split.top{min-height:0}
+.tsl .split.top > .cell{justify-content:flex-start;padding-block:clamp(40px,5vw,72px)}
 .tsl .split > .cell + .cell{border-left:1px solid var(--dash)}
 .tsl .split.flip > .txt{order:2;border-left:1px solid var(--dash)}
 .tsl .split.flip > .pan{border-left:0!important}

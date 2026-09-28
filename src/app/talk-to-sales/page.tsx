@@ -25,12 +25,12 @@ export default function TalkToSalesPage() {
   return (
     <CampusShell audience="institutions" standalone>
       <div className="row">
-        <div className="split">
+        <div className="split top">
           <div className="cell txt">
             <span className="eb">
               <i></i>Talk to TalentSnaps
             </span>
-            <h1 className="dt h2">This call goes straight to our founding team</h1>
+            <h1 className="dt h3">This call goes straight to our founding team</h1>
             <p className="lede">
               30 minutes with someone who builds TalentSnaps, on how it fits the way your placement cell or hiring team
               already works.
@@ -56,12 +56,12 @@ export default function TalkToSalesPage() {
       <div className="rule"></div>
 
       <div className="row">
-        <div className="split">
+        <div className="split top">
           <div className="cell txt">
             <span className="eb">
               <i></i>Why we built it
             </span>
-            <h2 className="dt h2">Placements shouldn&apos;t run on spreadsheets</h2>
+            <h2 className="dt h3">Placements shouldn&apos;t run on spreadsheets</h2>
           </div>
           <div className="cell txt">
             <p className="body" style={{ color: "var(--accent)", fontWeight: 600 }}>
