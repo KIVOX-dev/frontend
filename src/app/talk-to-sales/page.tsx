@@ -24,6 +24,10 @@ const PROMISES = [
 export default function TalkToSalesPage() {
   return (
     <CampusShell audience="institutions" standalone>
+      {/* A short empty band under the header, closed by a full-width line. */}
+      <div className="row" style={{ height: 64 }} aria-hidden="true"></div>
+      <div className="rule"></div>
+
       <div className="row">
         <div className="split top">
           <div className="cell txt">
