@@ -77,11 +77,20 @@ interface JDReport {
   overall_evaluation: string;
 }
 
+// A4 at 72dpi — the preview sheet's fixed layout width.
+const A4_WIDTH_PX = 595;
+
 export function ResumeBuilder() {
   const { user } = useAuthStore();
   
   // App views: 'dashboard' | 'builder'
   const [view, setView] = useState<"dashboard" | "builder">("dashboard");
+  // Phones/tablets show the editor or the preview, not both stacked.
+  const [mobilePane, setMobilePane] = useState<"edit" | "preview">("edit");
+  const previewBoxRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [previewFit, setPreviewFit] = useState(1);
+  const [sheetHeight, setSheetHeight] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"Saved" | "Saving..." | "Unsaved Changes" | "">("Saved");
@@ -144,6 +153,23 @@ export function ResumeBuilder() {
   const [interviewQuestions, setInterviewQuestions] = useState("");
 
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Scale the A4 preview down to whatever width its box has (never up).
+  useEffect(() => {
+    const box = previewBoxRef.current;
+    const sheet = sheetRef.current;
+    if (!box || !sheet) return;
+    const measure = () => {
+      const inner = box.clientWidth - parseFloat(getComputedStyle(box).paddingLeft) * 2;
+      setPreviewFit(Math.min(1, inner / A4_WIDTH_PX));
+      setSheetHeight(sheet.offsetHeight);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(box);
+    ro.observe(sheet);
+    return () => ro.disconnect();
+  }, [view, mobilePane]);
   const isInitialMount = useRef(true);
 
   // Fetch initial data
@@ -652,9 +678,9 @@ export function ResumeBuilder() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="max-w-7xl mx-auto px-0 py-2 sm:px-6 sm:py-8">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b pb-6 border-slate-200">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8 border-b pb-5 sm:pb-6 border-slate-200">
         <div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-emerald-brand" />
@@ -662,7 +688,7 @@ export function ResumeBuilder() {
           </h2>
           <p className="text-slate-500 text-sm mt-1">Design, analyze, and optimize your ATS resume with Groq AI assistance.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {saveStatus && (
             <span className={`text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 ${
               saveStatus === "Saved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
@@ -754,7 +780,7 @@ export function ResumeBuilder() {
 
             {/* Quick Actions & versions */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex flex-wrap justify-between items-center gap-2 mb-6">
                 <h3 className="font-bold text-slate-900 text-lg">Resume Draft Versions</h3>
                 <button 
                   onClick={() => setShowVersionModal(true)}
@@ -852,10 +878,30 @@ export function ResumeBuilder() {
         </div>
       ) : (
         /* ──── ACTIVE RESUME BUILDER WORKSPACE ──── */
+        <>
+        {/* Phones/tablets: one panel at a time instead of a long form with
+            the preview buried underneath. Desktop shows both side by side. */}
+        <div className="lg:hidden flex bg-slate-100 p-1 rounded-xl border border-slate-200 mb-4" role="tablist" aria-label="Resume builder view">
+          {(["edit", "preview"] as const).map((pane) => (
+            <button
+              key={pane}
+              type="button"
+              role="tab"
+              aria-selected={mobilePane === pane}
+              onClick={() => setMobilePane(pane)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                mobilePane === pane ? "bg-white text-slate-900 shadow-xs" : "text-slate-500"
+              }`}
+            >
+              {pane === "edit" ? <Edit className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+              {pane === "edit" ? "Edit" : "Preview"}
+            </button>
+          ))}
+        </div>
         <div className="grid lg:grid-cols-12 gap-8 items-start">
           
           {/* Left panel: Form editor & tooltabs */}
-          <div className="lg:col-span-6 space-y-6">
+          <div className={`lg:col-span-6 space-y-6 min-w-0 ${mobilePane === "preview" ? "hidden lg:block" : ""}`}>
             <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 w-full justify-between gap-1 overflow-x-auto">
               {[
                 { id: "edit", label: "Edit Resume", icon: Edit },
@@ -887,8 +933,8 @@ export function ResumeBuilder() {
                   <h3 className="font-bold text-slate-900 text-base border-b pb-2 flex items-center gap-2">
                     <User className="w-4 h-4 text-emerald-brand" /> Personal Information
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
                       <label className="text-[11px] font-bold text-slate-400 uppercase">Full Name</label>
                       <input 
                         type="text" name="name" value={formData.personal.name} 
@@ -926,7 +972,7 @@ export function ResumeBuilder() {
                         placeholder="github.com/..."
                       />
                     </div>
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                       <label className="text-[11px] font-bold text-slate-400 uppercase">Address / Location</label>
                       <input 
                         type="text" name="address" value={formData.personal.address} 
@@ -984,7 +1030,7 @@ export function ResumeBuilder() {
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="text-[10px] font-bold text-slate-400">Institution Name</label>
                             <input 
@@ -1048,7 +1094,7 @@ export function ResumeBuilder() {
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="text-[10px] font-bold text-slate-400">Job Role / Title</label>
                             <input 
@@ -1065,7 +1111,7 @@ export function ResumeBuilder() {
                               className="fi text-xs mt-1 w-full" 
                             />
                           </div>
-                          <div className="col-span-2">
+                          <div className="sm:col-span-2">
                             <label className="text-[10px] font-bold text-slate-400">Duration (Dates)</label>
                             <input 
                               type="text" value={item.duration} 
@@ -1073,7 +1119,7 @@ export function ResumeBuilder() {
                               className="fi text-xs mt-1 w-full" 
                             />
                           </div>
-                          <div className="col-span-2">
+                          <div className="sm:col-span-2">
                             <div className="flex justify-between items-center mb-1">
                               <label className="text-[10px] font-bold text-slate-400">Description</label>
                               <button 
@@ -1120,7 +1166,7 @@ export function ResumeBuilder() {
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="text-[10px] font-bold text-slate-400">Project Title</label>
                             <input 
@@ -1137,7 +1183,7 @@ export function ResumeBuilder() {
                               className="fi text-xs mt-1 w-full" 
                             />
                           </div>
-                          <div className="col-span-2">
+                          <div className="sm:col-span-2">
                             <label className="text-[10px] font-bold text-slate-400">Technologies Used</label>
                             <input 
                               type="text" value={item.technologies} 
@@ -1145,7 +1191,7 @@ export function ResumeBuilder() {
                               className="fi text-xs mt-1 w-full" 
                             />
                           </div>
-                          <div className="col-span-2">
+                          <div className="sm:col-span-2">
                             <div className="flex justify-between items-center mb-1">
                               <label className="text-[10px] font-bold text-slate-400">Description</label>
                               <button 
@@ -1180,7 +1226,7 @@ export function ResumeBuilder() {
                       <Plus className="w-3.5 h-3.5" /> Add Skill
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {formData.skills.map((item, index) => (
                       <div key={item.id} className="flex gap-2 items-center p-2 border rounded-xl bg-slate-50 border-slate-100">
                         <input 
@@ -1267,7 +1313,7 @@ export function ResumeBuilder() {
                       <Plus className="w-3.5 h-3.5" /> Add language
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {formData.languages.map((item) => (
                       <div key={item.id} className="flex gap-2 items-center p-2 border rounded-xl bg-slate-50 border-slate-100">
                         <input 
@@ -1452,7 +1498,7 @@ export function ResumeBuilder() {
             {activeTab === "assistant" && (
               <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-6">
                 <h3 className="font-bold text-slate-900 text-lg border-b pb-2">Groq AI Helper Hub</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 border rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer text-center" onClick={generatePrepQuestions}>
                     <Sparkles className="w-5 h-5 text-emerald-brand mx-auto mb-2" />
                     <h4 className="font-bold text-slate-800 text-xs">Interview Prep Qs</h4>
@@ -1476,7 +1522,7 @@ export function ResumeBuilder() {
           </div>
 
           {/* Right panel: Live Resume preview */}
-          <div className="lg:col-span-6 space-y-6 sticky top-24">
+          <div className={`lg:col-span-6 space-y-6 min-w-0 lg:sticky lg:top-24 ${mobilePane === "edit" ? "hidden lg:block" : ""}`}>
             <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs flex flex-wrap justify-between items-center gap-3">
               <div className="flex items-center gap-2">
                 <select 
@@ -1525,14 +1571,19 @@ export function ResumeBuilder() {
             </div>
 
             {/* Resume Sheet Preview Container */}
-            <div className="border border-slate-200 rounded-2xl bg-slate-500/10 p-4 max-h-[800px] overflow-y-auto flex justify-center">
+            <div ref={previewBoxRef} className="border border-slate-200 rounded-2xl bg-slate-500/10 p-3 sm:p-4 max-h-[800px] overflow-y-auto overflow-x-hidden flex justify-center">
+              {/* The sheet is always laid out at A4 width, so the preview and
+                  the exported PDF match on every screen; this wrapper only
+                  shrinks it visually to fit narrow containers (phones). */}
+              <div style={{ width: A4_WIDTH_PX * previewFit, height: sheetHeight ? sheetHeight * previewFit : undefined, flexShrink: 0 }}>
+              <div style={{ width: A4_WIDTH_PX, transform: `scale(${previewFit})`, transformOrigin: "top left" }}>
               <div 
+                ref={sheetRef}
                 id="resume-preview-sheet"
                 style={{ 
                   transform: `scale(${formData.zoom})`, 
                   transformOrigin: "top center",
-                  width: "100%",
-                  maxWidth: "595px", // A4 Width approx
+                  width: `${A4_WIDTH_PX}px`,
                   minHeight: "842px", // A4 Height approx
                   backgroundColor: "#ffffff",
                   boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)"
@@ -1541,9 +1592,12 @@ export function ResumeBuilder() {
               >
                 {renderTemplateContent()}
               </div>
+              </div>
+              </div>
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* Modal: Save Version */}
