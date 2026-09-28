@@ -5,7 +5,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
-import { TopbarSearch } from "@/components/shared/TopbarSearch";
+import { TopbarTitle, navTitles } from "@/components/layout/TopbarTitle";
 
 export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
   const {
@@ -77,15 +77,6 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
           ))}
         </div>
 
-        <div className="s-foot">
-          <button className="collapse-btn" onClick={toggleSidebar}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-              <polyline points={isSidebarCollapsed ? "13 17 18 12 13 7" : "11 17 6 12 11 7"} />
-              <polyline points={isSidebarCollapsed ? "6 17 11 12 6 7" : "18 17 13 12 18 7"} />
-            </svg>
-            <span>{isSidebarCollapsed ? "" : "Collapse"}</span>
-          </button>
-        </div>
       </div>
 
       {/* Backdrop that closes the drawer on outside click — only visible/interactive while open, see legacy-portal.css's #app.mob-sidebar-open #sidebar-overlay rule */}
@@ -101,7 +92,7 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <TopbarSearch placeholder="Search users, placements, or drives..." />
+          <TopbarTitle titles={navTitles(navItems)} />
           <div className="tbr">
             <div className="ib" style={{ position: "relative" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

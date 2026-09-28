@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
+import { TopbarTitle, navTitles } from "@/components/layout/TopbarTitle";
 
 export function LearnerShell({ children }: { children: React.ReactNode }) {
   const {
@@ -187,13 +188,6 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
               <Link href="/docs/individuals/terms-and-conditions" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Terms &amp; Conditions</Link>
             </div>
           )}
-          <button className="collapse-btn" onClick={toggleSidebar}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-              <polyline points={isSidebarCollapsed ? "13 17 18 12 13 7" : "11 17 6 12 11 7"} />
-              <polyline points={isSidebarCollapsed ? "6 17 11 12 6 7" : "18 17 13 12 18 7"} />
-            </svg>
-            <span>{isSidebarCollapsed ? "" : "Collapse"}</span>
-          </button>
         </div>
       </div>
 
@@ -210,15 +204,7 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <div className="sw">
-            <span className="si">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </span>
-            <input type="text" placeholder="Search lessons, tests, or companies..." />
-          </div>
+          <TopbarTitle titles={navTitles(navItems)} />
           <div className="tbr">
             <div className="ib" style={{ position: "relative" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

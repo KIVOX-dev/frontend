@@ -591,3 +591,59 @@ textarea:focus {
 #sidebar.collapsed .s-foot {
   padding-inline: 0;
 }
+
+/* ── Top bar: sidebar toggle + page title (replaces the search box) ── */
+.tb-lead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tb-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--r2);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.tb-toggle:hover {
+  background: var(--surface3);
+  color: var(--ink);
+}
+
+.tb-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tb-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Phones/tablets open the sidebar as a drawer from #mob-menu-btn instead. */
+@media (max-width: 1023px) {
+  .tb-toggle {
+    display: none;
+  }
+
+  .tb-title {
+    font-size: 15px;
+  }
+}
