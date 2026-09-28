@@ -703,7 +703,7 @@ export function ProfilePanel() {
     .toUpperCase();
 
   return (
-    <div className="p-6 md:p-10 max-w-5xl mx-auto">
+    <div className="py-4 md:p-10 max-w-5xl mx-auto">
       {/* Cover banner */}
       <div className="relative h-32 md:h-40 rounded-xl overflow-hidden">
         {studentProfile?.cover_image_url ? (

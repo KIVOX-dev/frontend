@@ -285,7 +285,7 @@ export function LearnerDashboard() {
               <thead>
                 <tr>
                   <th>Subject</th>
-                  <th>Progress</th>
+                  <th className="hide-sm">Progress</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -298,7 +298,7 @@ export function LearnerDashboard() {
                       <td>
                         <div className="tn">{t.label}</div>
                       </td>
-                      <td>
+                      <td className="hide-sm">
                         <div style={{ fontSize: "12px", color: "var(--muted)" }}>{t.attempts ? `${plural(t.attempts, "attempt")}` : "No attempts yet"}</div>
                       </td>
                       <td>

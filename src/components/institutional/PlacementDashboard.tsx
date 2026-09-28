@@ -415,7 +415,9 @@ export function PlacementDashboard({
       {failedResources.length > 0 && (
         <div style={{ marginBottom: "20px" }}>
           <SectionError
-            message={`Some dashboard data failed to load: ${failedResources.map(([, message]) => message).join(" ")}`}
+            // Several resources usually fail for the same reason (e.g. the API
+            // is unreachable); show each distinct message once.
+            message={`Some dashboard data failed to load: ${Array.from(new Set(failedResources.map(([, message]) => message))).join(" ")}`}
             onRetry={onRefresh}
           />
         </div>

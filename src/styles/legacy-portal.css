@@ -5242,8 +5242,9 @@ tbody tr:hover td {
      width and, combined with fixed-minWidth flex children like pricing
      cards, forces horizontal page overflow. !important is required here
      since inline styles otherwise always win. */
+  /* Vertical only: #content already pads the sides by 14px. */
   .screen {
-    padding: 16px !important;
+    padding: 16px 0 !important;
   }
 
   .pc-screen {

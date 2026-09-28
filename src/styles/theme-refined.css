@@ -647,3 +647,83 @@ textarea:focus {
     font-size: 15px;
   }
 }
+
+/* ── Grids never grow wider than their track ──────────────────────
+   A grid column's default min-width is its widest content, so one wide
+   table (Practice by Category) pushed the whole column past the edge of a
+   phone screen. min-width: 0 lets tracks shrink; wide content scrolls
+   inside its own overflow-x wrapper instead. */
+.gms > *,
+.g2 > *,
+.g3 > *,
+.g4 > *,
+.sg > * {
+  min-width: 0;
+}
+
+/* ── Phones ─────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Compact stat tiles: icon beside the number, not a tall empty box. */
+  .sg {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px;
+  }
+
+  .sc {
+    display: grid !important;
+    grid-template-columns: 32px minmax(0, 1fr);
+    column-gap: 10px;
+    align-items: center;
+    padding: 12px !important;
+    border-radius: 12px;
+  }
+
+  .sc .si2 {
+    grid-row: 1 / span 2;
+    width: 32px;
+    height: 32px;
+    margin: 0;
+  }
+
+  .sc .sv {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  .sc .sl {
+    font-size: 10px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sc .sd {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    padding: 3px 8px;
+  }
+
+  .sc .sd:empty {
+    display: none;
+  }
+
+  /* Secondary table columns step aside so the actions stay on screen. */
+  .hide-sm {
+    display: none;
+  }
+
+  /* An odd last tile (5 stats) spans the row instead of leaving a hole. */
+  .sg > .sc:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .hero {
+    padding: 20px 18px !important;
+  }
+
+}
