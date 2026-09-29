@@ -68,7 +68,7 @@ export function HrLogin() {
   };
 
   return (
-    <AuthSplitLayout portal="hr">
+    <AuthSplitLayout season="autumn">
       <div className="lp-card">
         {isLogin ? (
           <>

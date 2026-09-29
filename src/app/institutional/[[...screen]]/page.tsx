@@ -130,7 +130,7 @@ function InstitutionalContent() {
     
     // The Hub
     return (
-      <AuthSplitLayout portal="institutionalHub">
+      <AuthSplitLayout season="winter">
         <div className="lp-card">
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
             <div className="flex justify-center mb-6">

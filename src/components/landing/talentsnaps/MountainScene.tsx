@@ -73,8 +73,8 @@ export function LandscapeArt({ className = "ts-art" }: { className?: string } = 
 }
 
 // Fixed positions + fixed fall timing (not Math.random()) so server and
-// client render identical markup — deterministic decoration, not a real
-// randomizer. Shared by HeroScene and
+// client render identical markup — same reasoning as the login screens'
+// snowfall/rain (see AuthMountains.tsx). Shared by HeroScene and
 // ClosingScene so every monsoon-themed audience page (currently /for-hr)
 // gets the same storm atmosphere wherever LandscapeArt appears.
 const MONSOON_RAIN = [
