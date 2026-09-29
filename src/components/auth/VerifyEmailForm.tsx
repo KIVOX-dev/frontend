@@ -34,7 +34,7 @@ export function VerifyEmailForm() {
   }, [token]);
 
   return (
-    <AuthSplitLayout season="summer">
+    <AuthSplitLayout portal="general">
       <div className="lp-card">
         <div style={{ textAlign: "center", marginBottom: "24px" }}>
           <div className="flex justify-center mb-6">

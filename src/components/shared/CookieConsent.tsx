@@ -131,11 +131,11 @@ export function CookieConsent() {
             </>
           ) : (
             <>
+              <button type="button" onClick={() => decide({ analytics: false, media: false })} className={`${BTN} bg-ink text-white hover:bg-ink-hover`}>
+                Reject all
+              </button>
               <button type="button" onClick={() => decide({ analytics: true, media: true })} className={`${BTN} bg-ink text-white hover:bg-ink-hover`}>
                 Accept all
-              </button>
-              <button type="button" onClick={() => decide({ analytics: false, media: false })} className={`${BTN} border border-ink text-ink hover:bg-paper-sunken`}>
-                Essential only
               </button>
               <button
                 type="button"

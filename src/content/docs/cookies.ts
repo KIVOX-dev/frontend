@@ -26,7 +26,7 @@ export const cookies: Doc = {
       title: "Your Choice",
       blocks: [
         {
-          p: "The first time you visit, including the first time you open a login screen, we show a cookie notice. Strictly necessary storage is always on, because the site can't sign you in without it. Analytics and embedded media stay off until you allow them. You can choose **Accept all**, **Essential only**, or **Customize** to pick each category.",
+          p: "The first time you visit, including the first time you open a login screen, we show a cookie notice. Strictly necessary storage is always on, because the site can't sign you in without it. Analytics and embedded media stay off until you allow them. You can choose **Accept all**, **Reject all**, or **Customize** to pick each category.",
         },
       ],
     },
@@ -57,7 +57,7 @@ export const cookies: Doc = {
       title: "Analytics",
       blocks: [
         {
-          p: "With your permission we use Vercel Web Analytics to count page views and see which pages are used. It doesn't use cookies, doesn't follow you to other websites, and reports only totals, not individual visitors. If you choose Essential only, it doesn't load at all.",
+          p: "With your permission we use Vercel Web Analytics to count page views and see which pages are used. It doesn't use cookies, doesn't follow you to other websites, and reports only totals, not individual visitors. If you choose Reject all, it doesn't load at all.",
         },
       ],
     },

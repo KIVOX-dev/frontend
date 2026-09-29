@@ -3,6 +3,7 @@
 import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
+import type { PortalKey } from "@/components/layout/PortalScene";
 import { GoogleLoginButton, isGoogleLoginConfigured } from "@/components/auth/GoogleLoginButton";
 import { Turnstile, isTurnstileConfigured, TurnstileHandle } from "@/components/auth/Turnstile";
 import { useAuthStore } from "@/stores/authStore";
@@ -45,6 +46,14 @@ const ROLE_COPY: Record<Role, { heading: string; sub: string; nameLabel: string;
     namePlaceholder: "Your College Name",
     submitLabel: "Submit Registration Request",
   },
+};
+
+// Signing up is joining one of the existing portals, so the illustration
+// switches with the role tab instead of staying on one fixed scene.
+const ROLE_PORTAL: Record<Role, PortalKey> = {
+  student: "learner",
+  hr: "hr",
+  college_admin: "collegeAdmin",
 };
 
 // lockRole: opened from a role's own "Get started" (/register?role=…), so the
@@ -121,7 +130,7 @@ export function RegisterForm({ initialRole = "student", lockRole = false }: { in
   };
 
   return (
-    <AuthSplitLayout season="autumn">
+    <AuthSplitLayout portal={ROLE_PORTAL[role]}>
       <div className="lp-card">
         {!lockRole && (
           <div className="l-tabs">

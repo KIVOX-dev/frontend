@@ -13,7 +13,7 @@ export function FacultyLogin({ onBack }: { onBack?: () => void }) {
   } = useLoginForm();
 
   return (
-    <AuthSplitLayout season="winter">
+    <AuthSplitLayout portal="faculty">
       <div className="lp-card">
         {onBack && (
           <div style={{ display: "flex", width: "100%", marginBottom: "16px" }}>

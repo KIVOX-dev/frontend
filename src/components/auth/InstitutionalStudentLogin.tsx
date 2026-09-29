@@ -15,7 +15,7 @@ export function InstitutionalStudentLogin({ onBack }: { onBack: () => void }) {
   });
 
   return (
-    <AuthSplitLayout season="winter">
+    <AuthSplitLayout portal="student">
       <div className="lp-card">
         <div style={{ display: "flex", width: "100%", marginBottom: "16px" }}>
           <button
