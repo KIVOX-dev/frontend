@@ -73,7 +73,7 @@ export function HrLogin() {
         {isLogin ? (
           <>
             <div className="lp-heading">
-              <h2>HR / Recruiter Login</h2>
+              <h1>HR / Recruiter Login</h1>
               <p>Sign in to access your talent sourcing dashboard</p>
             </div>
 
@@ -112,7 +112,7 @@ export function HrLogin() {
         ) : (
           <>
             <div className="lp-heading">
-              <h2>Create HR Account</h2>
+              <h1>Create HR Account</h1>
               <p>Register your company on TalentSnaps</p>
             </div>
             <label className="lbl">Full Name</label>

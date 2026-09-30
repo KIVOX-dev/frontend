@@ -474,6 +474,7 @@ a:focus-visible,
   margin-bottom: 24px
 }
 
+.lp-heading h1,
 .lp-heading h2 {
   font-family: 'Inter', sans-serif;
   font-size: 26px;
@@ -4920,6 +4921,7 @@ tbody tr:hover td {
     padding: 24px
   }
 
+  .lp-heading h1,
   .lp-heading h2 {
     font-size: 22px
   }

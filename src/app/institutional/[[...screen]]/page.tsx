@@ -11,6 +11,7 @@ import { useEffect, useState, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { PORTAL_ROUTES, loginHref, usePortalRoute } from "@/lib/portalRoutes";
 import { PortalLoading } from "@/components/shared/PortalLoading";
+import { SignedOutFrame } from "@/components/shared/SignedOutFrame";
 
 // Only one of these renders at a time (role selection / renderScreen switch
 // below) — dynamic-importing them keeps every other role's/screen's code
@@ -122,25 +123,26 @@ function InstitutionalContent() {
     }
   }, [mounted, showHub, pathname]);
 
-  if (!mounted) return <PortalLoading />;
-
   // If they're not authenticated for THIS portal, show the Hub or the selected login
-  if (showHub) {
+  // Before the browser has the saved session (`!mounted`) always show the hub, so
+  // the server's HTML has real content and the first client render matches it.
+  if (!mounted || showHub) {
     if (selectedRole === "admin") return <CollegeAdminLogin onBack={() => setSelectedRole("none")} />;
     if (selectedRole === "faculty") return <FacultyLogin onBack={() => setSelectedRole("none")} />;
     if (selectedRole === "student") return <InstitutionalStudentLogin onBack={() => setSelectedRole("none")} />;
     
     // The Hub
     return (
+      <SignedOutFrame guard={!mounted}>
       <AuthSplitLayout season="winter">
         <div className="lp-card">
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
             <div className="flex justify-center mb-6">
               <Logo variant="brand" height={72} priority />
             </div>
-            <h2 style={{ fontSize: "28px", color: "var(--text)", fontWeight: 800, marginBottom: "12px" }}>
+            <h1 style={{ fontSize: "28px", color: "var(--text)", fontWeight: 800, marginBottom: "12px" }}>
               Institutional Portal
-            </h2>
+            </h1>
             <p style={{ color: "var(--muted)", fontSize: "15px" }}>
               Select your role to access your dashboard
             </p>
@@ -194,6 +196,7 @@ function InstitutionalContent() {
           </div>
         </div>
       </AuthSplitLayout>
+      </SignedOutFrame>
     );
   }
 

@@ -23,7 +23,9 @@ function RegisterContent() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={null}>
+    // useSearchParams keeps this page from rendering on the server, so the fallback
+    // is what gets served as HTML: the default sign-up form, not an empty page.
+    <Suspense fallback={<RegisterForm initialRole="student" />}>
       <RegisterContent />
     </Suspense>
   );

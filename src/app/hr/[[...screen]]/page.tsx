@@ -9,6 +9,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { PortalLoading } from "@/components/shared/PortalLoading";
+import { SignedOutFrame } from "@/components/shared/SignedOutFrame";
 import { usePortalRoute } from "@/lib/portalRoutes";
 
 // Pure — reads only its own argument, nothing from component scope — so it
@@ -140,10 +141,11 @@ function HrContent() {
 
   usePortalRoute("hr", mounted && isAuthenticated && (user?.role === "hr" || user?.role === "recruiter"));
 
-  if (!mounted) return <PortalLoading />;
+  // See the learner page: server-render the sign-in form before the session is known.
+  if (!mounted) return <SignedOutFrame guard><HrLogin /></SignedOutFrame>;
 
   if (!isAuthenticated || (user?.role !== "hr" && user?.role !== "recruiter")) {
-    return <HrLogin />;
+    return <SignedOutFrame guard={false}><HrLogin /></SignedOutFrame>;
   }
 
   const currentScreen = activeScreen === "dash" ? "hr-dash" : activeScreen;

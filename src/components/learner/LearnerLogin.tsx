@@ -101,7 +101,7 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
         {tab === "login" && (
           <div className="l-panel active">
             <div className="lp-heading">
-              <h2>Learner Login</h2>
+              <h1>Learner Login</h1>
               <p>Sign in to continue your aptitude journey</p>
             </div>
             <LoginFields
@@ -145,7 +145,7 @@ export function LearnerLogin({ initialMode = "login" }: LearnerLoginProps) {
         {tab === "signup" && (
           <div className="l-panel active">
             <div className="lp-heading">
-              <h2>Create Account</h2>
+              <h1>Create Account</h1>
               <p>Start your AI-powered placement journey today</p>
             </div>
 

@@ -25,7 +25,7 @@ export function CampusFooter({ audience }: { audience: CampusAudience }) {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Image src="/badges/csa-star-level-1.png" alt="" width={72} height={72} />
+                <Image src="/badges/csa-star-level-1.png" alt="CSA STAR Level 1 registered" width={72} height={72} />
                 <span>
                   CSA STAR Level One
                   <small>View listing</small>

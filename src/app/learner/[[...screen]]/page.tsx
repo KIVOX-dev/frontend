@@ -5,6 +5,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { LearnerShell } from "@/components/layout/LearnerShell";
 import { PortalLoading } from "@/components/shared/PortalLoading";
+import { SignedOutFrame } from "@/components/shared/SignedOutFrame";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { usePortalRoute } from "@/lib/portalRoutes";
@@ -58,12 +59,15 @@ function LearnerContent() {
 
   usePortalRoute("learner", mounted && isAuthenticated && user?.role === "student");
 
-  if (!mounted) return <PortalLoading />;
+  // Before the browser has the saved session, render the signed-out view so the
+  // server's HTML has real content (see SignedOutFrame). Afterwards the same
+  // form stays put for signed-out visitors, and the app replaces it otherwise.
+  if (!mounted) return <SignedOutFrame guard><LearnerLogin initialMode={mode} /></SignedOutFrame>;
 
   // Auth is one shared store across every portal, so a session authenticated
   // elsewhere (e.g. super-admin) must not fall through to this dashboard.
   if (!isAuthenticated || user?.role !== "student") {
-    return <LearnerLogin initialMode={mode} />;
+    return <SignedOutFrame guard={false}><LearnerLogin initialMode={mode} /></SignedOutFrame>;
   }
 
   // Opened via window.open() as its own browser window/tab (see

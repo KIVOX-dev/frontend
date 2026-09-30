@@ -154,7 +154,7 @@ export function RegisterForm({ initialRole = "student", lockRole = false }: { in
         ) : (
           <div className="l-panel active">
             <div className="lp-heading">
-              <h2>{copy.heading}</h2>
+              <h1>{copy.heading}</h1>
               <p>{copy.sub}</p>
             </div>
 

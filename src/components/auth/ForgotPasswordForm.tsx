@@ -80,9 +80,9 @@ export function ForgotPasswordForm() {
           <div className="flex justify-center mb-6">
             <Logo variant="brand" height={72} priority />
           </div>
-          <h2 style={{ fontSize: "24px", color: "var(--text)", fontWeight: 700, marginBottom: "8px" }}>
+          <h1 style={{ fontSize: "24px", color: "var(--text)", fontWeight: 700, marginBottom: "8px" }}>
             Reset your password
-          </h2>
+          </h1>
           <p style={{ color: "var(--muted)", fontSize: "14px" }}>
             Enter the email on your account and we&apos;ll send you a reset link.
           </p>
