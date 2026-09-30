@@ -317,10 +317,12 @@ body {
   font-weight: 600;
 }
 
+/* .nav-item is overflow:hidden (legacy-portal.css), so the rail has to sit
+   inside the item's own box — at a negative offset it was clipped away. */
 .nav-item.active::before {
   content: "";
   position: absolute;
-  left: -8px;
+  left: -1px;
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
@@ -329,8 +331,52 @@ body {
   background: linear-gradient(180deg, var(--accent2), var(--accent));
 }
 
-#sidebar.collapsed .nav-item.active::before {
-  left: -4px;
+/* Group header whose child is the current screen: tinted text, no fill, so
+   it reads as "you are in here" without competing with the real selection. */
+.nav-item.has-active-child {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Section separation: a hairline above every section label except the first,
+   and in the collapsed rail (where labels are hidden) the hairline alone
+   keeps the groups apart. */
+.nav-sec {
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+#snav > .nav-sec:first-child {
+  margin-top: 0;
+  padding-top: 13px;
+  border-top: 0;
+}
+
+#sidebar.collapsed .nav-sec {
+  display: block;
+  opacity: 1;
+  height: 0;
+  margin: 8px 12px 6px;
+  padding: 0;
+  font-size: 0;
+}
+
+#sidebar.collapsed #snav > .nav-sec:first-child {
+  display: none;
+}
+
+/* Sidebar is chrome, not content: no blue text-selection flash on
+   double-click/drag, no mobile tap highlight. */
+#sidebar {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .nav-badge {

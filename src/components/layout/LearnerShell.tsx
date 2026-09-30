@@ -46,12 +46,12 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
     ? [
         { id: "dash", label: "Dashboard", section: "Faculty Portal", icon: <DashboardIcon /> },
         { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
-        { id: "tracking", label: "Student Tracking", icon: <ProfileIcon /> },
+        { id: "tracking", label: "Student Tracking", section: "Students", icon: <ProfileIcon /> },
         { id: "add-student", label: "Add Student", icon: <PracticeIcon /> },
         { id: "upload", label: "Upload Students", icon: <ResumeIcon /> },
         // Settings lives in the profile chip's dropdown (ProfileMenu.tsx),
         // not the sidebar — one entry point instead of two for the same screen.
-        { id: "chat", label: "Messages", icon: <ChatIcon /> },
+        { id: "chat", label: "Messages", section: "Communication", icon: <ChatIcon /> },
       ]
     : [
         { id: "dash", label: "Dashboard", section: "Learning Portal", icon: <DashboardIcon /> },
@@ -59,7 +59,7 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         // Test History lives behind the "History" button inside Aptitude
         // Tests (AptitudeTests.tsx) now, not the sidebar — one entry point
         // instead of two for the same screen.
-        { id: "tests", label: "Aptitude Tests", icon: <TestsIcon /> },
+        { id: "tests", label: "Aptitude Tests", section: "Learn & Practice", icon: <TestsIcon /> },
         { id: "learnings", label: "Learnings", icon: <LearningsIcon /> },
         { id: PRACTICE_TOOLS_GROUP_ID, label: "Practice Tools", icon: <PracticeIcon />, children: practiceToolsChildren },
         { id: "youtube-course-import", label: "YouTube to Course", icon: <YoutubeToolIcon /> },
@@ -117,7 +117,7 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
                 {item.section && <div className="nav-sec">{item.section}</div>}
                 <button
                   type="button"
-                  className={`nav-item ${!hasChildren && activeNav === `nav-${item.id}` ? "active" : ""}`}
+                  className={`nav-item ${!hasChildren && activeNav === `nav-${item.id}` ? "active" : ""} ${hasChildren && activeChildGroupId === item.id ? "has-active-child" : ""}`}
                   id={`nav-${item.id}`}
                   onClick={() =>
                     hasChildren
