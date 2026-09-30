@@ -600,6 +600,19 @@ export function CollegeAdminDashboard() {
     }
   };
 
+  const handleDeletePlacement = async (placement: Placement) => {
+    if (!confirm(`Delete this placement${placement.proof_url ? " and its offer letter" : ""}? This can't be undone from the app.`)) return;
+    setVerifyingPlacementId(placement.id);
+    try {
+      await api.delete(`/placement-records/${placement.id}`);
+      setPlacements(prev => prev.filter(p => p.id !== placement.id));
+    } catch (err) {
+      toast.error(err, "Failed to delete placement");
+    } finally {
+      setVerifyingPlacementId(null);
+    }
+  };
+
   const handleCreateDrive = async (e: React.FormEvent) => {
     e.preventDefault();
     setDriveMsg("");
@@ -1164,26 +1177,33 @@ export function CollegeAdminDashboard() {
                       )}
                     </td>
                     <td style={{ padding: "12px 8px", textAlign: "right" }}>
-                      {p.verification_status === "pending" ? (
-                        <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                          <button
-                            onClick={() => handleVerifyPlacement(p, "verified")}
-                            disabled={verifyingPlacementId === p.id}
-                            style={{ background: "none", border: "none", color: "#1e8e3e", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleVerifyPlacement(p, "rejected")}
-                            disabled={verifyingPlacementId === p.id}
-                            style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      ) : (
-                        <span style={{ color: "var(--muted)", fontSize: "13px" }}>—</span>
-                      )}
+                      <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                        {p.verification_status === "pending" && (
+                          <>
+                            <button
+                              onClick={() => handleVerifyPlacement(p, "verified")}
+                              disabled={verifyingPlacementId === p.id}
+                              style={{ background: "none", border: "none", color: "#1e8e3e", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleVerifyPlacement(p, "rejected")}
+                              disabled={verifyingPlacementId === p.id}
+                              style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => handleDeletePlacement(p)}
+                          disabled={verifyingPlacementId === p.id}
+                          style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   );
