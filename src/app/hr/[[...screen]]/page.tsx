@@ -8,6 +8,7 @@ import { MyActivity } from "@/components/shared/MyActivity";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { PortalLoading } from "@/components/shared/PortalLoading";
 import { usePortalRoute } from "@/lib/portalRoutes";
 
 // Pure — reads only its own argument, nothing from component scope — so it
@@ -139,7 +140,7 @@ function HrContent() {
 
   usePortalRoute("hr", mounted && isAuthenticated && (user?.role === "hr" || user?.role === "recruiter"));
 
-  if (!mounted) return null;
+  if (!mounted) return <PortalLoading />;
 
   if (!isAuthenticated || (user?.role !== "hr" && user?.role !== "recruiter")) {
     return <HrLogin />;
@@ -727,7 +728,7 @@ function HrContent() {
 
 export default function HrPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PortalLoading />}>
       <HrContent />
     </Suspense>
   );

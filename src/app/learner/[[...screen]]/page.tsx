@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { LearnerShell } from "@/components/layout/LearnerShell";
+import { PortalLoading } from "@/components/shared/PortalLoading";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { usePortalRoute } from "@/lib/portalRoutes";
@@ -11,7 +12,7 @@ import { usePortalRoute } from "@/lib/portalRoutes";
 // Only one of these renders at a time (renderScreen switch below) —
 // dynamic-importing keeps every other screen's code out of this route's
 // bundle and out of the dev-server's first-compile graph.
-const LearnerLogin = dynamic(() => import("@/components/learner/LearnerLogin").then((m) => m.LearnerLogin));
+const LearnerLogin = dynamic(() => import("@/components/learner/LearnerLogin").then((m) => m.LearnerLogin), { loading: () => <PortalLoading /> });
 const LearnerDashboard = dynamic(() => import("@/components/learner/LearnerDashboard").then((m) => m.LearnerDashboard));
 const LearnerMockInterview = dynamic(() => import("@/components/learner/LearnerMockInterview").then((m) => m.LearnerMockInterview));
 const ResumeBuilder = dynamic(() => import("@/components/learner/ResumeBuilder").then((m) => m.ResumeBuilder));
@@ -57,7 +58,7 @@ function LearnerContent() {
 
   usePortalRoute("learner", mounted && isAuthenticated && user?.role === "student");
 
-  if (!mounted) return null;
+  if (!mounted) return <PortalLoading />;
 
   // Auth is one shared store across every portal, so a session authenticated
   // elsewhere (e.g. super-admin) must not fall through to this dashboard.
@@ -124,7 +125,7 @@ function LearnerContent() {
 
 export default function LearnerPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PortalLoading />}>
       <LearnerContent />
     </Suspense>
   );

@@ -10,6 +10,7 @@ import { Logo } from "@/components/shared/Logo";
 import { useEffect, useState, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { PORTAL_ROUTES, loginHref, usePortalRoute } from "@/lib/portalRoutes";
+import { PortalLoading } from "@/components/shared/PortalLoading";
 
 // Only one of these renders at a time (role selection / renderScreen switch
 // below) — dynamic-importing them keeps every other role's/screen's code
@@ -121,7 +122,7 @@ function InstitutionalContent() {
     }
   }, [mounted, showHub, pathname]);
 
-  if (!mounted) return null;
+  if (!mounted) return <PortalLoading />;
 
   // If they're not authenticated for THIS portal, show the Hub or the selected login
   if (showHub) {
@@ -293,7 +294,7 @@ function InstitutionalContent() {
 
 export default function InstitutionalPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PortalLoading />}>
       <InstitutionalContent />
     </Suspense>
   );
