@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/lib/toast";
 import { openPlacementProofDocument } from "@/lib/placementProof";
 import { useModalA11y } from "@/hooks/useModalA11y";
+import { MULTIPART } from "@/lib/outcomes";
+import { StudentOutcomes } from "@/components/learner/StudentOutcomes";
 
 type Drive = {
   id: string;
@@ -71,6 +74,9 @@ export function PlacementOpportunities() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [studentId, setStudentId] = useState<string | null>(null);
+  const letterInput = useRef<HTMLInputElement>(null);
+  const letterTarget = useRef<string | null>(null);
 
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportForm, setReportForm] = useState(REPORT_FORM_DEFAULT);
@@ -102,6 +108,7 @@ export function PlacementOpportunities() {
 
       const profileRes = await api.get<{ id: string }>("/students/profile").catch(() => null);
       if (profileRes?.data?.id) {
+        setStudentId(profileRes.data.id);
         const recordsRes = await api.get<PlacementRecord[]>(`/placement-records/student/${profileRes.data.id}`);
         setRecords(recordsRes.data || []);
       }
@@ -182,6 +189,32 @@ export function PlacementOpportunities() {
       setReportMsg(err.response?.data?.message || "Failed to submit your placement. Please check the details and try again.");
     } finally {
       setSubmittingReport(false);
+    }
+  };
+
+  // Adds or replaces the offer letter on a placement already on file — how a
+  // student acts on an "offer letter needed" reminder.
+  const chooseLetter = (recordId: string) => {
+    letterTarget.current = recordId;
+    letterInput.current?.click();
+  };
+
+  const handleLetterFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const recordId = letterTarget.current;
+    e.target.value = "";
+    if (!file || !recordId) return;
+    setBusyId(recordId);
+    try {
+      const form = new FormData();
+      form.append("proof_file", file);
+      const res = await api.put<PlacementRecord>(`/placement-records/${recordId}/proof`, form, MULTIPART);
+      setRecords((prev) => prev.map((r) => (r.id === recordId ? res.data : r)));
+      toast.success("Offer letter uploaded");
+    } catch (err) {
+      toast.error(err, "Couldn't upload the offer letter");
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -442,17 +475,30 @@ export function PlacementOpportunities() {
                     <span className={`badge ${VERIFICATION_BADGE[r.verification_status] || "bb"}`}>{r.verification_status}</span>
                   </td>
                   <td style={{ padding: "12px 8px" }}>
-                    {r.proof_url ? (
-                      <button
-                        type="button"
-                        onClick={() => openPlacementProofDocument(r.id)}
-                        style={{ color: "var(--accent)", fontSize: "13px", fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}
-                      >
-                        View
-                      </button>
-                    ) : (
-                      <span style={{ color: "var(--muted)", fontSize: "13px" }}>—</span>
-                    )}
+                    <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                      {r.proof_url ? (
+                        <button
+                          type="button"
+                          onClick={() => openPlacementProofDocument(r.id)}
+                          style={{ color: "var(--accent)", fontSize: "13px", fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}
+                        >
+                          View
+                        </button>
+                      ) : (
+                        <span style={{ color: "var(--muted)", fontSize: "13px" }}>—</span>
+                      )}
+                      {/* A verified placement is locked — swapping its letter would void the college's check. */}
+                      {r.verification_status !== "verified" && (
+                        <button
+                          type="button"
+                          disabled={busyId === r.id}
+                          onClick={() => chooseLetter(r.id)}
+                          style={{ color: "var(--accent)", fontSize: "13px", fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                        >
+                          {busyId === r.id ? "Uploading…" : r.proof_url ? "Replace" : "Upload"}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -460,7 +506,10 @@ export function PlacementOpportunities() {
           </table>
           </div>
         )}
+        <input ref={letterInput} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleLetterFile} style={{ display: "none" }} aria-hidden="true" tabIndex={-1} />
       </div>
+
+      <StudentOutcomes studentId={studentId} />
     </div>
   );
 }

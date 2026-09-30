@@ -18,7 +18,9 @@ type Contact = {
 function toContact(raw: Record<string, unknown>): Contact {
   return {
     id: (raw.id as string | number) ?? (raw._id as string | number),
-    name: (raw.full_name as string) || (raw.name as string) || "Unknown",
+    // Email beats "Unknown": a real account with no display name is still
+    // someone the user can recognise and message.
+    name: (raw.full_name as string) || (raw.name as string) || (raw.email as string) || "Unknown",
     email: (raw.email as string) || "",
     role: (raw.role as string) || "",
   };
@@ -175,8 +177,12 @@ export function PlatformChat() {
         // GET /users/ is admin-only (403 for everyone else) — picking the
         // right endpoint up front instead of trying it and catching avoids
         // deliberately firing a request every non-admin is guaranteed to
-        // get rejected on.
-        const res = await api.get(isAdmin ? "/users/" : "/students");
+        // get rejected on. Non-admins use /chat/contacts, which returns
+        // classmates, faculty and admins of their own institution by *user*
+        // id; the old GET /students directory returned student-record ids,
+        // so a message sent to one of those contacts was silently dropped by
+        // the chat server, and it never listed faculty or admins at all.
+        const res = await api.get(isAdmin ? "/users/" : "/chat/contacts");
         let allUsers = (res.data as Record<string, unknown>[])
           .map(toContact)
           .filter((c) => String(c.id) !== String(user?.id));
