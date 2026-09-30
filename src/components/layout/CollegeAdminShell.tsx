@@ -37,6 +37,7 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
     { id: "dash", label: "Dashboard", section: "Master Console", icon: <DashboardIcon /> },
     { id: "placements", label: "Recent Placements", icon: <ResumeIcon /> },
     { id: "drives", label: "Placement Drives", icon: <MncIcon /> },
+    { id: "reports", label: "Reports & Compliance", icon: <ResumeIcon /> },
     { id: "users", label: "Manage Users", icon: <ProfileIcon /> },
     { id: "security", label: "Security & Approvals", icon: <PracticeIcon /> },
     { id: "assessments", label: "Assessments", icon: <TestsIcon /> },

@@ -23,6 +23,7 @@ const ProfilePanel = dynamic(() => import("@/components/shared/ProfilePanel").th
 const MyActivity = dynamic(() => import("@/components/shared/MyActivity").then((m) => m.MyActivity));
 const SearchResults = dynamic(() => import("@/components/shared/SearchResults").then((m) => m.SearchResults));
 const CollegeAdminDashboard = dynamic(() => import("@/components/institutional/CollegeAdminDashboard").then((m) => m.CollegeAdminDashboard));
+const ReportsCompliance = dynamic(() => import("@/components/institutional/ReportsCompliance").then((m) => m.ReportsCompliance));
 const FacultyDashboard = dynamic(() => import("@/components/institutional/FacultyDashboard").then((m) => m.FacultyDashboard));
 const InstitutionalApproval = dynamic(() => import("@/components/institutional/InstitutionalApproval").then((m) => m.InstitutionalApproval));
 const StudentTracking = dynamic(() => import("@/components/institutional/StudentTracking").then((m) => m.StudentTracking));
@@ -57,7 +58,7 @@ const INSTITUTIONAL_ROLES = ["college_admin", "institution_admin", "faculty", "s
 // and renderScreen()'s switch below has no per-case role check of its own, so
 // it renders an admin-only component (CollegeAdminDashboard) for a student —
 // which then 403s fetching /users instead of showing anything sensible.
-const ADMIN_SCREENS = new Set(["dash", "placements", "drives", "users", "security", "assessments", "tracking", "chat", "profile-info", "settings", "my-activity", "search-results"]);
+const ADMIN_SCREENS = new Set(["dash", "placements", "drives", "reports", "users", "security", "assessments", "tracking", "chat", "profile-info", "settings", "my-activity", "search-results"]);
 const FACULTY_SCREENS = new Set(["dash", "tracking", "add-student", "upload", "chat", "profile-info", "settings", "my-activity", "search-results"]);
 const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "iv", "chat", "profile-info", "settings", "my-activity", "learnings", "youtube-course-import", "lesson-assessment", "setup"];
 const INSTITUTIONAL_STUDENT_EXTRA_SCREENS = ["placements", "profile", "resume", "lb"];
@@ -227,6 +228,8 @@ function InstitutionalContent() {
         return <CollegeAdminDashboard />;
       case "drives":
         return <CollegeAdminDashboard />;
+      case "reports":
+        return <ReportsCompliance />;
       case "users":
         return <CollegeAdminDashboard />;
       case "tracking":

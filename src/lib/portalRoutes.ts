@@ -47,6 +47,7 @@ export const PORTAL_ROUTES = {
       ...STUDENT,
       // College admin
       drives: "placement-drives",
+      reports: "reports-compliance",
       users: "manage-users",
       security: "approvals",
       assessments: "assessments",
