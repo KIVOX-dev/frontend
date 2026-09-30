@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { TopbarTitle, navTitles } from "@/components/layout/TopbarTitle";
 
 export function LearnerShell({ children }: { children: React.ReactNode }) {
@@ -206,12 +207,7 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
           </button>
           <TopbarTitle titles={navTitles(navItems)} />
           <div className="tbr">
-            <div className="ib" style={{ position: "relative" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 01-3.46 0" />
-              </svg>
-            </div>
+            <NotificationBell />
             <ProfileMenu
               avatar={user?.name?.charAt(0) || "S"}
               name={user?.name || "Student"}

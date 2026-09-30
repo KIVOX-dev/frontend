@@ -5,6 +5,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { TopbarTitle, navTitles } from "@/components/layout/TopbarTitle";
 
 export function HrShell({ children }: { children: React.ReactNode }) {
@@ -97,13 +98,7 @@ export function HrShell({ children }: { children: React.ReactNode }) {
           </button>
           <TopbarTitle titles={{ ...navTitles(navItems), dash: "Dashboard" }} />
           <div className="tbr">
-            <div className="ib">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 01-3.46 0" />
-              </svg>
-              <div className="nd"></div>
-            </div>
+            <NotificationBell />
             <ProfileMenu
               avatar="HR"
               avatarStyle={{ background: "linear-gradient(135deg,var(--purple),var(--pink))" }}
