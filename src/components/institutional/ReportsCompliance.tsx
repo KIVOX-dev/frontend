@@ -172,7 +172,8 @@ export function ReportsCompliance() {
       });
       if (requestId !== latestRequest.current) return;
       setReports((prev) => ({ ...prev, [tab]: res.data }));
-      setYears(res.data.available_years);
+      // Guard against placeholder years (e.g. 0 from students with no batch year).
+      setYears(res.data.available_years.filter((y) => Number.isInteger(y) && y >= 2000));
     } catch (err) {
       if (requestId !== latestRequest.current) return;
       setError(extractErrorMessage(err, "Couldn't load this report"));
