@@ -186,6 +186,17 @@ export function ReportsCompliance() {
     load();
   }, [load]);
 
+  // Years that have students are only part of what an admin may want to look
+  // at (an earlier batch with no students yet, or an upcoming one), so offer
+  // every academic year from a few before the earliest batch to a few after
+  // the latest, newest first.
+  const yearOptions = useMemo(() => {
+    const thisYear = new Date().getFullYear();
+    const lo = Math.min(thisYear - 4, ...years);
+    const hi = Math.max(thisYear + 4, ...years);
+    return Array.from({ length: hi - lo + 1 }, (_, i) => hi - i);
+  }, [years]);
+
   const report = reports[tab];
   // NIRF/NBA report on one anchor year; with "All years" selected the server
   // picks the latest, and that's what the dropdown should show.
@@ -407,7 +418,7 @@ export function ReportsCompliance() {
             }}
           >
             {!ANCHORED.includes(tab) && <option value="all">All years</option>}
-            {years.map((y) => (
+            {yearOptions.map((y) => (
               <option key={y} value={y}>
                 {academicYear(y)}
               </option>

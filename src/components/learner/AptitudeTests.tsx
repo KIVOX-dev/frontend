@@ -78,6 +78,10 @@ export function AptitudeTests() {
   // within one test's array too.
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [testCompleted, setTestCompleted] = useState(false);
+  // Per-question outcome shown on the results screen; null when the server
+  // withheld the answer key (test set not to show results immediately).
+  const [review, setReview] = useState<{ question: Question; selected: string | null; correct: string; isCorrect: boolean }[] | null>(null);
+  const [showReview, setShowReview] = useState(false);
   const [score, setScore] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -183,6 +187,16 @@ export function AptitudeTests() {
           answers: Object.fromEntries(questions.map((q) => [String(q.id), answers[String(q.id)] || ""])),
         });
         setScore(res.data.score ?? 0);
+        const serverReview: { question_id: string | number; selected: string | null; correct_answer: string; is_correct: boolean }[] | undefined = res.data.review;
+        setReview(
+          serverReview
+            ? questions.flatMap((q) => {
+                const r = serverReview.find((x) => String(x.question_id) === String(q.id));
+                return r ? [{ question: q, selected: r.selected, correct: r.correct_answer, isCorrect: r.is_correct }] : [];
+              })
+            : null
+        );
+        setShowReview(false);
         setTestCompleted(true);
       } catch (err: any) {
         toast.error(err, "Failed to submit. Please try again.");
@@ -199,6 +213,14 @@ export function AptitudeTests() {
       if (answers[String(q.id)] === resolveAnswer(q)) currentScore += 1;
     });
     setScore(currentScore);
+    setReview(
+      questions.map((q) => {
+        const selected = answers[String(q.id)] ?? null;
+        const correct = resolveAnswer(q);
+        return { question: q, selected, correct, isCorrect: selected === correct };
+      })
+    );
+    setShowReview(false);
     setTestCompleted(true);
 
     if (user?.id) {
@@ -244,6 +266,50 @@ export function AptitudeTests() {
   if (loading) return <div style={{ padding: "40px" }}>Loading tests...</div>;
 
   if (activeTest) {
+    if (testCompleted && showReview && review) {
+      return (
+        <div className="screen active" style={{ padding: "40px" }}>
+          <div style={{ maxWidth: "760px", margin: "0 auto" }}>
+            <button className="btn btn-g" onClick={() => setShowReview(false)} style={{ marginBottom: "16px" }}>← Back to result</button>
+            <h2 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "4px" }}>Review: {activeTest.title}</h2>
+            <p style={{ color: "var(--muted)", marginBottom: "24px" }}>
+              {score} of {questions.length} correct · {review.filter((r) => r.selected === null || r.selected === "").length} unanswered
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {review.map((r, i) => {
+                const unanswered = !r.selected;
+                const tone = r.isCorrect ? { c: "#1e8e3e", bg: "#e6f4ea", t: "Correct" } : unanswered ? { c: "#b45309", bg: "#fef3c7", t: "Not answered" } : { c: "#dc2626", bg: "#fee2e2", t: "Incorrect" };
+                return (
+                  <div key={String(r.question.id)} className="card" style={{ padding: "20px", borderLeft: `4px solid ${tone.c}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginBottom: "10px" }}>
+                      <strong>Question {i + 1}</strong>
+                      <span style={{ padding: "3px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, background: tone.bg, color: tone.c }}>{tone.t}</span>
+                    </div>
+                    {r.question.data_presentation && <p style={{ color: "var(--muted)", fontSize: "13px", marginBottom: "8px", whiteSpace: "pre-wrap" }}>{r.question.data_presentation}</p>}
+                    <p style={{ fontWeight: 600, marginBottom: "12px" }}>{r.question.question}</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {r.question.options.map((opt) => {
+                        const isCorrectOpt = opt === r.correct;
+                        const isPicked = opt === r.selected;
+                        return (
+                          <div key={opt} style={{ padding: "8px 12px", borderRadius: "8px", fontSize: "14px", border: "1px solid var(--border)", background: isCorrectOpt ? "#e6f4ea" : isPicked ? "#fee2e2" : "transparent", color: isCorrectOpt ? "#1e8e3e" : isPicked ? "#dc2626" : "var(--text)", fontWeight: isCorrectOpt || isPicked ? 600 : 400 }}>
+                            {opt}
+                            {isCorrectOpt && " ✓ correct answer"}
+                            {isPicked && !isCorrectOpt && " ✗ your answer"}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button className="btn btn-p" style={{ marginTop: "24px" }} onClick={() => setActiveTest(null)}>Back to Tests</button>
+          </div>
+        </div>
+      );
+    }
+
     if (testCompleted) {
       return (
         <div className="screen active" style={{ padding: "40px" }}>
@@ -258,7 +324,10 @@ export function AptitudeTests() {
               Accuracy: {Math.round((score / questions.length) * 100)}%
             </p>
             
-            <button className="btn btn-p" onClick={() => setActiveTest(null)}>Back to Tests</button>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              {review && <button className="btn btn-g" onClick={() => setShowReview(true)}>Review answers</button>}
+              <button className="btn btn-p" onClick={() => setActiveTest(null)}>Back to Tests</button>
+            </div>
           </div>
         </div>
       );

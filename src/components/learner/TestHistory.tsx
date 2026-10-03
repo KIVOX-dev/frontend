@@ -100,7 +100,7 @@ export function TestHistory() {
             <div key={i} style={{ padding: "24px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h4 style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)", marginBottom: "4px" }}>
-                  Assessment #{test.assessment_id}
+                  {test.test_title || "Aptitude Test"}
                 </h4>
                 <div style={{ fontSize: "13px", color: "var(--muted)" }}>
                   {new Date(test.completed_at).toLocaleDateString()} at {new Date(test.completed_at).toLocaleTimeString()}

@@ -65,6 +65,18 @@ const FACULTY_SCREENS = new Set(["dash", "tracking", "add-student", "upload", "c
 const BASE_STUDENT_SCREENS = ["dash", "history", "practice", "tests", "iv", "chat", "profile-info", "settings", "my-activity", "learnings", "youtube-course-import", "lesson-assessment", "setup"];
 const INSTITUTIONAL_STUDENT_EXTRA_SCREENS = ["placements", "profile", "resume", "lb"];
 
+function allowedScreensFor(user: { role?: string; college_id?: string } | null): Set<string> | null {
+  if (!user) return null;
+  if (user.role === "college_admin" || user.role === "institution_admin") return ADMIN_SCREENS;
+  if (user.role === "faculty") return FACULTY_SCREENS;
+  if (user.role === "student") {
+    const allowed = new Set(BASE_STUDENT_SCREENS);
+    if (user.college_id) INSTITUTIONAL_STUDENT_EXTRA_SCREENS.forEach((s) => allowed.add(s));
+    return allowed;
+  }
+  return null;
+}
+
 function InstitutionalContent() {
   const { isAuthenticated, user } = useAuthStore();
   const { activeScreen, setActiveScreen } = useUiStore();
@@ -94,15 +106,7 @@ function InstitutionalContent() {
   // whatever screen is currently selected, before renderScreen() ever runs.
   useEffect(() => {
     if (!isAuthenticated || !user) return;
-    let allowed: Set<string> | null = null;
-    if (user.role === "college_admin" || user.role === "institution_admin") {
-      allowed = ADMIN_SCREENS;
-    } else if (user.role === "faculty") {
-      allowed = FACULTY_SCREENS;
-    } else if (user.role === "student") {
-      allowed = new Set(BASE_STUDENT_SCREENS);
-      if (user.college_id) INSTITUTIONAL_STUDENT_EXTRA_SCREENS.forEach((s) => allowed!.add(s));
-    }
+    const allowed = allowedScreensFor(user);
     if (allowed && !allowed.has(activeScreen)) {
       setActiveScreen("dash");
     }
@@ -211,8 +215,14 @@ function InstitutionalContent() {
   }
 
   // Render the active screen based on sidebar selection
+  // Validated here as well as in the effect above: the effect only runs after
+  // a render, which would paint a screen the role may not see for one frame
+  // (and mount its component, firing requests that 403) before bouncing.
+  const allowedNow = allowedScreensFor(user);
+  const screenToRender = allowedNow && !allowedNow.has(activeScreen) ? "dash" : activeScreen;
+
   const renderScreen = () => {
-    switch (activeScreen) {
+    switch (screenToRender) {
       case "dash":
         if (user?.role === "college_admin" || user?.role === "institution_admin") return <CollegeAdminDashboard />;
         if (user?.role === "faculty") return <FacultyDashboard />;
@@ -277,7 +287,7 @@ function InstitutionalContent() {
       default:
         return (
           <div style={{ padding: "40px", textAlign: "center", color: "var(--muted)" }}>
-            <h2>{activeScreen.toUpperCase()} Screen</h2>
+            <h2>{screenToRender.toUpperCase()} Screen</h2>
             <p>This module is coming soon.</p>
           </div>
         );

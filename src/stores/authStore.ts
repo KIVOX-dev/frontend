@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getApiUrl } from '@/lib/apiUrl';
+import { useUiStore } from '@/stores/uiStore';
 
 interface User {
   _id?: string;
@@ -56,6 +57,9 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       login: (user, token) => {
+        // The selected screen belongs to the previous session; a different
+        // role must not inherit it (an admin's "reports" showing for a student).
+        useUiStore.getState().setActiveScreen('dash');
         set({ user, token, isAuthenticated: true });
       },
       logout: () => {
@@ -63,6 +67,7 @@ export const useAuthStore = create<AuthState>()(
         // Only the server can clear the httpOnly refresh cookie. keepalive so
         // the request still goes out when logout is followed by a reload.
         fetch(`${getApiUrl()}/auth/logout`, { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {});
+        useUiStore.getState().setActiveScreen('dash');
         set({ user: null, token: null, isAuthenticated: false });
       },
       updateUser: (updatedUser) =>

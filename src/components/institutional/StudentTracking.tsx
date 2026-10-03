@@ -39,8 +39,9 @@ type DashboardData = {
 // one, showing results for a query that's no longer in the search box.
 async function fetchStudentsPage(search: string, signal: AbortSignal): Promise<Student[]> {
   const config: ApiRequestConfig = { signal, params: search ? { search } : undefined };
-  const res = await api.get<Student[]>(`/students`, config);
-  return res.data;
+  const res = await api.get<(Omit<Student, "name"> & { name?: string; full_name?: string })[]>(`/students`, config);
+  // The API names the field full_name; the table and modal read `name`.
+  return res.data.map((s) => ({ ...s, name: s.name ?? s.full_name ?? "Unnamed student" }));
 }
 
 export function StudentTracking() {
