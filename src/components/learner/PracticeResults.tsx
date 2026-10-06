@@ -113,7 +113,7 @@ export function PracticeResults({
       if (stats.status[i] === "correct") row.correct += 1;
       map.set(kind, row);
     });
-    return [...map.entries()].map(([kind, r]) => ({ kind, ...r, pct: Math.round((r.correct / r.total) * 100) }));
+    return Array.from(map.entries()).map(([kind, r]) => ({ kind, ...r, pct: Math.round((r.correct / r.total) * 100) }));
   }, [items, stats.status]);
 
   const trendData: ParsedData = useMemo(() => {

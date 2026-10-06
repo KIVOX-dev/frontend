@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { BarChart3, Brain, BookOpen, Table2, ArrowRight } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { DataPresentation } from "./DataPresentation";
+import { PracticeResults, type ResultItem } from "./PracticeResults";
 
 type Question = {
   id: number;
@@ -163,6 +164,11 @@ export function PracticeModule() {
   const [timerActive, setTimerActive] = useState(false);
 
   const [sessionDone, setSessionDone] = useState(false);
+  // Wall-clock start of the running session, and what the results screen shows:
+  // seconds used and the accuracy of earlier attempts in this category.
+  const sessionStartedAt = useRef(Date.now());
+  const [timeUsed, setTimeUsed] = useState(0);
+  const [previousAttempts, setPreviousAttempts] = useState<number[]>([]);
   const [questionCount, setQuestionCount] = useState(10);
 
   // Per-category stats persisted in localStorage
@@ -241,6 +247,7 @@ export function PracticeModule() {
     setAnswers({});
     setSessionDone(false);
     setTimeLeft(picked.length * 90);
+    sessionStartedAt.current = Date.now();
     setTimerActive(true);
   };
 
@@ -266,9 +273,16 @@ export function PracticeModule() {
   const finishSession = useCallback(() => {
     setTimerActive(false);
     setSessionDone(true);
+    setTimeUsed(Math.min(sessionQuestions.length * 90, Math.round((Date.now() - sessionStartedAt.current) / 1000)));
 
     if (!activeCategory) return;
     const finalCorrect = sessionQuestions.reduce((sum, q, idx) => sum + (answers[idx] === resolveAnswer(q) ? 1 : 0), 0);
+
+    // Earlier attempts for the results trend; then add this one so the next
+    // session in the same visit sees it too (the list is only fetched on mount).
+    const finalPct = Math.round((finalCorrect / sessionQuestions.length) * 100);
+    setPreviousAttempts((trends[activeCategory.category] || []).map((p) => p.percentage));
+    setTrends((prev) => ({ ...prev, [activeCategory.category]: [...(prev[activeCategory.category] || []), { date: new Date().toISOString(), percentage: finalPct }] }));
 
     const prev = categoryStats[activeCategory.id] || { total: 0, correct: 0, sessions: 0 };
     saveStats({
@@ -299,7 +313,7 @@ export function PracticeModule() {
         toast.error("Your score was calculated, but saving it to your profile failed. Your trend charts may not reflect this session.");
       });
     }
-  }, [activeCategory, activeTestId, answers, categoryStats, saveStats, sessionQuestions, user?.id]);
+  }, [activeCategory, activeTestId, answers, categoryStats, saveStats, sessionQuestions, trends, user?.id]);
 
   // Auto-submit the instant every question has an answer — matches
   // InterviewMcqRound.tsx/AptitudeTests.tsx's timer-expiry auto-submit, just
@@ -330,51 +344,27 @@ export function PracticeModule() {
 
   // ──── Session Complete Screen ────
   if (sessionDone && activeCategory) {
-    const correct = sessionQuestions.reduce((sum, q, idx) => sum + (answers[idx] === resolveAnswer(q) ? 1 : 0), 0);
-    const pct = Math.round((correct / sessionQuestions.length) * 100);
+    const items: ResultItem[] = sessionQuestions.map((q, idx) => ({
+      question: q.question,
+      options: q.options,
+      correct: resolveAnswer(q),
+      picked: answers[idx] ?? null,
+      explanation: q.explanation,
+      data_presentation: q.data_presentation,
+    }));
+    const missed = sessionQuestions.filter((q, idx) => answers[idx] !== resolveAnswer(q));
     return (
-      <div className="screen active" style={{ padding: "40px" }}>
-        <div className="card" style={{ maxWidth: "560px", margin: "0 auto", padding: "48px", textAlign: "center" }}>
-          <div style={{ width: "80px", height: "80px", borderRadius: "50%", background: pct >= 70 ? "#dcfce7" : pct >= 40 ? "#fef3c7" : "#fee2e2", margin: "0 auto 24px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke={pct >= 70 ? "#16a34a" : pct >= 40 ? "#d97706" : "#dc2626"} strokeWidth="2" width="36" height="36">
-              {pct >= 70 ? <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></> :
-               <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>}
-            </svg>
-          </div>
-          <h2 style={{ fontSize: "26px", fontWeight: 800, marginBottom: "8px", color: "var(--text)" }}>
-            {pct >= 70 ? "Excellent Work! 🎉" : pct >= 40 ? "Good Effort! 💪" : "Keep Practicing! 📚"}
-          </h2>
-          <p style={{ color: "var(--muted)", marginBottom: "32px" }}>
-            {activeCategory.label} — {sessionQuestions.length} Questions
-          </p>
-
-          <div style={{ display: "flex", justifyContent: "center", gap: "32px", marginBottom: "36px" }}>
-            <div>
-              <div style={{ fontSize: "42px", fontWeight: 900, color: "var(--accent)" }}>{correct}</div>
-              <div style={{ fontSize: "13px", color: "var(--muted)" }}>Correct</div>
-            </div>
-            <div style={{ width: "1px", background: "var(--border)" }}></div>
-            <div>
-              <div style={{ fontSize: "42px", fontWeight: 900, color: "var(--text)" }}>{sessionQuestions.length}</div>
-              <div style={{ fontSize: "13px", color: "var(--muted)" }}>Total</div>
-            </div>
-            <div style={{ width: "1px", background: "var(--border)" }}></div>
-            <div>
-              <div style={{ fontSize: "42px", fontWeight: 900, color: pct >= 70 ? "#16a34a" : pct >= 40 ? "#d97706" : "#dc2626" }}>{pct}%</div>
-              <div style={{ fontSize: "13px", color: "var(--muted)" }}>Accuracy</div>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-            <button className="btn" onClick={() => { setActiveCategory(null); setSessionDone(false); }}>
-              Back to Topics
-            </button>
-            <button className="btn btn-p" onClick={() => startSession(allQuestions, questionCount)}>
-              Practice Again
-            </button>
-          </div>
-        </div>
-      </div>
+      <PracticeResults
+        title={`${activeCategory.label} — ${sessionQuestions.length} questions`}
+        accent={activeCategory.color}
+        items={items}
+        timeUsedSeconds={timeUsed}
+        timeBudgetSeconds={sessionQuestions.length * 90}
+        previousAttempts={previousAttempts}
+        onBack={() => { setActiveCategory(null); setSessionDone(false); }}
+        onRetry={() => startSession(allQuestions, questionCount)}
+        onRetryMissed={missed.length > 0 ? () => startSession(missed, missed.length) : undefined}
+      />
     );
   }
 
