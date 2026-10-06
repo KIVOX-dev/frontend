@@ -22,6 +22,7 @@ describe("PracticeResults", () => {
     expect(html).toContain("Accuracy trend");
     expect(html).toContain("1:35"); // time taken
     expect(html).toContain("Max 50 - min 38 = 12.");
+    expect(html).toContain("Generating explanation"); // the other two have none yet — fetched on the client
     expect(html).toContain("Correct answer");
     expect(html).toContain("Your answer");
     expect(html).toContain("Retry 2 missed");

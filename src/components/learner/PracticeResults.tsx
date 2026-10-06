@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { BarChart, DataPresentation, LineChart, PieChart } from "./DataPresentation";
 import { parseDataPresentation, type ParsedData } from "@/lib/dataPresentation";
+import { useQuestionExplanations, type ExplanationState } from "@/lib/useQuestionExplanations";
 
 // Results screen for a Mock Practice session — the same idea as Round 1 of the
 // mock interview (score, per-area breakdown, review), plus performance graphs
@@ -62,6 +63,32 @@ function Panel({ title, children, hint }: { title: string; children: React.React
   );
 }
 
+function ExplanationBox({ state, accent, onRetry }: { state: ExplanationState | undefined; accent: string; onRetry: () => void }) {
+  const box: React.CSSProperties = { marginTop: "12px", padding: "12px 14px", borderRadius: "10px", background: "var(--bg)", fontSize: "13.5px", lineHeight: 1.6, color: "var(--text)" };
+  if (!state || state.status === "loading") {
+    return <div style={{ ...box, color: "var(--muted)" }} aria-live="polite">Generating explanation…</div>;
+  }
+  if (state.status === "failed") {
+    return (
+      <div style={{ ...box, color: "var(--muted)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+        <span>Explanation isn&apos;t available right now.</span>
+        <button className="btn" style={{ padding: "4px 12px", fontSize: "12.5px" }} onClick={onRetry}>Try again</button>
+      </div>
+    );
+  }
+  return (
+    <div style={box}>
+      {state.disputed && (
+        <div style={{ marginBottom: "8px", padding: "8px 10px", borderRadius: "8px", background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e", fontSize: "12.5px" }}>
+          ⚠ The AI thinks this answer key may be wrong{state.suggestedAnswer ? ` — it suggests "${state.suggestedAnswer}"` : ""}. Don&apos;t lose marks over it; we&apos;ve flagged it.
+        </div>
+      )}
+      <strong style={{ color: accent }}>Explanation · </strong>{state.text}
+      {state.ai && <div style={{ marginTop: "6px", fontSize: "11.5px", color: "var(--muted)" }}>AI-generated explanation</div>}
+    </div>
+  );
+}
+
 export function PracticeResults({
   title,
   accent,
@@ -86,6 +113,7 @@ export function PracticeResults({
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const { explanations, retry } = useQuestionExplanations(items);
 
   const stats = useMemo(() => {
     const status = items.map((it) => (it.picked === null ? "unanswered" : it.picked === it.correct ? "correct" : "wrong") as Exclude<Filter, "all">);
@@ -281,11 +309,7 @@ export function PracticeResults({
                     );
                   })}
                 </div>
-                {it.explanation && (
-                  <div style={{ marginTop: "12px", padding: "12px 14px", borderRadius: "10px", background: "var(--bg)", fontSize: "13.5px", lineHeight: 1.6, color: "var(--text)" }}>
-                    <strong style={{ color: accent }}>Explanation · </strong>{it.explanation}
-                  </div>
-                )}
+                <ExplanationBox state={explanations[i]} accent={accent} onRetry={retry} />
               </li>
             );
           })}
