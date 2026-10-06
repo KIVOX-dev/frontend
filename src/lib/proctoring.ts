@@ -234,16 +234,36 @@ export async function createFaceDetector(): Promise<FaceDetector> {
   return FaceDetector.createFromOptions(fileset, {
     baseOptions: { modelAssetPath: FACE_MODEL_URL, delegate: "CPU" },
     runningMode: "VIDEO",
-    minDetectionConfidence: 0.6,
+    // Low enough to catch a second person further back / partly turned; the
+    // single-face checks (primaryFace) apply their own stricter cut-off.
+    minDetectionConfidence: MIN_COUNT_CONFIDENCE,
   });
 }
 
 export const FACE_INTERVAL_MS = 150;
 
+/** Confidence to count a detection as a person (see countFaces). */
+const MIN_COUNT_CONFIDENCE = 0.5;
+/** Confidence for "the candidate's own face is in view" — stricter, so a hand
+ *  or a poster-like false positive doesn't count as presence. */
+const MIN_PRIMARY_CONFIDENCE = 0.6;
+/** A face narrower than this fraction of the frame is a speck, not a person. */
+const MIN_FACE_WIDTH = 0.04;
+
+/** Number of distinct faces in the frame — used to stop the session when
+ *  anyone other than the candidate is on camera. */
+export function countFaces(result: FaceDetectorResult, frameWidth: number): number {
+  if (!frameWidth) return 0;
+  return result.detections.filter(
+    (d) => (d.categories[0]?.score ?? 0) >= MIN_COUNT_CONFIDENCE && (d.boundingBox?.width ?? 0) / frameWidth >= MIN_FACE_WIDTH
+  ).length;
+}
+
 /** Normalized [0,1] box of the most confident face, or null when none. */
 export function primaryFace(result: FaceDetectorResult, frameWidth: number, frameHeight: number): { x: number; y: number; w: number; h: number } | null {
   let best: FaceDetectorResult["detections"][number] | null = null;
   for (const d of result.detections) {
+    if ((d.categories[0]?.score ?? 0) < MIN_PRIMARY_CONFIDENCE) continue;
     if (!best || (d.categories[0]?.score ?? 0) > (best.categories[0]?.score ?? 0)) best = d;
   }
   const b = best?.boundingBox;

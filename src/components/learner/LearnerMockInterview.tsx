@@ -6,6 +6,7 @@ import {
   ABSENT_COUNTDOWN_AFTER_MS,
   ABSENT_LIMIT_MS,
   FACE_INTERVAL_MS,
+  countFaces,
   POSE_INTERVAL_MS,
   createDeviceVoter,
   createFaceDetector,
@@ -338,6 +339,8 @@ export function LearnerMockInterview() {
   // (vote, stop the interview) belongs to the live-interview effect below.
   const deviceResultRef = useRef<(hit: boolean | null) => void>(() => {});
   const deviceVoterRef = useRef(createDeviceVoter());
+  // 3 of the last 5 face checks (~0.75s) seeing 2+ faces: ignores one flickery frame.
+  const multiFaceVoterRef = useRef(createDeviceVoter(5, 3));
   const faceDetectorRef = useRef<FaceDetector | null>(null);
   const lastFaceTimestampRef = useRef(0);
   const absentSinceRef = useRef<number | null>(null);
@@ -527,6 +530,7 @@ export function LearnerMockInterview() {
     let failedDeviceChecks = 0;
     let consecutiveErrors = 0;
     const voter = deviceVoterRef.current;
+    const multiFaceVoter = multiFaceVoterRef.current;
     deviceResultRef.current = (hit) => {
       if (cancelled || terminatedRef.current) return;
       if (hit === null) {
@@ -609,7 +613,13 @@ export function LearnerMockInterview() {
             // one on-page model per frame
           } else if (faceDetector && nowMs - lastFaceRun >= FACE_INTERVAL_MS) {
             lastFaceRun = nowMs;
-            const face = primaryFace(faceDetector.detectForVideo(video, stamp(lastFaceTimestampRef, nowMs)), video.videoWidth, video.videoHeight);
+            const faceResult = faceDetector.detectForVideo(video, stamp(lastFaceTimestampRef, nowMs));
+            // Zero tolerance for a second person on camera.
+            if (multiFaceVoter.push(countFaces(faceResult, video.videoWidth) >= 2)) {
+              terminateRef.current("More than one person was detected in your camera — the interview was stopped.");
+              return;
+            }
+            const face = primaryFace(faceResult, video.videoWidth, video.videoHeight);
             if (!face) {
               if (handleAbsent(now)) return;
             } else {
@@ -660,6 +670,7 @@ export function LearnerMockInterview() {
       postureIssueSinceRef.current = null;
       absentSinceRef.current = null;
       voter.reset();
+      multiFaceVoter.reset();
       setPostureWarning(null);
       setAbsentSecondsLeft(null);
       setFaceBox(null);
