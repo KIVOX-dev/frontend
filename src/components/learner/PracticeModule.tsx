@@ -5,6 +5,7 @@ import { BarChart3, Brain, BookOpen, Table2, ArrowRight } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { DataPresentation } from "./DataPresentation";
 
 type Question = {
   id: number;
@@ -413,11 +414,7 @@ export function PracticeModule() {
           <div className="card" style={{ padding: "32px" }}>
             <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px" }}>Question {currentIdx + 1} of {sessionQuestions.length}</div>
 
-            {q.data_presentation && (
-              <div style={{ padding: "14px 18px", background: "var(--bg)", borderRadius: "10px", marginBottom: "20px", fontSize: "14px", color: "var(--muted)", lineHeight: 1.6, borderLeft: `3px solid ${activeCategory.color}` }}>
-                📊 {q.data_presentation}
-              </div>
-            )}
+            {q.data_presentation && <DataPresentation text={q.data_presentation} accent={activeCategory.color} />}
 
             <h3 style={{ fontSize: "17px", fontWeight: 600, color: "var(--text)", marginBottom: "24px", lineHeight: 1.6 }}>{q.question}</h3>
 

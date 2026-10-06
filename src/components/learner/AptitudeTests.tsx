@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
+import { DataPresentation } from "./DataPresentation";
 
 type Question = {
   id: string | number;
@@ -362,11 +363,7 @@ export function AptitudeTests() {
           <div className="card" style={{ padding: "32px" }}>
             <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px" }}>Question {currentQIndex + 1} of {questions.length}</div>
 
-            {q.data_presentation && (
-              <div style={{ padding: "14px 18px", background: "var(--bg)", borderRadius: "10px", marginBottom: "20px", fontSize: "14px", color: "var(--muted)", lineHeight: 1.6, borderLeft: "3px solid var(--accent)" }}>
-                📊 {q.data_presentation}
-              </div>
-            )}
+            {q.data_presentation && <DataPresentation text={q.data_presentation}  />}
 
             <h3 style={{ fontSize: "17px", fontWeight: 600, color: "var(--text)", marginBottom: "24px", lineHeight: 1.6 }}>
               {q.question}
