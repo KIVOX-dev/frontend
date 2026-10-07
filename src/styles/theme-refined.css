@@ -148,6 +148,10 @@
 .btn-o:hover:not(:disabled),
 .g-btn:hover:not(:disabled),
 .collapse-btn:hover:not(:disabled) {
+  /* Restate the fill: legacy-portal.css `.btn-o:hover { background: white }`
+     resets background-image, which left white text on a white button. */
+  background-color: transparent;
+  background-image: linear-gradient(#06262b, #06262b);
   background-size: 100% 100%;
   border-color: #06262b;
   color: #fff;
@@ -195,6 +199,8 @@
 }
 
 .btn:not(.btn-p):not(.btn-o):not(.btn-g):not(.btn-green):not(.btn-purple):not(.btn-red):hover:not(:disabled) {
+  background-color: transparent;
+  background-image: linear-gradient(#06262b, #06262b);
   background-size: 100% 100%;
   border-color: #06262b;
   color: #fff;

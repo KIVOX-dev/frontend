@@ -706,7 +706,7 @@ export function ResumeBuilder() {
           {view === "dashboard" ? (
             <button 
               onClick={() => setView("builder")}
-              className="px-5 py-2.5 rounded-xl font-semibold text-white bg-green-gradient shadow-green-glow hover:scale-[1.02] transition-all"
+              className="px-5 py-2.5 font-semibold btn btn-p"
             >
               Enter Resume Builder
             </button>
@@ -869,7 +869,7 @@ export function ResumeBuilder() {
             <button 
               onClick={runATSAnalysis}
               disabled={analyzing}
-              className="w-full py-3 rounded-xl font-semibold text-white bg-green-gradient flex justify-center items-center gap-2 hover:scale-[1.01] transition-all disabled:opacity-50"
+              className="w-full py-3 font-semibold btn btn-p flex justify-center items-center gap-2 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
               {analyzing ? "Analyzing Resume..." : "Run Active Scan"}
@@ -1353,7 +1353,7 @@ export function ResumeBuilder() {
                   <button 
                     onClick={runATSAnalysis} 
                     disabled={analyzing}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-green-gradient disabled:opacity-50 flex items-center gap-1"
+                    className="px-4 py-2 text-xs font-bold btn btn-p disabled:opacity-50 flex items-center gap-1"
                   >
                     {analyzing ? <RefreshCw className="w-3 h-3 animate-spin" /> : null}
                     {analyzing ? "Scanning..." : "Trigger Scan"}
@@ -1433,7 +1433,7 @@ export function ResumeBuilder() {
                   <button 
                     onClick={runJDMatch} 
                     disabled={matchingJd}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-green-gradient disabled:opacity-50 flex justify-center items-center gap-1"
+                    className="flex-1 py-2.5 text-xs font-bold btn btn-p disabled:opacity-50 flex justify-center items-center gap-1"
                   >
                     {matchingJd ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
                     Evaluate Match Index
@@ -1557,7 +1557,7 @@ export function ResumeBuilder() {
                 <button 
                   onClick={exportPDF} 
                   disabled={saving}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-green-gradient flex items-center gap-1.5 hover:scale-[1.02] transition-all disabled:opacity-40"
+                  className="px-3.5 py-2 text-xs font-bold btn btn-p flex items-center gap-1.5 disabled:opacity-40"
                 >
                   <Download className="w-3.5 h-3.5" /> Export PDF
                 </button>
@@ -1626,7 +1626,7 @@ export function ResumeBuilder() {
               </button>
               <button 
                 onClick={handleSaveVersion}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-green-gradient"
+                className="px-5 py-2 text-xs font-bold btn btn-p"
               >
                 Create Version
               </button>
@@ -1662,7 +1662,7 @@ export function ResumeBuilder() {
               <button 
                 onClick={handleParseResume}
                 disabled={parsingResume || !importText}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-green-gradient disabled:opacity-50 flex items-center gap-1.5"
+                className="px-5 py-2 text-xs font-bold btn btn-p disabled:opacity-50 flex items-center gap-1.5"
               >
                 {parsingResume ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
                 Parse Resume text
@@ -1703,7 +1703,7 @@ export function ResumeBuilder() {
               </button>
               <button 
                 onClick={applyAISuggestion}
-                className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-green-gradient"
+                className="px-5 py-2 text-xs font-bold btn btn-p"
               >
                 Accept & Apply
               </button>
