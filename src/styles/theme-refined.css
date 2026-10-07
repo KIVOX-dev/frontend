@@ -42,10 +42,10 @@
 .btn {
   justify-content: center;
   min-height: 36px;
-  border: 1px solid transparent;
+  border: 1.5px solid transparent;
   line-height: 1.2;
   white-space: nowrap;
-  border-radius: var(--r2);
+  border-radius: 4px;
   letter-spacing: -0.01em;
   transition: background 0.25s var(--ease), color 0.25s var(--ease),
     border-color 0.25s var(--ease), box-shadow 0.25s var(--ease),
@@ -60,29 +60,35 @@
 .l-submit-teal,
 .acc-btn-approve,
 .dl-btn {
-  background: var(--accent) !important;
-  background-image: none !important;
+  /* Landing-page look: ink fill, 4px corners, blue slides up on hover (a
+     background-size gradient, so no pseudo-element or overflow clipping). */
+  background-color: #06262b !important;
+  background-image: linear-gradient(#0563f9, #0563f9) !important;
+  background-repeat: no-repeat !important;
+  background-position: 0 100% !important;
+  background-size: 100% 0 !important;
   color: #fff !important;
-  border: 1px solid var(--accent) !important;
-  box-shadow: 0 1px 2px rgba(0, 86, 210, 0.16),
-    0 6px 18px rgba(0, 86, 210, 0.16) !important;
+  border: 1.5px solid #06262b !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
   filter: none !important;
+  transition: background-size 0.45s var(--ease), border-color 0.35s var(--ease),
+    transform 0.3s var(--ease) !important;
 }
 
-.btn-p:hover,
-.l-submit:hover,
-.l-submit-blue:hover,
-.l-submit-green:hover,
-.l-submit-purple:hover,
-.l-submit-teal:hover,
-.acc-btn-approve:hover,
-.dl-btn:hover {
-  background: var(--accent2) !important;
-  border-color: var(--accent2) !important;
+.btn-p:hover:not(:disabled),
+.l-submit:hover:not(:disabled),
+.l-submit-blue:hover:not(:disabled),
+.l-submit-green:hover:not(:disabled),
+.l-submit-purple:hover:not(:disabled),
+.l-submit-teal:hover:not(:disabled),
+.acc-btn-approve:hover:not(:disabled),
+.dl-btn:hover:not(:disabled) {
+  background-size: 100% 100% !important;
+  border-color: #0563f9 !important;
   color: #fff !important;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 86, 210, 0.2),
-    0 12px 28px rgba(0, 86, 210, 0.24) !important;
+  transform: none;
+  box-shadow: none !important;
   filter: none !important;
 }
 
@@ -91,8 +97,7 @@
 .l-submit-blue:active,
 .acc-btn-approve:active,
 .dl-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(0, 86, 210, 0.16) !important;
+  transform: translateY(1px);
 }
 
 /* Danger submit variant — spec Danger red, kept separate from the
@@ -123,26 +128,31 @@
   box-shadow: 0 1px 2px rgba(239, 68, 68, 0.16) !important;
 }
 
-/* Secondary — white with a black edge on hover */
+/* Secondary — landing "btn-line": ink outline, fills with ink on hover */
 .btn-o,
 .g-btn,
 .collapse-btn {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  color: var(--text);
-  border-radius: var(--r2);
+  background-color: transparent;
+  background-image: linear-gradient(#06262b, #06262b);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 0;
+  border: 1.5px solid #06262b;
+  color: #06262b;
+  border-radius: 4px;
   box-shadow: none;
-  transition: all 0.25s var(--ease);
+  transition: background-size 0.45s var(--ease), color 0.35s var(--ease),
+    transform 0.3s var(--ease);
 }
 
-.btn-o:hover,
-.g-btn:hover,
-.collapse-btn:hover {
-  background: var(--surface);
-  border-color: var(--ink);
-  color: var(--ink);
-  box-shadow: var(--sh);
-  transform: translateY(-1px);
+.btn-o:hover:not(:disabled),
+.g-btn:hover:not(:disabled),
+.collapse-btn:hover:not(:disabled) {
+  background-size: 100% 100%;
+  border-color: #06262b;
+  color: #fff;
+  box-shadow: none;
+  transform: none;
 }
 
 /* Tinted utility buttons stay quiet and neutral */
@@ -173,16 +183,23 @@
    Previous) used to render as borderless text next to bordered buttons.
    It is the secondary button. */
 .btn:not(.btn-p):not(.btn-o):not(.btn-g):not(.btn-green):not(.btn-purple):not(.btn-red) {
-  background: var(--surface);
-  border-color: var(--border2);
-  color: var(--text);
+  background-color: transparent;
+  background-image: linear-gradient(#06262b, #06262b);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 0;
+  border-color: #06262b;
+  color: #06262b;
+  transition: background-size 0.45s var(--ease), color 0.35s var(--ease),
+    transform 0.3s var(--ease);
 }
 
 .btn:not(.btn-p):not(.btn-o):not(.btn-g):not(.btn-green):not(.btn-purple):not(.btn-red):hover:not(:disabled) {
-  border-color: var(--ink);
-  color: var(--ink);
-  box-shadow: var(--sh);
-  transform: translateY(-1px);
+  background-size: 100% 100%;
+  border-color: #06262b;
+  color: #fff;
+  box-shadow: none;
+  transform: none;
 }
 
 .btn-sm {

@@ -7,20 +7,27 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-[14px] font-semibold " +
-    "transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none " +
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[4px] text-[14px] font-semibold " +
+    "border-[1.5px] border-transparent bg-no-repeat [background-position:0_100%] [background-size:100%_0] " +
+    "transition-[background-size,color,border-color,transform] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] select-none " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 " +
-    "disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+    "disabled:pointer-events-none disabled:opacity-50 active:translate-y-px",
   {
     variants: {
+      // Landing-page buttons: ink fill that slides to blue on hover (primary),
+      // ink outline that slides to ink on hover (secondary).
       variant: {
-        primary: "bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)]",
-        secondary: "bg-white text-ink border border-line hover:border-line-strong hover:bg-paper-tint",
+        primary:
+          "bg-[#06262B] border-[#06262B] text-white [background-image:linear-gradient(#0563F9,#0563F9)] " +
+          "hover:[background-size:100%_100%] hover:border-[#0563F9]",
+        secondary:
+          "bg-transparent border-[#06262B] text-[#06262B] [background-image:linear-gradient(#06262B,#06262B)] " +
+          "hover:[background-size:100%_100%] hover:text-white",
         ghost: "bg-transparent text-ink-muted hover:text-ink hover:bg-paper-tint",
         danger: "bg-danger text-white hover:bg-red-600",
       },
       size: {
-        sm: "h-8 px-3 text-[13px] rounded-md",
+        sm: "h-8 px-3 text-[13px]",
         default: "h-10 px-4",
         lg: "h-12 px-6 text-[15px]",
         icon: "h-10 w-10 p-0",
