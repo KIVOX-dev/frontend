@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useDeferredValue } from "react";
 import type { FaceDetector, PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 import {
   ABSENT_COUNTDOWN_AFTER_MS,
@@ -743,7 +743,9 @@ export function LearnerMockInterview() {
     const recognition = new Ctor();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    // Indian English recognises Indian accents noticeably better than en-US.
+    recognition.lang = typeof navigator !== "undefined" && /-IN$/i.test(navigator.language) ? "en-IN" : "en-US";
+    (recognition as unknown as { maxAlternatives: number }).maxAlternatives = 1;
 
     speechBaseRef.current = answers[question.id] || "";
     speechFinalRef.current = "";
@@ -956,6 +958,11 @@ export function LearnerMockInterview() {
     toggleListeningRef.current = toggleListening;
   }, [toggleListening]);
   const askTokenRef = useRef(0);
+
+  // The suggestions panel re-analyses the answer on every change; deferring
+  // that value lets each transcribed word reach the textarea first instead of
+  // waiting behind the panel's re-render.
+  const deferredAnswer = useDeferredValue(answers[questions[currentQuestionIndex]?.id] ?? "");
 
   const askQuestion = useCallback((text: string, autoListen: boolean) => {
     const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
@@ -1406,7 +1413,7 @@ export function LearnerMockInterview() {
   }
 
   const currentQ = questions[currentQuestionIndex];
-  const suggestions = buildSuggestions(currentQ, answers[currentQ.id] || "", company, timeLeft);
+  const suggestions = buildSuggestions(currentQ, deferredAnswer, company, timeLeft);
   const trackingReady = faceModelReady || poseModelReady;
   const feedOk = videoLive && !cameraDisconnected;
   const boxColor = postureWarning ? "#f59e0b" : "#22c55e";
@@ -1574,7 +1581,7 @@ export function LearnerMockInterview() {
         </div>
 
         <div className="mi-side" style={{ flex: "1 1 0", minWidth: 0, borderLeft: "1px solid var(--border)", background: "var(--bg)", padding: "16px", display: "flex", flexDirection: "column", gap: "12px", overflow: "hidden" }}>
-          <div className="card mi-cam" style={{ padding: "12px", borderRadius: "14px", flex: "1 1 0", minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <div className="card mi-cam" style={{ padding: "12px", borderRadius: "14px", flex: "1.1 1 0", minHeight: 0, display: "flex", flexDirection: "column" }}>
             {/* Size container: the frame below is the largest box of the
                 camera's aspect ratio that fits this half — keeping the ratio
                 exact is what keeps the face box aligned with the face. */}
@@ -1657,9 +1664,10 @@ export function LearnerMockInterview() {
             </div>
           </div>
 
-          <div key={currentQuestionIndex} className="mi-sugg" style={{ flex: "1 1 0", minHeight: 0, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
-          <div className="card mi-sugg-box" style={{ padding: "18px", borderRadius: "14px", minHeight: 0, overflowY: "auto" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+          <div key={currentQuestionIndex} className="mi-sugg" style={{ flex: "1 1 0", minHeight: "230px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
+          {/* Each box: header stays put, only the body scrolls, so nothing is ever cut off at the top. */}
+          <div className="card mi-sugg-box" style={{ padding: "14px 16px", borderRadius: "14px", minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "var(--accent-l)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <RoundIcon d="M15 16v2c0 .932 0 1.398-.152 1.765a2 2 0 01-1.083 1.083C13.398 21 12.932 21 12 21c-.932 0-1.398 0-1.765-.152a2 2 0 01-1.083-1.083C9 19.398 9 18.932 9 18v-2m-4-6a7 7 0 1110.608 6H8.392A6.996 6.996 0 015 10z" size={16} />
@@ -1669,8 +1677,9 @@ export function LearnerMockInterview() {
               <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)", background: "var(--accent-l)", padding: "3px 8px", borderRadius: "999px" }}>Live</span>
             </div>
 
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
             <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>On your answer</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
               {suggestions.feedback.map((f) => (
                 <div key={f.text} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.45, color: "var(--text)" }}>
                   <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: toneColor[f.tone], marginTop: "6px", flexShrink: 0 }} />
@@ -1688,10 +1697,11 @@ export function LearnerMockInterview() {
                 </li>
               ))}
             </ol>
+            </div>
           </div>
 
-          <div className="card mi-sugg-box" style={{ padding: "18px", borderRadius: "14px", minHeight: 0, overflowY: "auto" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+          <div className="card mi-sugg-box" style={{ padding: "14px 16px", borderRadius: "14px", minHeight: 0, overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
               <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "#dcfce7", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <RoundIcon d="M8 12.333L10.461 15 16 9m5 3a9 9 0 11-18 0 9 9 0 0118 0z" size={16} />
               </span>
