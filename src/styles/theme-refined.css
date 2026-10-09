@@ -750,3 +750,70 @@ textarea:focus {
   }
 
 }
+
+/* ── Learner dashboard layout ───────────────────────────────────
+   Hero buttons share one height/radius; the five stat tiles sit on one
+   row (instead of 4 + a lone orphan) and stay equal-height. */
+.hero-acts {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hero .hbtn {
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 12px;
+  font-size: 13px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+@media (min-width: 641px) {
+  .sg {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .sg > .sc {
+    grid-column: span 2;
+    padding: 20px 18px;
+    min-height: 168px;
+  }
+
+  .sg > .sc:nth-child(n + 4) {
+    grid-column: span 3;
+  }
+
+  .sg .sc .sd {
+    margin-top: auto;
+  }
+
+  .sg .sc .si2 {
+    margin-bottom: 14px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .sg > .sc,
+  .sg > .sc:nth-child(n + 4) {
+    grid-column: span 1;
+  }
+
+  .sg {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .sg .sv {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-acts .hbtn {
+    flex: 1 1 calc(50% - 6px);
+  }
+
+  .hero-acts .hbtn:first-child {
+    flex-basis: 100%;
+  }
+}
