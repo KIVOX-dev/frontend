@@ -1406,8 +1406,7 @@ export function LearnerMockInterview() {
   }
 
   const currentQ = questions[currentQuestionIndex];
-  const totalSecondsLeft = (questions.length - currentQuestionIndex - 1) * 60 + timeLeft;
-  const remainingLabel = `${String(Math.floor(totalSecondsLeft / 60)).padStart(2, "0")}:${String(totalSecondsLeft % 60).padStart(2, "0")}`;
+  const suggestions = buildSuggestions(currentQ, answers[currentQ.id] || "", company, timeLeft);
   const trackingReady = faceModelReady || poseModelReady;
   const feedOk = videoLive && !cameraDisconnected;
   const boxColor = postureWarning ? "#f59e0b" : "#22c55e";
@@ -1422,11 +1421,41 @@ export function LearnerMockInterview() {
     },
     { label: "Mic", ok: listening, text: listening ? "Listening" : "Off" },
   ];
+  const toneColor = { good: "#16a34a", warn: "#d97706", info: "var(--accent)" } as const;
 
   return (
-    <div className="screen active" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#121214", color: "#fff", position: "relative" }}>
+    <div className="screen active" style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-card)", position: "relative" }}>
+      {/* Header */}
+      <div className="mi-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", borderBottom: "1px solid var(--border)", flexWrap: "wrap", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {companyLogoFor(company) ? (
+            <div style={{ width: "56px", height: "36px", borderRadius: "8px", background: "#fff", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", padding: "4px", flexShrink: 0 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={companyLogoFor(company)!} alt={`${company} logo`} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+            </div>
+          ) : (
+            <div style={{ width: "32px", height: "32px", borderRadius: "6px", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: "14px", flexShrink: 0 }}>
+              {company.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <div style={{ fontWeight: 600, fontSize: "15px" }}>Round 2 · {role} · {ROUND_LABEL[round] ?? "Technical"}</div>
+            <div style={{ fontSize: "12px", color: "var(--muted)" }}>{company} · Plagiarism Monitor Active</div>
+          </div>
+        </div>
+        <div className="mi-header-right" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          <div style={{ textAlign: "right" }}>
+            <div className="mi-time-label" style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "2px" }}>Time Remaining</div>
+            <div style={{ fontSize: "18px", fontWeight: 700, color: timeLeft < 15 ? "var(--red)" : "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
+              00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+            </div>
+          </div>
+          <button className="btn btn-g" onClick={() => setShowEndConfirm(true)}>End Session</button>
+        </div>
+      </div>
+
       {(absentSecondsLeft != null || postureWarning || cameraDisconnected) && (
-        <div style={{ background: "rgba(239,68,68,0.18)", color: "#fecaca", padding: "10px 24px", fontSize: "13px", fontWeight: 600, textAlign: "center", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
+        <div style={{ background: "rgba(239,68,68,0.1)", color: "var(--red)", padding: "10px 24px", fontSize: "13px", fontWeight: 600, textAlign: "center", borderBottom: "1px solid var(--border)" }}>
           {absentSecondsLeft != null ? (
             <>
               ⚠ We can&apos;t see you — get back in the camera&apos;s view within{" "}
@@ -1438,12 +1467,119 @@ export function LearnerMockInterview() {
         </div>
       )}
 
-      {/* Call-style layout: camera on top, the spoken question beneath it,
-          a compact transcript box for the answer, status bar at the bottom. */}
-      <div className="mi-body" style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", padding: "18px 24px 12px" }}>
-        <div style={{ width: `min(100%, calc(46vh * ${videoAspect.toFixed(4)}))`, borderRadius: "22px", border: "4px solid #3b64e8", boxShadow: "0 0 0 4px rgba(59,100,232,.25)", background: "#0b1220", flexShrink: 0 }}>
-          <div className="mi-cam-area" style={{ position: "relative", width: "100%" }}>
-            <div style={{ position: "relative", width: "100%", aspectRatio: String(videoAspect), borderRadius: "18px", overflow: "hidden", background: "#0b1220" }}>
+      {/* Main Content Area */}
+      <div className="mi-body" style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+
+        {/* Left sidebar - tabs cursor replica */}
+        <div className="mi-steps" style={{ width: "60px", borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "16px", gap: "12px" }}>
+          {questions.map((q, i) => (
+            <div
+              key={q.id}
+              style={{
+                width: "32px", height: "32px", borderRadius: "50%", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "13px", fontWeight: 600, cursor: "pointer",
+                background: i === currentQuestionIndex ? "var(--accent)" : answers[q.id] ? "var(--teal-l)" : "transparent",
+                color: i === currentQuestionIndex ? "white" : answers[q.id] ? "var(--teal)" : "var(--muted)",
+                border: i === currentQuestionIndex ? "none" : `1px solid ${answers[q.id] ? "var(--teal)" : "var(--border)"}`,
+                transition: "all 0.2s"
+              }}
+            >
+              {i + 1}
+            </div>
+          ))}
+        </div>
+
+        <div className="mi-content" style={{ flex: "1 1 0", minWidth: 0, padding: "28px 32px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
+          <div style={{ marginBottom: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px", flexWrap: "wrap" }}>
+              <span style={{ display: "inline-block", padding: "4px 10px", background: "var(--bg)", borderRadius: "4px", fontSize: "12px", fontWeight: 600, color: "var(--muted)" }}>
+                Question {currentQuestionIndex + 1} of {questions.length} · {currentQ.type.charAt(0).toUpperCase() + currentQ.type.slice(1)}
+              </span>
+              {/* The question is read aloud by a female voice; Replay repeats it. */}
+              <button type="button" className="btn btn-o btn-sm" onClick={() => askQuestion(currentQ.text, false)}>
+                {asking ? "Speaking…" : "🔊 Replay question"}
+              </button>
+            </div>
+            <h1 className="mi-question" style={{ fontSize: "19px", fontWeight: 600, lineHeight: 1.5 }}>{spokenText(currentQ.text)}</h1>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "10px" }}>
+            <span style={{ fontSize: "12px", color: "var(--muted)" }}>
+              {listening
+                ? "Listening — speak your answer, it fills the box as you talk."
+                : speechSupported
+                ? "Type your answer, or use the mic to speak it."
+                : "Speech-to-text isn't supported in this browser — please type your answer."}
+            </span>
+            {speechSupported && (
+              <button
+                type="button"
+                onClick={toggleListening}
+                className={`btn btn-sm ${listening ? "btn-red" : "btn-o"}`}
+                style={{ flexShrink: 0, whiteSpace: "nowrap" }}
+              >
+                {listening ? (
+                  <>
+                    <span
+                      style={{
+                        width: "7px",
+                        height: "7px",
+                        borderRadius: "50%",
+                        background: "var(--red)",
+                        animation: "pulse 1.2s ease-in-out infinite",
+                        flexShrink: 0,
+                      }}
+                    />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="2" width="6" height="12" rx="3" />
+                      <path d="M5 10a7 7 0 0 0 14 0" />
+                      <line x1="12" y1="19" x2="12" y2="22" />
+                    </svg>
+                    Speak Answer
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          <textarea
+            style={{
+              flex: 1, minHeight: "220px", width: "100%", padding: "18px", borderRadius: "12px",
+              border: "1px solid var(--border)", background: "var(--bg)",
+              fontSize: "15px", lineHeight: 1.6, resize: "none", outline: "none",
+              color: "var(--text)", fontFamily: "inherit"
+            }}
+            placeholder="Type your answer here... Be concise and clear."
+            value={answers[currentQ.id] || ""}
+            onChange={(e) => setAnswers(prev => ({...prev, [currentQ.id]: e.target.value}))}
+          />
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "24px" }}>
+            <div style={{ fontSize: "13px", color: "var(--muted)" }}>
+              {answers[currentQ.id]?.length || 0} characters
+            </div>
+            <button
+              className="btn btn-p"
+              onClick={handleNextQuestion}
+              style={{ padding: "12px 32px" }}
+            >
+              {currentQuestionIndex < questions.length - 1 ? "Submit & Next" : "Submit Interview"}
+            </button>
+          </div>
+        </div>
+
+        <div className="mi-side" style={{ flex: "1 1 0", minWidth: 0, borderLeft: "1px solid var(--border)", background: "var(--bg)", padding: "16px", display: "flex", flexDirection: "column", gap: "12px", overflow: "hidden" }}>
+          <div className="card mi-cam" style={{ padding: "12px", borderRadius: "14px", flex: "1 1 0", minHeight: 0, display: "flex", flexDirection: "column" }}>
+            {/* Size container: the frame below is the largest box of the
+                camera's aspect ratio that fits this half — keeping the ratio
+                exact is what keeps the face box aligned with the face. */}
+            <div className="mi-cam-area" style={{ flex: 1, minHeight: 0, containerType: "size", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ position: "relative", width: `min(100cqw, calc(100cqh * ${videoAspect.toFixed(4)}))`, aspectRatio: String(videoAspect), borderRadius: "10px", overflow: "hidden", background: "#0b1220" }}>
               <video
                 ref={attachVideo}
                 autoPlay
@@ -1486,13 +1622,9 @@ export function LearnerMockInterview() {
                 </div>
               )}
 
-              <span
-                aria-label={listening ? "Microphone listening" : "Microphone idle"}
-                style={{ position: "absolute", top: "12px", right: "12px", width: "40px", height: "40px", borderRadius: "50%", background: "#2f55d4", display: "flex", alignItems: "center", justifyContent: "center", gap: "3px", boxShadow: listening ? "0 0 0 6px rgba(47,85,212,.35)" : "none", transition: "box-shadow .2s" }}
-              >
-                {[10, 18, 12].map((h, i) => (
-                  <span key={i} style={{ width: "4px", height: `${h}px`, borderRadius: "2px", background: "#fff", animation: listening || asking ? `pulse 1.${i + 1}s ease-in-out infinite` : "none" }} />
-                ))}
+              <span style={{ position: "absolute", top: "10px", right: "10px", display: "flex", alignItems: "center", gap: "6px", background: "rgba(0,0,0,.55)", color: "#fff", fontSize: "11px", fontWeight: 700, padding: "4px 9px", borderRadius: "999px", letterSpacing: ".4px" }}>
+                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s ease-in-out infinite" }} />
+                LIVE
               </span>
 
               {!feedOk ? (
@@ -1510,88 +1642,75 @@ export function LearnerMockInterview() {
                 </span>
               )}
             </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px", marginTop: "10px", flexShrink: 0 }}>
+              {cameraChecks.map((c) => (
+                <div key={c.label} style={{ padding: "7px 9px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", minWidth: 0 }}>
+                  <div style={{ fontSize: "10.5px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px" }}>{c.label}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12.5px", fontWeight: 700, color: c.ok ? "var(--teal)" : "warn" in c && c.warn ? "#d97706" : "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: c.ok ? "#22c55e" : "warn" in c && c.warn ? "#f59e0b" : "#cbd5e1", flexShrink: 0 }} />
+                    {c.text}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", flexShrink: 0 }}>
-          {cameraChecks.map((c) => (
-            <span key={c.label} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "999px", background: "rgba(255,255,255,.08)", fontSize: "12px", fontWeight: 600, color: c.ok ? "#86efac" : "warn" in c && c.warn ? "#fcd34d" : "#9ca3af" }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: c.ok ? "#22c55e" : "warn" in c && c.warn ? "#f59e0b" : "#6b7280" }} />
-              {c.label}: {c.text}
-            </span>
-          ))}
-        </div>
+          <div key={currentQuestionIndex} className="mi-sugg" style={{ flex: "1 1 0", minHeight: 0, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
+          <div className="card mi-sugg-box" style={{ padding: "18px", borderRadius: "14px", minHeight: 0, overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "var(--accent-l)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <RoundIcon d="M15 16v2c0 .932 0 1.398-.152 1.765a2 2 0 01-1.083 1.083C13.398 21 12.932 21 12 21c-.932 0-1.398 0-1.765-.152a2 2 0 01-1.083-1.083C9 19.398 9 18.932 9 18v-2m-4-6a7 7 0 1110.608 6H8.392A6.996 6.996 0 015 10z" size={16} />
+                </span>
+                <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>AI Suggestions</div>
+              </div>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)", background: "var(--accent-l)", padding: "3px 8px", borderRadius: "999px" }}>Live</span>
+            </div>
 
-        <div style={{ textAlign: "center", maxWidth: "900px", width: "100%", flexShrink: 0 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "16px", fontWeight: 600, marginBottom: "10px" }}>
-            <span aria-hidden="true">✧</span>
-            {asking ? "Asking question…" : "Question Asked"}
-            <span style={{ fontSize: "12px", color: "#9ca3af", fontWeight: 500 }}>· {currentQuestionIndex + 1} of {questions.length}</span>
-            <button
-              type="button"
-              onClick={() => askQuestion(currentQ.text, false)}
-              style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", borderRadius: "999px", fontSize: "12px", padding: "3px 10px", cursor: "pointer" }}
-            >
-              Replay
-            </button>
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>On your answer</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
+              {suggestions.feedback.map((f) => (
+                <div key={f.text} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.45, color: "var(--text)" }}>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: toneColor[f.tone], marginTop: "6px", flexShrink: 0 }} />
+                  {f.text}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>How to structure it</div>
+            <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "7px" }}>
+              {suggestions.approach.map((step, i) => (
+                <li key={step} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "13px", color: "var(--text)", lineHeight: 1.45 }}>
+                  <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: "var(--accent-l)", color: "var(--accent)", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
           </div>
-          <p className="mi-question" style={{ fontSize: "16px", lineHeight: 1.6, margin: 0 }}>{spokenText(currentQ.text)}</p>
-        </div>
 
-        <div style={{ width: "100%", maxWidth: "900px", flexShrink: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
-          <textarea
-            style={{ width: "100%", minHeight: "96px", padding: "14px 16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.06)", fontSize: "14px", lineHeight: 1.6, resize: "none", outline: "none", color: "#fff", fontFamily: "inherit" }}
-            placeholder={listening ? "Listening — your answer appears here as you speak…" : "Your answer appears here as you speak — or type it."}
-            value={answers[currentQ.id] || ""}
-            onChange={(e) => setAnswers((prev) => ({ ...prev, [currentQ.id]: e.target.value }))}
-          />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
-            {speechSupported ? (
-              <button
-                type="button"
-                onClick={toggleListening}
-                className={`btn btn-sm ${listening ? "btn-red" : "btn-o"}`}
-              >
-                {listening ? "Stop" : "Speak Answer"}
-              </button>
+          <div className="card mi-sugg-box" style={{ padding: "18px", borderRadius: "14px", minHeight: 0, overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+              <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "#dcfce7", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <RoundIcon d="M8 12.333L10.461 15 16 9m5 3a9 9 0 11-18 0 9 9 0 0118 0z" size={16} />
+              </span>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>Points Worth Covering</div>
+            </div>
+            {suggestions.points.length > 0 ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {suggestions.points.map((p) => (
+                  <span key={p} style={{ fontSize: "12px", fontWeight: 600, padding: "6px 10px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", lineHeight: 1.35 }}>{p}</span>
+                ))}
+              </div>
             ) : (
-              <span style={{ fontSize: "12px", color: "#9ca3af" }}>Speech-to-text isn&apos;t supported in this browser — please type your answer.</span>
+              <p style={{ fontSize: "13px", color: "var(--muted)", lineHeight: 1.5, margin: 0 }}>
+                No specific topics for this one — anchor your answer in one clear, real example.
+              </p>
             )}
-            <button className="btn btn-p" onClick={handleNextQuestion} style={{ padding: "10px 28px" }}>
-              {currentQuestionIndex < questions.length - 1 ? "Submit & Next" : "Submit Interview"}
-            </button>
           </div>
-        </div>
+          </div>
 
-      </div>
-
-      {/* Status bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", padding: "14px 28px", borderTop: "1px solid rgba(255,255,255,.08)", background: "linear-gradient(0deg, rgba(47,85,212,.35), transparent)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: 600, fontSize: "14px" }}>
-          {companyLogoFor(company) && (
-            <span style={{ width: "44px", height: "28px", borderRadius: "6px", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "3px" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={companyLogoFor(company)!} alt={`${company} logo`} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-            </span>
-          )}
-          <span>Round 2 · {role} · {ROUND_LABEL[round] ?? "Technical"}</span>
-        </div>
-        <div style={{ color: "#93a8f4", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
-          <span aria-hidden="true">✧</span> TalentSnaps AI
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "14px", fontSize: "14px", fontWeight: 600 }}>
-          <span>Remaining Time | <span style={{ fontFamily: "monospace", color: timeLeft < 15 ? "#fca5a5" : "#fff" }}>{remainingLabel}</span></span>
-          <span style={{ width: "28px", height: "28px", borderRadius: "50%", border: `4px solid ${timeLeft < 15 ? "#ef4444" : "#4ade80"}`, display: "inline-block" }} />
-          <button
-            type="button"
-            aria-label="End interview"
-            onClick={() => setShowEndConfirm(true)}
-            style={{ width: "100px", height: "50px", borderRadius: "25px", border: "none", background: "#dc2626", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" style={{ transform: "rotate(135deg)" }}>
-              <path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.25 1z" />
-            </svg>
-          </button>
         </div>
       </div>
 

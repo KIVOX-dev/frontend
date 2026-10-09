@@ -339,7 +339,7 @@ export function LearnerDashboard() {
               {hasActivity ? "Train Now" : "Take First Test"}
             </button>
           </div>
-          {summary && <KeepLevelingUpCard focusAreas={summary.focus_areas} />}
+          {summary && <KeepLevelingUpCard focusAreas={summary.focus_areas} compact />}
         </div>
       </div>
     </div>
