@@ -146,8 +146,8 @@ export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null
                 {step.playlists.map((playlist) => {
                   const added = addedIds.has(playlist.youtubePlaylistId);
                   return (
-                    <div key={playlist.youtubePlaylistId} className="rounded-md border border-line overflow-hidden">
-                      <div className="relative aspect-video bg-paper-tint">
+                    <div key={playlist.youtubePlaylistId} className="rounded-md border border-line overflow-hidden flex flex-col">
+                      <div className="relative aspect-video bg-paper-tint shrink-0">
                         {playlist.thumbnailUrl && (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={playlist.thumbnailUrl} alt={playlist.title} className="size-full object-cover" />
@@ -157,15 +157,17 @@ export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null
                           {playlist.itemCount} videos
                         </span>
                       </div>
-                      <div className="p-3">
-                        <p className="text-small font-medium text-ink line-clamp-2 mb-0.5" title={playlist.title}>
+                      <div className="p-3 flex flex-col flex-1">
+                        {/* Fixed two-line title and one-line channel slots, and the button pinned to the
+                            bottom, so every card's button lines up whatever the title length. */}
+                        <p className="text-small font-medium text-ink line-clamp-2 mb-0.5 min-h-[2lh]" title={playlist.title}>
                           {playlist.title}
                         </p>
-                        {playlist.channelTitle && <p className="text-caption mb-2">{playlist.channelTitle}</p>}
+                        <p className="text-caption mb-3 min-h-[1lh] truncate">{playlist.channelTitle}</p>
                         <Button
                           size="sm"
                           variant={added ? "secondary" : "primary"}
-                          className="w-full"
+                          className="w-full mt-auto"
                           disabled={added || addingId === playlist.youtubePlaylistId}
                           onClick={() => handleAdd(playlist)}
                         >

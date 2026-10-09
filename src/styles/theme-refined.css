@@ -817,3 +817,39 @@ textarea:focus {
     flex-basis: 100%;
   }
 }
+
+/* ── Sidebar rows: one size, selected or not ─────────────────────
+   Nav items are <button>s, which shrink to their label — so the selected
+   pill was a different width per item. Every row now spans the sidebar at
+   one fixed height, with a neutral gray selected state. */
+#snav .nav-item {
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  min-height: 40px;
+  padding: 0 12px;
+  text-align: left;
+  font-size: 13px;
+}
+
+#snav .nav-item.active {
+  background: var(--surface3);
+  color: var(--ink);
+  border-color: transparent;
+  font-weight: 700;
+}
+
+#snav .nav-item.active::before {
+  display: none;
+}
+
+#snav .nav-item[style*="padding-left"] {
+  padding-left: 38px !important;
+}
+
+#sidebar.collapsed #snav .nav-item,
+#sidebar.collapsed #snav .nav-item[style*="padding-left"] {
+  width: 42px;
+  padding: 0 !important;
+  margin: 2px auto;
+  justify-content: center;
+}

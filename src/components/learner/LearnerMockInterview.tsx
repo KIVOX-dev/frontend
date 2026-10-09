@@ -68,6 +68,41 @@ interface Question {
   text: string;
   time_limit_seconds: number;
   type: string;
+  // What a strong answer covers — only present for AI-generated questions.
+  expected_answer?: string;
+}
+
+// Used when the backend can't grade (AI service unreachable): rough overlap
+// with the expected answer — or the question itself — plus a length factor.
+function localAnswerScore(q: Question, answer: string): number {
+  const words = answer.trim() ? answer.trim().split(/\s+/) : [];
+  if (!words.length) return 0;
+  const keys = (t: string) => new Set((t.toLowerCase().match(/[a-z0-9+#]+/g) || []).filter((w) => w.length > 3));
+  const ref = keys(q.expected_answer || q.text);
+  const mine = keys(answer);
+  const coverage = ref.size ? Array.from(ref).filter((w) => mine.has(w)).length / ref.size : 0;
+  const weight = q.expected_answer ? 0.8 : 0.5;
+  return Math.max(0, Math.min(10, Math.round(10 * (weight * Math.min(coverage * 1.5, 1) + (1 - weight) * Math.min(words.length / 40, 1)))));
+}
+
+// Strips the "[COMPANY - ROLE] " prefix the fallback pool adds, so the voice
+// reads just the question.
+const spokenText = (text: string) => text.replace(/^\[[^\]]*\]\s*/, "");
+
+// Picks a female English voice when the browser has one (voice names vary by
+// OS/browser); otherwise the first English voice, so it still speaks.
+function pickFemaleVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const english = voices.filter((v) => /^en/i.test(v.lang));
+  const female = /female|zira|aria|jenny|samantha|susan|hazel|karen|moira|tessa|victoria|serena|libby|sonia|natasha|catherine|google (uk|us) english/i;
+  const male = /\bmale\b|david|mark|james|george|daniel|ryan|guy|alex|fred/i;
+  return (
+    english.find((v) => female.test(v.name) && !/\bmale\b/i.test(v.name.replace(/female/gi, ""))) ||
+    english.find((v) => !male.test(v.name)) ||
+    english[0] ||
+    null
+  );
 }
 
 // Indices into MediaPipe Pose's 33-point BlazePose landmark layout — only
@@ -365,6 +400,12 @@ export function LearnerMockInterview() {
   const [faceBox, setFaceBox] = useState<FaceBox | null>(null);
   const [videoAspect, setVideoAspect] = useState(4 / 3);
   const [videoLive, setVideoLive] = useState(false);
+  const [showCamInstructions, setShowCamInstructions] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [interviewScore, setInterviewScore] = useState<number | null>(null);
+  const [evaluating, setEvaluating] = useState(false);
 
   // --- Speech-to-text ---
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -764,6 +805,7 @@ export function LearnerMockInterview() {
       setQuestions(res.data);
       terminatedRef.current = false;
       setTerminationReason(null);
+      setInterviewScore(null);
       setMcqActive(false);
       setSetup(false);
       setTimeLeft(60);
@@ -797,25 +839,54 @@ export function LearnerMockInterview() {
     shouldListenRef.current = false;
     recognitionRef.current?.stop();
 
+    window.speechSynthesis?.cancel();
+    setEvaluating(true);
+
     // Submit to backend
     try {
-      const formattedResponses = Object.entries(answersRef.current).map(([qId, ans]) => ({
-        question_id: parseInt(qId),
-        answer_text: ans,
-        score: Math.floor(Math.random() * 5) + 5,
-        feedback: "Good attempt."
+      // Every question is graded (unanswered ones score 0) against its
+      // expected answer, so skipping questions lowers the mark.
+      const toGrade = questions.map((q) => ({
+        question_id: q.id,
+        question: spokenText(q.text),
+        expected_answer: q.expected_answer || "",
+        answer: answersRef.current[q.id] || "",
       }));
+      let graded = new Map<number, { score: number; feedback: string }>();
+      try {
+        const res = await api.post<{ source: string; results: { question_id: number; score: number; feedback: string }[] }>(
+          "/interviews/evaluate",
+          { role, answers: toGrade }
+        );
+        graded = new Map((res.data?.results || []).map((r) => [r.question_id, r]));
+      } catch (err) {
+        console.error("Answer evaluation failed, scoring locally:", err);
+      }
 
-      const totalAnswered = formattedResponses.filter(r => r.answer_text.trim().length > 0).length;
-      const overallRating = Math.round((totalAnswered / questions.length) * 8) + 2; // rating 2-10
+      const formattedResponses = questions.map((q) => {
+        const answer = answersRef.current[q.id] || "";
+        const g = graded.get(q.id);
+        return {
+          question_id: q.id,
+          answer_text: answer,
+          score: g ? g.score : localAnswerScore(q, answer),
+          feedback: g?.feedback || (answer.trim() ? "Scored automatically." : "No answer was given."),
+        };
+      });
+
+      const average = formattedResponses.reduce((sum, r) => sum + r.score, 0) / Math.max(formattedResponses.length, 1);
+      const overallRating = Math.round(average * 10) / 10; // 0-10
+      const strong = formattedResponses.filter((r) => r.score >= 7).length;
+      const weak = formattedResponses.filter((r) => r.score < 5).length;
+      setInterviewScore(overallRating);
 
       if (user?.id) {
         await api.post(`/students/${user.id}/interviews`, {
           role,
           category: round,
           overall_rating: overallRating,
-          strengths: ["Clear communication", "Structured thinking"],
-          improvements: ["Depth of technical answers"],
+          strengths: strong ? [`Strong answers on ${strong} of ${questions.length} questions`] : [],
+          improvements: weak ? [`${weak} of ${questions.length} answers missed key points or were skipped`] : [],
           duration_seconds: questions.length * 60,
           responses: formattedResponses
         });
@@ -823,6 +894,7 @@ export function LearnerMockInterview() {
     } catch (err) {
       console.error("Failed to save interview history:", err);
     } finally {
+      setEvaluating(false);
       setInterviewComplete(true);
     }
   }, [questions, user?.id, role, round]);
@@ -875,6 +947,55 @@ export function LearnerMockInterview() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [setup, currentQuestionIndex, interviewComplete, questions, handleNextQuestion]);
+
+  // Round 2 is asked aloud in a female voice (browser speech synthesis), then
+  // the mic opens so the candidate can answer straight away. The token stops a
+  // cancelled utterance (next question, end of interview) from opening the mic.
+  const toggleListeningRef = useRef(toggleListening);
+  useEffect(() => {
+    toggleListeningRef.current = toggleListening;
+  }, [toggleListening]);
+  const askTokenRef = useRef(0);
+
+  const askQuestion = useCallback((text: string, autoListen: boolean) => {
+    const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+    if (!synth) return;
+    synth.cancel();
+    const token = ++askTokenRef.current;
+    const u = new SpeechSynthesisUtterance(spokenText(text));
+    const voice = pickFemaleVoice();
+    if (voice) u.voice = voice;
+    u.lang = voice?.lang || "en-US";
+    u.rate = 0.95;
+    u.pitch = 1.1;
+    u.onstart = () => {
+      if (token === askTokenRef.current) setAsking(true);
+    };
+    const done = () => {
+      if (token !== askTokenRef.current) return;
+      setAsking(false);
+      if (autoListen && !shouldListenRef.current) toggleListeningRef.current();
+    };
+    u.onend = done;
+    u.onerror = () => {
+      if (token === askTokenRef.current) setAsking(false);
+    };
+    synth.speak(u);
+  }, []);
+
+  useEffect(() => {
+    const q = questions[currentQuestionIndex];
+    if (setup || interviewComplete || !q) return;
+    // Voices load asynchronously in Chrome; give them a moment on first use.
+    const delay = window.speechSynthesis?.getVoices().length ? 400 : 900;
+    const t = setTimeout(() => askQuestion(q.text, true), delay);
+    return () => {
+      clearTimeout(t);
+      askTokenRef.current++;
+      window.speechSynthesis?.cancel();
+      setAsking(false);
+    };
+  }, [setup, interviewComplete, questions, currentQuestionIndex, askQuestion]);
 
   if (setup && mcqActive) {
     return (
@@ -988,7 +1109,7 @@ export function LearnerMockInterview() {
                   <button
                     type="button"
                     className="btn btn-o"
-                    onClick={requestMedia}
+                    onClick={() => setShowCamInstructions(true)}
                     disabled={mediaStatus === "requesting"}
                     style={{ flexShrink: 0, whiteSpace: "nowrap" }}
                   >
@@ -996,6 +1117,57 @@ export function LearnerMockInterview() {
                   </button>
                 )}
               </div>
+              {showCamInstructions && (
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Quick Instructions"
+                  onClick={() => setShowCamInstructions(false)}
+                  style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15,23,42,.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ position: "relative", background: "var(--surface)", borderRadius: "16px", width: "100%", maxWidth: "560px", maxHeight: "90vh", overflowY: "auto", padding: "28px 28px 22px", boxShadow: "0 24px 60px rgba(0,0,0,.25)" }}
+                  >
+                    <button
+                      type="button"
+                      aria-label="Close"
+                      onClick={() => setShowCamInstructions(false)}
+                      style={{ position: "absolute", top: "14px", right: "16px", background: "none", border: "none", fontSize: "22px", lineHeight: 1, cursor: "pointer", color: "var(--muted)" }}
+                    >
+                      ×
+                    </button>
+                    <h3 style={{ textAlign: "center", fontSize: "18px", fontWeight: 600, marginBottom: "18px" }}>Quick Instructions</h3>
+                    {[
+                      { title: "Interview Rules", color: "var(--red)", mark: "•", items: ["Speak clearly and make sure your face is visible during the interview.", "Stay within the camera frame for better quality.", "Avoid any interruptions or background noise while interviewing."] },
+                      { title: "Pro Tips", color: "var(--green)", mark: "✓", items: ["Dress professionally, just like you would for an actual interview.", "Keep a calm posture and maintain eye contact with the camera.", "Take your time to think before you answer.", "Stay focused and avoid unnecessary distractions."] },
+                    ].map((sec) => (
+                      <div key={sec.title} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "12px", padding: "16px 18px", marginBottom: "14px" }}>
+                        <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--accent)", marginBottom: "10px" }}>{sec.title}</div>
+                        {sec.items.map((t) => (
+                          <div key={t} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.5, marginBottom: "8px" }}>
+                            <span style={{ color: sec.color, fontWeight: 700, flexShrink: 0 }}>{sec.mark}</span>
+                            {t}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <button
+                        type="button"
+                        className="btn btn-p"
+                        autoFocus
+                        onClick={() => {
+                          setShowCamInstructions(false);
+                          requestMedia();
+                        }}
+                      >
+                        Got it
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
               {mediaStatus === "denied" && (
                 <p style={{ fontSize: "12px", color: "var(--red)", marginTop: "12px" }}>
                   Camera/microphone access was denied. Allow it for this site in your browser settings, then try again — it&apos;s required to start the interview.
@@ -1028,6 +1200,56 @@ export function LearnerMockInterview() {
             >
               {mediaStatus !== "granted" ? "Enable your camera to continue" : "Start Round 1 · Written test"}
             </button>
+            <button
+              type="button"
+              className="btn btn-o"
+              style={{ width: "100%", justifyContent: "center", marginTop: "10px" }}
+              onClick={() => setShowHowItWorks(true)}
+            >
+              How it works?
+            </button>
+            {showHowItWorks && (
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="How it works"
+                onClick={() => setShowHowItWorks(false)}
+                style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15,23,42,.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ position: "relative", background: "var(--surface)", borderRadius: "16px", width: "100%", maxWidth: "620px", maxHeight: "90vh", overflowY: "auto", padding: "28px 28px 22px", boxShadow: "0 24px 60px rgba(0,0,0,.25)" }}
+                >
+                  <button
+                    type="button"
+                    aria-label="Close"
+                    onClick={() => setShowHowItWorks(false)}
+                    style={{ position: "absolute", top: "14px", right: "16px", background: "none", border: "none", fontSize: "22px", lineHeight: 1, cursor: "pointer", color: "var(--muted)" }}
+                  >
+                    ×
+                  </button>
+                  <h3 style={{ textAlign: "center", fontSize: "18px", fontWeight: 600, marginBottom: "18px" }}>How it works?</h3>
+                  {[
+                    { title: "Why AI interviews?", items: ["Questions are tailored to the role and company you pick, so you practise what recruiters actually ask.", "No generic questions — just a realistic, unbiased interview you can repeat as often as you like."] },
+                    { title: "How will it happen?", items: ["Round 1 is a timed written test in your chosen company's pattern.", "Round 2 is a spoken interview: 10 questions, exactly 60 seconds each, with your camera on."] },
+                    { title: "The outcome", items: ["Get an overall score and feedback on your answers after the interview.", "Review every attempt later in your interview history."] },
+                  ].map((sec, i) => (
+                    <div key={sec.title} style={{ marginBottom: "16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                        <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--accent)", color: "#fff", fontSize: "13px", fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
+                        <span style={{ fontSize: "16px", fontWeight: 600 }}>{sec.title}</span>
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "52px", fontSize: "13px", lineHeight: 1.6, color: "var(--muted)" }}>
+                        {sec.items.map((t) => <li key={t}>{t}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <button type="button" className="btn btn-p" autoFocus onClick={() => setShowHowItWorks(false)}>Got it</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -1170,7 +1392,7 @@ export function LearnerMockInterview() {
             </div>
             <div>
               <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Round 2 · Spoken interview</div>
-              <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)" }}>{terminationReason ? "Stopped" : "Saved"}</div>
+              <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)" }}>{interviewScore != null ? `${interviewScore}/10` : terminationReason ? "Stopped" : "Saved"}</div>
               <div style={{ fontSize: "12px", color: "var(--muted)" }}>{Object.values(answers).filter((a) => a.trim()).length} of {questions.length} answered</div>
             </div>
           </div>
@@ -1184,7 +1406,8 @@ export function LearnerMockInterview() {
   }
 
   const currentQ = questions[currentQuestionIndex];
-  const suggestions = buildSuggestions(currentQ, answers[currentQ.id] || "", company, timeLeft);
+  const totalSecondsLeft = (questions.length - currentQuestionIndex - 1) * 60 + timeLeft;
+  const remainingLabel = `${String(Math.floor(totalSecondsLeft / 60)).padStart(2, "0")}:${String(totalSecondsLeft % 60).padStart(2, "0")}`;
   const trackingReady = faceModelReady || poseModelReady;
   const feedOk = videoLive && !cameraDisconnected;
   const boxColor = postureWarning ? "#f59e0b" : "#22c55e";
@@ -1199,41 +1422,11 @@ export function LearnerMockInterview() {
     },
     { label: "Mic", ok: listening, text: listening ? "Listening" : "Off" },
   ];
-  const toneColor = { good: "#16a34a", warn: "#d97706", info: "var(--accent)" } as const;
 
   return (
-    <div className="screen active" style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-card)" }}>
-      {/* Header */}
-      <div className="mi-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", borderBottom: "1px solid var(--border)", flexWrap: "wrap", gap: "12px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {companyLogoFor(company) ? (
-            <div style={{ width: "56px", height: "36px", borderRadius: "8px", background: "#fff", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", padding: "4px", flexShrink: 0 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={companyLogoFor(company)!} alt={`${company} logo`} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-            </div>
-          ) : (
-            <div style={{ width: "32px", height: "32px", borderRadius: "6px", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: "14px", flexShrink: 0 }}>
-              {company.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div>
-            <div style={{ fontWeight: 600, fontSize: "15px" }}>Round 2 · {role} · {ROUND_LABEL[round] ?? "Technical"}</div>
-            <div style={{ fontSize: "12px", color: "var(--muted)" }}>{company} · Plagiarism Monitor Active</div>
-          </div>
-        </div>
-        <div className="mi-header-right" style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-          <div style={{ textAlign: "right" }}>
-            <div className="mi-time-label" style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "2px" }}>Time Remaining</div>
-            <div style={{ fontSize: "18px", fontWeight: 700, color: timeLeft < 15 ? "var(--red)" : "var(--accent)", fontVariantNumeric: "tabular-nums" }}>
-              00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
-            </div>
-          </div>
-          <button className="btn btn-g" onClick={() => {if(confirm("End interview early?")) finishInterview()}}>End Session</button>
-        </div>
-      </div>
-
+    <div className="screen active" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#121214", color: "#fff", position: "relative" }}>
       {(absentSecondsLeft != null || postureWarning || cameraDisconnected) && (
-        <div style={{ background: "rgba(239,68,68,0.1)", color: "var(--red)", padding: "10px 24px", fontSize: "13px", fontWeight: 600, textAlign: "center", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ background: "rgba(239,68,68,0.18)", color: "#fecaca", padding: "10px 24px", fontSize: "13px", fontWeight: 600, textAlign: "center", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
           {absentSecondsLeft != null ? (
             <>
               ⚠ We can&apos;t see you — get back in the camera&apos;s view within{" "}
@@ -1245,113 +1438,12 @@ export function LearnerMockInterview() {
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="mi-body" style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-
-        {/* Left sidebar - tabs cursor replica */}
-        <div className="mi-steps" style={{ width: "60px", borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "16px", gap: "12px" }}>
-          {questions.map((q, i) => (
-            <div
-              key={q.id}
-              style={{
-                width: "32px", height: "32px", borderRadius: "50%", flexShrink: 0,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "13px", fontWeight: 600, cursor: "pointer",
-                background: i === currentQuestionIndex ? "var(--accent)" : answers[q.id] ? "var(--teal-l)" : "transparent",
-                color: i === currentQuestionIndex ? "white" : answers[q.id] ? "var(--teal)" : "var(--muted)",
-                border: i === currentQuestionIndex ? "none" : `1px solid ${answers[q.id] ? "var(--teal)" : "var(--border)"}`,
-                transition: "all 0.2s"
-              }}
-            >
-              {i + 1}
-            </div>
-          ))}
-        </div>
-
-        <div className="mi-content" style={{ flex: "1 1 0", minWidth: 0, padding: "28px 32px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
-          <div style={{ marginBottom: "20px" }}>
-            <span style={{ display: "inline-block", padding: "4px 10px", background: "var(--bg)", borderRadius: "4px", fontSize: "12px", fontWeight: 600, color: "var(--muted)", marginBottom: "12px" }}>
-              Question {currentQuestionIndex + 1} of {questions.length} · {currentQ.type.charAt(0).toUpperCase() + currentQ.type.slice(1)}
-            </span>
-            <h1 className="mi-question" style={{ fontSize: "19px", fontWeight: 600, lineHeight: 1.5 }}>{currentQ.text}</h1>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "10px" }}>
-            <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-              {listening
-                ? "Listening — speak your answer, it fills the box as you talk."
-                : speechSupported
-                ? "Type your answer, or use the mic to speak it."
-                : "Speech-to-text isn't supported in this browser — please type your answer."}
-            </span>
-            {speechSupported && (
-              <button
-                type="button"
-                onClick={toggleListening}
-                className={`btn btn-sm ${listening ? "btn-red" : "btn-o"}`}
-                style={{ flexShrink: 0, whiteSpace: "nowrap" }}
-              >
-                {listening ? (
-                  <>
-                    <span
-                      style={{
-                        width: "7px",
-                        height: "7px",
-                        borderRadius: "50%",
-                        background: "var(--red)",
-                        animation: "pulse 1.2s ease-in-out infinite",
-                        flexShrink: 0,
-                      }}
-                    />
-                    Stop
-                  </>
-                ) : (
-                  <>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="9" y="2" width="6" height="12" rx="3" />
-                      <path d="M5 10a7 7 0 0 0 14 0" />
-                      <line x1="12" y1="19" x2="12" y2="22" />
-                    </svg>
-                    Speak Answer
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-
-          <textarea
-            style={{
-              flex: 1, minHeight: "220px", width: "100%", padding: "18px", borderRadius: "12px",
-              border: "1px solid var(--border)", background: "var(--bg)",
-              fontSize: "15px", lineHeight: 1.6, resize: "none", outline: "none",
-              color: "var(--text)", fontFamily: "inherit"
-            }}
-            placeholder="Type your answer here... Be concise and clear."
-            value={answers[currentQ.id] || ""}
-            onChange={(e) => setAnswers(prev => ({...prev, [currentQ.id]: e.target.value}))}
-          />
-
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "24px" }}>
-            <div style={{ fontSize: "13px", color: "var(--muted)" }}>
-              {answers[currentQ.id]?.length || 0} characters
-            </div>
-            <button 
-              className="btn btn-p" 
-              onClick={handleNextQuestion}
-              style={{ padding: "12px 32px" }}
-            >
-              {currentQuestionIndex < questions.length - 1 ? "Submit & Next" : "Submit Interview"}
-            </button>
-          </div>
-        </div>
-
-        <div className="mi-side" style={{ flex: "1 1 0", minWidth: 0, borderLeft: "1px solid var(--border)", background: "var(--bg)", padding: "16px", display: "flex", flexDirection: "column", gap: "12px", overflow: "hidden" }}>
-          <div className="card mi-cam" style={{ padding: "12px", borderRadius: "14px", flex: "1 1 0", minHeight: 0, display: "flex", flexDirection: "column" }}>
-            {/* Size container: the frame below is the largest box of the
-                camera's aspect ratio that fits this half — keeping the ratio
-                exact is what keeps the face box aligned with the face. */}
-            <div className="mi-cam-area" style={{ flex: 1, minHeight: 0, containerType: "size", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ position: "relative", width: `min(100cqw, calc(100cqh * ${videoAspect.toFixed(4)}))`, aspectRatio: String(videoAspect), borderRadius: "10px", overflow: "hidden", background: "#0b1220" }}>
+      {/* Call-style layout: camera on top, the spoken question beneath it,
+          a compact transcript box for the answer, status bar at the bottom. */}
+      <div className="mi-body" style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", padding: "18px 24px 12px" }}>
+        <div style={{ width: `min(100%, calc(46vh * ${videoAspect.toFixed(4)}))`, borderRadius: "22px", border: "4px solid #3b64e8", boxShadow: "0 0 0 4px rgba(59,100,232,.25)", background: "#0b1220", flexShrink: 0 }}>
+          <div className="mi-cam-area" style={{ position: "relative", width: "100%" }}>
+            <div style={{ position: "relative", width: "100%", aspectRatio: String(videoAspect), borderRadius: "18px", overflow: "hidden", background: "#0b1220" }}>
               <video
                 ref={attachVideo}
                 autoPlay
@@ -1394,9 +1486,13 @@ export function LearnerMockInterview() {
                 </div>
               )}
 
-              <span style={{ position: "absolute", top: "10px", right: "10px", display: "flex", alignItems: "center", gap: "6px", background: "rgba(0,0,0,.55)", color: "#fff", fontSize: "11px", fontWeight: 700, padding: "4px 9px", borderRadius: "999px", letterSpacing: ".4px" }}>
-                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#ef4444", animation: "pulse 1.2s ease-in-out infinite" }} />
-                LIVE
+              <span
+                aria-label={listening ? "Microphone listening" : "Microphone idle"}
+                style={{ position: "absolute", top: "12px", right: "12px", width: "40px", height: "40px", borderRadius: "50%", background: "#2f55d4", display: "flex", alignItems: "center", justifyContent: "center", gap: "3px", boxShadow: listening ? "0 0 0 6px rgba(47,85,212,.35)" : "none", transition: "box-shadow .2s" }}
+              >
+                {[10, 18, 12].map((h, i) => (
+                  <span key={i} style={{ width: "4px", height: `${h}px`, borderRadius: "2px", background: "#fff", animation: listening || asking ? `pulse 1.${i + 1}s ease-in-out infinite` : "none" }} />
+                ))}
               </span>
 
               {!feedOk ? (
@@ -1414,76 +1510,126 @@ export function LearnerMockInterview() {
                 </span>
               )}
             </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px", marginTop: "10px", flexShrink: 0 }}>
-              {cameraChecks.map((c) => (
-                <div key={c.label} style={{ padding: "7px 9px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", minWidth: 0 }}>
-                  <div style={{ fontSize: "10.5px", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".4px" }}>{c.label}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12.5px", fontWeight: 700, color: c.ok ? "var(--teal)" : "warn" in c && c.warn ? "#d97706" : "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: c.ok ? "#22c55e" : "warn" in c && c.warn ? "#f59e0b" : "#cbd5e1", flexShrink: 0 }} />
-                    {c.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div key={currentQuestionIndex} className="mi-sugg" style={{ flex: "1 1 0", minHeight: 0, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
-          <div className="card mi-sugg-box" style={{ padding: "18px", borderRadius: "14px", minHeight: 0, overflowY: "auto" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "var(--accent-l)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <RoundIcon d="M15 16v2c0 .932 0 1.398-.152 1.765a2 2 0 01-1.083 1.083C13.398 21 12.932 21 12 21c-.932 0-1.398 0-1.765-.152a2 2 0 01-1.083-1.083C9 19.398 9 18.932 9 18v-2m-4-6a7 7 0 1110.608 6H8.392A6.996 6.996 0 015 10z" size={16} />
-                </span>
-                <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>AI Suggestions</div>
-              </div>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)", background: "var(--accent-l)", padding: "3px 8px", borderRadius: "999px" }}>Live</span>
-            </div>
-
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>On your answer</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
-              {suggestions.feedback.map((f) => (
-                <div key={f.text} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.45, color: "var(--text)" }}>
-                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: toneColor[f.tone], marginTop: "6px", flexShrink: 0 }} />
-                  {f.text}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "8px" }}>How to structure it</div>
-            <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "7px" }}>
-              {suggestions.approach.map((step, i) => (
-                <li key={step} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "13px", color: "var(--text)", lineHeight: 1.45 }}>
-                  <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: "var(--accent-l)", color: "var(--accent)", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
-                  {step}
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="card mi-sugg-box" style={{ padding: "18px", borderRadius: "14px", minHeight: 0, overflowY: "auto" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
-              <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "#dcfce7", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <RoundIcon d="M8 12.333L10.461 15 16 9m5 3a9 9 0 11-18 0 9 9 0 0118 0z" size={16} />
-              </span>
-              <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>Points Worth Covering</div>
-            </div>
-            {suggestions.points.length > 0 ? (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                {suggestions.points.map((p) => (
-                  <span key={p} style={{ fontSize: "12px", fontWeight: 600, padding: "6px 10px", borderRadius: "8px", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", lineHeight: 1.35 }}>{p}</span>
-                ))}
-              </div>
-            ) : (
-              <p style={{ fontSize: "13px", color: "var(--muted)", lineHeight: 1.5, margin: 0 }}>
-                No specific topics for this one — anchor your answer in one clear, real example.
-              </p>
-            )}
-          </div>
           </div>
         </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", flexShrink: 0 }}>
+          {cameraChecks.map((c) => (
+            <span key={c.label} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "999px", background: "rgba(255,255,255,.08)", fontSize: "12px", fontWeight: 600, color: c.ok ? "#86efac" : "warn" in c && c.warn ? "#fcd34d" : "#9ca3af" }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: c.ok ? "#22c55e" : "warn" in c && c.warn ? "#f59e0b" : "#6b7280" }} />
+              {c.label}: {c.text}
+            </span>
+          ))}
+        </div>
+
+        <div style={{ textAlign: "center", maxWidth: "900px", width: "100%", flexShrink: 0 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "16px", fontWeight: 600, marginBottom: "10px" }}>
+            <span aria-hidden="true">✧</span>
+            {asking ? "Asking question…" : "Question Asked"}
+            <span style={{ fontSize: "12px", color: "#9ca3af", fontWeight: 500 }}>· {currentQuestionIndex + 1} of {questions.length}</span>
+            <button
+              type="button"
+              onClick={() => askQuestion(currentQ.text, false)}
+              style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", borderRadius: "999px", fontSize: "12px", padding: "3px 10px", cursor: "pointer" }}
+            >
+              Replay
+            </button>
+          </div>
+          <p className="mi-question" style={{ fontSize: "16px", lineHeight: 1.6, margin: 0 }}>{spokenText(currentQ.text)}</p>
+        </div>
+
+        <div style={{ width: "100%", maxWidth: "900px", flexShrink: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
+          <textarea
+            style={{ width: "100%", minHeight: "96px", padding: "14px 16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.06)", fontSize: "14px", lineHeight: 1.6, resize: "none", outline: "none", color: "#fff", fontFamily: "inherit" }}
+            placeholder={listening ? "Listening — your answer appears here as you speak…" : "Your answer appears here as you speak — or type it."}
+            value={answers[currentQ.id] || ""}
+            onChange={(e) => setAnswers((prev) => ({ ...prev, [currentQ.id]: e.target.value }))}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+            {speechSupported ? (
+              <button
+                type="button"
+                onClick={toggleListening}
+                className={`btn btn-sm ${listening ? "btn-red" : "btn-o"}`}
+              >
+                {listening ? "Stop" : "Speak Answer"}
+              </button>
+            ) : (
+              <span style={{ fontSize: "12px", color: "#9ca3af" }}>Speech-to-text isn&apos;t supported in this browser — please type your answer.</span>
+            )}
+            <button className="btn btn-p" onClick={handleNextQuestion} style={{ padding: "10px 28px" }}>
+              {currentQuestionIndex < questions.length - 1 ? "Submit & Next" : "Submit Interview"}
+            </button>
+          </div>
+        </div>
+
       </div>
+
+      {/* Status bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", padding: "14px 28px", borderTop: "1px solid rgba(255,255,255,.08)", background: "linear-gradient(0deg, rgba(47,85,212,.35), transparent)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: 600, fontSize: "14px" }}>
+          {companyLogoFor(company) && (
+            <span style={{ width: "44px", height: "28px", borderRadius: "6px", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: "3px" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={companyLogoFor(company)!} alt={`${company} logo`} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+            </span>
+          )}
+          <span>Round 2 · {role} · {ROUND_LABEL[round] ?? "Technical"}</span>
+        </div>
+        <div style={{ color: "#93a8f4", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <span aria-hidden="true">✧</span> TalentSnaps AI
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "14px", fontSize: "14px", fontWeight: 600 }}>
+          <span>Remaining Time | <span style={{ fontFamily: "monospace", color: timeLeft < 15 ? "#fca5a5" : "#fff" }}>{remainingLabel}</span></span>
+          <span style={{ width: "28px", height: "28px", borderRadius: "50%", border: `4px solid ${timeLeft < 15 ? "#ef4444" : "#4ade80"}`, display: "inline-block" }} />
+          <button
+            type="button"
+            aria-label="End interview"
+            onClick={() => setShowEndConfirm(true)}
+            style={{ width: "100px", height: "50px", borderRadius: "25px", border: "none", background: "#dc2626", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" style={{ transform: "rotate(135deg)" }}>
+              <path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.25 1z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {showEndConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="End interview"
+          onClick={() => setShowEndConfirm(false)}
+          style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", color: "#111827", borderRadius: "10px", padding: "36px 32px 32px", width: "100%", maxWidth: "420px", textAlign: "center" }}>
+            <h3 style={{ fontSize: "19px", fontWeight: 700, margin: "0 0 10px" }}>Are you sure you want to end?</h3>
+            <p style={{ color: "#6b7280", fontSize: "14px", lineHeight: 1.5, margin: "0 0 24px" }}>
+              You cannot resume if you end this call.<br />But you can retake anytime.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button
+                type="button"
+                className="btn btn-p"
+                onClick={() => {
+                  setShowEndConfirm(false);
+                  finishInterview();
+                }}
+              >
+                Yes, I&apos;m sure
+              </button>
+              <button type="button" className="btn btn-o" onClick={() => setShowEndConfirm(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {evaluating && (
+        <div role="status" style={{ position: "absolute", inset: 0, zIndex: 60, background: "rgba(0,0,0,.75)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", fontWeight: 600 }}>
+          Scoring your answers…
+        </div>
+      )}
     </div>
   );
 }

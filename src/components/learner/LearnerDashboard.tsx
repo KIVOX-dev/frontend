@@ -4,6 +4,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { KeepLevelingUpCard } from "@/components/shared/KeepLevelingUpCard";
 
 // GET /students/:id/dashboard — cached counters off the student's own row.
 type DashboardStats = {
@@ -338,6 +339,7 @@ export function LearnerDashboard() {
               {hasActivity ? "Train Now" : "Take First Test"}
             </button>
           </div>
+          {summary && <KeepLevelingUpCard focusAreas={summary.focus_areas} />}
         </div>
       </div>
     </div>
