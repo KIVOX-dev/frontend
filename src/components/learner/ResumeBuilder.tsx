@@ -153,6 +153,7 @@ export function ResumeBuilder() {
   const [interviewQuestions, setInterviewQuestions] = useState("");
 
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const zoom = Number.isFinite(Number(formData.zoom)) && Number(formData.zoom) > 0 ? Number(formData.zoom) : 1;
 
   // Scale the A4 preview down to whatever width its box has (never up).
   useEffect(() => {
@@ -231,7 +232,16 @@ export function ResumeBuilder() {
     try {
       const res = await api.get("/resume");
       if (res.data.resume) {
-        setFormData(res.data.resume);
+        // Saved resumes may predate `zoom`/`template`; a missing zoom became
+        // NaN and broke both the preview scale and the PDF export.
+        const saved = res.data.resume;
+        setFormData(prev => ({
+          ...prev,
+          ...saved,
+          zoom: Number.isFinite(Number(saved.zoom)) && Number(saved.zoom) > 0 ? Number(saved.zoom) : 1,
+          template: saved.template || prev.template,
+          sectionOrder: Array.isArray(saved.sectionOrder) ? saved.sectionOrder : prev.sectionOrder,
+        }));
         if (res.data.resume.updated_at) {
           setLastSaved(new Date(res.data.resume.updated_at).toLocaleTimeString());
         }
@@ -478,11 +488,35 @@ export function ResumeBuilder() {
         margin: [0.1, 0.1, 0.1, 0.1] as [number, number, number, number],
         filename: `${formData.personal.name.replace(/\s+/g, "_")}_Resume.pdf`,
         image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: {
+          scale: window.devicePixelRatio > 2 || window.innerWidth < 768 ? 1.5 : 2,
+          useCORS: true,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: A4_WIDTH_PX,
+          // The live sheet sits inside zoom/fit transforms; render the clone flat.
+          onclone: (doc: Document) => {
+            const sheet = doc.getElementById("resume-preview-sheet");
+            if (sheet) {
+              sheet.style.transform = "none";
+              sheet.style.boxShadow = "none";
+              sheet.style.margin = "0";
+            }
+            let parent = sheet?.parentElement;
+            while (parent && parent !== doc.body) {
+              parent.style.transform = "none";
+              parent.style.height = "auto";
+              parent.style.maxHeight = "none";
+              parent.style.overflow = "visible";
+              parent = parent.parentElement;
+            }
+          },
+        },
         jsPDF: { unit: "in", format: "a4", orientation: "portrait" as const }
       };
       await html2pdf().set(opt).from(element).save();
     } catch (err) {
+      console.error("PDF export failed", err);
       toast.error("Failed to export PDF.");
     } finally {
       setSaving(false);
@@ -495,7 +529,7 @@ export function ResumeBuilder() {
     const fileContent = `<!DOCTYPE html><html><head><title>Resume</title><style>
       body { font-family: sans-serif; background: #fff; color: #333; margin: 40px; }
       ${document.getElementById("resume-styles")?.innerHTML}
-    </style></head><body>${element.innerHTML}</body></html>`;
+    </style></head><body><div class="resume-template-${formData.template}">${element.innerHTML}</div></body></html>`;
     const blob = new Blob([fileContent], { type: "text/html" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -547,10 +581,10 @@ export function ResumeBuilder() {
     return (
       <div className={`resume-sheet p-8 font-jakarta text-slate-800 leading-relaxed text-sm`}>
         {/* Header */}
-        <div className="text-center border-b pb-4 mb-4">
-          <h1 className="text-3xl font-extrabold text-slate-900 mb-1">{personal.name || "Your Name"}</h1>
-          <p className="text-emerald-brand font-semibold text-base mb-2">{personal.role || "Professional Title"}</p>
-          <div className="flex justify-center flex-wrap gap-x-4 gap-y-1 text-slate-500 text-xs">
+        <div className="rs-header text-center border-b pb-4 mb-4">
+          <h1 className="rs-name text-3xl font-extrabold text-slate-900 mb-1">{personal.name || "Your Name"}</h1>
+          <p className="rs-role text-emerald-brand font-semibold text-base mb-2">{personal.role || "Professional Title"}</p>
+          <div className="rs-contact flex justify-center flex-wrap gap-x-4 gap-y-1 text-slate-500 text-xs">
             {personal.email && <span>{personal.email}</span>}
             {personal.phone && <span>{personal.phone}</span>}
             {personal.address && <span>{personal.address}</span>}
@@ -563,7 +597,7 @@ export function ResumeBuilder() {
         {/* Objective */}
         {objective && (
           <div className="mb-4">
-            <h2 className="text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Professional Summary</h2>
+            <h2 className="rs-h2 text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Professional Summary</h2>
             <p className="text-slate-600 text-xs leading-relaxed">{objective}</p>
           </div>
         )}
@@ -571,7 +605,7 @@ export function ResumeBuilder() {
         {/* Experience */}
         {experience.length > 0 && (
           <div className="mb-4">
-            <h2 className="text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Professional Experience</h2>
+            <h2 className="rs-h2 text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Professional Experience</h2>
             <div className="space-y-3">
               {experience.map((item) => (
                 <div key={item.id}>
@@ -579,7 +613,7 @@ export function ResumeBuilder() {
                     <h3 className="font-bold text-slate-800 text-xs">{item.role}</h3>
                     <span className="text-slate-500 text-[10px] font-semibold">{item.duration}</span>
                   </div>
-                  <div className="text-emerald-brand font-medium text-[11px] mb-1">{item.company}</div>
+                  <div className="rs-accent text-emerald-brand font-medium text-[11px] mb-1">{item.company}</div>
                   <p className="text-slate-600 text-xs whitespace-pre-wrap">{item.description}</p>
                 </div>
               ))}
@@ -590,7 +624,7 @@ export function ResumeBuilder() {
         {/* Projects */}
         {projects.length > 0 && (
           <div className="mb-4">
-            <h2 className="text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Academic & Personal Projects</h2>
+            <h2 className="rs-h2 text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Academic & Personal Projects</h2>
             <div className="space-y-3">
               {projects.map((item) => (
                 <div key={item.id}>
@@ -609,10 +643,10 @@ export function ResumeBuilder() {
         {/* Skills */}
         {skills.length > 0 && (
           <div className="mb-4">
-            <h2 className="text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Skills & Expertise</h2>
+            <h2 className="rs-h2 text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Skills & Expertise</h2>
             <div className="flex flex-wrap gap-2">
               {skills.map((item) => (
-                <span key={item.id} className="text-xs px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                <span key={item.id} className="rs-chip text-xs px-2.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
                   {item.name} <span className="text-[10px] text-slate-400 font-semibold ml-1">({item.category})</span>
                 </span>
               ))}
@@ -624,7 +658,7 @@ export function ResumeBuilder() {
         <div className="grid grid-cols-2 gap-4">
           {education.length > 0 && (
             <div className="mb-4 col-span-2">
-              <h2 className="text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Education</h2>
+              <h2 className="rs-h2 text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Education</h2>
               <div className="space-y-2">
                 {education.map((item) => (
                   <div key={item.id} className="flex justify-between">
@@ -644,7 +678,7 @@ export function ResumeBuilder() {
 
           {certifications.length > 0 && (
             <div>
-              <h2 className="text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Certifications</h2>
+              <h2 className="rs-h2 text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Certifications</h2>
               <ul className="space-y-1 list-disc pl-4 text-xs text-slate-600">
                 {certifications.map(item => (
                   <li key={item.id}>{item.name} - <span className="font-medium text-slate-400">{item.issuer} ({item.year})</span></li>
@@ -655,10 +689,10 @@ export function ResumeBuilder() {
 
           {languages.length > 0 && (
             <div>
-              <h2 className="text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Languages</h2>
+              <h2 className="rs-h2 text-xs uppercase tracking-wider font-extrabold text-emerald-brand border-b pb-1 mb-2">Languages</h2>
               <div className="flex flex-wrap gap-1.5">
                 {languages.map(item => (
-                  <span key={item.id} className="text-xs px-2 py-0.5 rounded border border-slate-200 text-slate-600">{item.name} ({item.level})</span>
+                  <span key={item.id} className="rs-chip text-xs px-2 py-0.5 rounded border border-slate-200 text-slate-600">{item.name} ({item.level})</span>
                 ))}
               </div>
             </div>
@@ -1523,8 +1557,8 @@ export function ResumeBuilder() {
 
           {/* Right panel: Live Resume preview */}
           <div className={`lg:col-span-6 space-y-6 min-w-0 lg:sticky lg:top-24 ${mobilePane === "edit" ? "hidden lg:block" : ""}`}>
-            <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs flex flex-wrap justify-between items-center gap-3">
-              <div className="flex items-center gap-2">
+            <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-100 shadow-xs flex flex-wrap justify-between items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <select 
                   value={formData.template} 
                   onChange={e => setFormData({ ...formData, template: e.target.value })}
@@ -1538,14 +1572,16 @@ export function ResumeBuilder() {
                 
                 <div className="flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
                   <button 
-                    onClick={() => setFormData(prev => ({ ...prev, zoom: Math.max(0.6, prev.zoom - 0.1) }))}
+                    onClick={() => setFormData(prev => ({ ...prev, zoom: Math.max(0.6, (Number(prev.zoom) || 1) - 0.1) }))}
+                    aria-label="Zoom out"
                     className="p-1 text-slate-500 hover:text-slate-900"
                   >
                     <ZoomOut className="w-3.5 h-3.5" />
                   </button>
-                  <span className="text-[10px] font-bold text-slate-600">{Math.round(formData.zoom * 100)}%</span>
+                  <span className="text-[10px] font-bold text-slate-600">{Math.round(zoom * 100)}%</span>
                   <button 
-                    onClick={() => setFormData(prev => ({ ...prev, zoom: Math.min(1.5, prev.zoom + 0.1) }))}
+                    onClick={() => setFormData(prev => ({ ...prev, zoom: Math.min(1.5, (Number(prev.zoom) || 1) + 0.1) }))}
+                    aria-label="Zoom in"
                     className="p-1 text-slate-500 hover:text-slate-900"
                   >
                     <ZoomIn className="w-3.5 h-3.5" />
@@ -1553,9 +1589,9 @@ export function ResumeBuilder() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <button 
-                  onClick={exportPDF} 
+              <div className="flex gap-2 w-full sm:w-auto [&>button]:flex-1 sm:[&>button]:flex-none [&>button]:justify-center">
+                <button
+                  onClick={exportPDF}
                   disabled={saving}
                   className="px-3.5 py-2 text-xs font-bold btn btn-p flex items-center gap-1.5 disabled:opacity-40"
                 >
@@ -1581,7 +1617,7 @@ export function ResumeBuilder() {
                 ref={sheetRef}
                 id="resume-preview-sheet"
                 style={{ 
-                  transform: `scale(${formData.zoom})`, 
+                  transform: `scale(${zoom})`,
                   transformOrigin: "top center",
                   width: `${A4_WIDTH_PX}px`,
                   minHeight: "842px", // A4 Height approx
@@ -1711,6 +1747,41 @@ export function ResumeBuilder() {
           </div>
         </div>
       )}
+
+      {/* Per-template resume styles (also embedded in the HTML export) */}
+      <style id="resume-styles" dangerouslySetInnerHTML={{ __html: `
+        /* Modern Tech: default markup, blue accent, subtle chips */
+        .resume-template-modern .rs-h2 { color: #0b5fff !important; border-color: #dbe4f3 !important; }
+        .resume-template-modern .rs-role, .resume-template-modern .rs-accent { color: #0b5fff !important; }
+
+        /* Classic Professional: serif, monochrome, ruled headings */
+        .resume-template-classic .resume-sheet { font-family: Georgia, "Times New Roman", serif !important; color: #111 !important; }
+        .resume-template-classic .rs-header { border-bottom: 2px solid #111 !important; }
+        .resume-template-classic .rs-name { font-family: Georgia, "Times New Roman", serif !important; letter-spacing: 0.04em; text-transform: uppercase; color: #111 !important; font-weight: 700 !important; }
+        .resume-template-classic .rs-role, .resume-template-classic .rs-accent { color: #333 !important; font-style: italic; font-weight: 500 !important; }
+        .resume-template-classic .rs-h2 { color: #111 !important; border-bottom: 1px solid #111 !important; letter-spacing: 0.12em !important; font-weight: 700 !important; }
+        .resume-template-classic .rs-chip { background: transparent !important; border: none !important; padding: 0 !important; color: #222 !important; }
+        .resume-template-classic .rs-chip:not(:last-child)::after { content: ","; }
+
+        /* Clean Minimalist: left aligned, airy, grey small headings, no rules */
+        .resume-template-minimal .resume-sheet { color: #374151 !important; }
+        .resume-template-minimal .rs-header { text-align: left !important; border: none !important; padding-bottom: 8px !important; }
+        .resume-template-minimal .rs-contact { justify-content: flex-start !important; }
+        .resume-template-minimal .rs-name { font-weight: 300 !important; font-size: 34px !important; letter-spacing: -0.02em; color: #111827 !important; }
+        .resume-template-minimal .rs-role, .resume-template-minimal .rs-accent { color: #6b7280 !important; font-weight: 500 !important; }
+        .resume-template-minimal .rs-h2 { color: #9ca3af !important; border: none !important; letter-spacing: 0.2em !important; font-weight: 600 !important; font-size: 10px !important; margin-top: 8px; }
+        .resume-template-minimal .rs-chip { background: transparent !important; border: 1px solid #e5e7eb !important; color: #4b5563 !important; border-radius: 999px !important; }
+
+        /* Creative Bold: coloured header band, accent-bar headings, pill chips */
+        .resume-template-creative .rs-header { background: linear-gradient(135deg, #4f46e5, #db2777); margin: -32px -32px 20px !important; padding: 28px 32px !important; border: none !important; text-align: left !important; }
+        .resume-template-creative .rs-contact { justify-content: flex-start !important; color: rgba(255,255,255,0.85) !important; }
+        .resume-template-creative .rs-contact a { color: #fff !important; }
+        .resume-template-creative .rs-name { color: #fff !important; font-weight: 900 !important; font-size: 34px !important; }
+        .resume-template-creative .rs-role { color: #fde68a !important; }
+        .resume-template-creative .rs-accent { color: #4f46e5 !important; }
+        .resume-template-creative .rs-h2 { color: #4f46e5 !important; border: none !important; border-left: 4px solid #db2777 !important; padding-left: 8px !important; font-weight: 900 !important; }
+        .resume-template-creative .rs-chip { background: #eef2ff !important; border: 1px solid #c7d2fe !important; color: #3730a3 !important; border-radius: 999px !important; }
+      `}} />
 
       {/* Embedded print helper CSS */}
       <style dangerouslySetInnerHTML={{ __html: `
