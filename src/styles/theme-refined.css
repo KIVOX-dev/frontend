@@ -825,10 +825,14 @@ textarea:focus {
 #snav .nav-item {
   box-sizing: border-box;
   width: calc(100% - 16px);
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
   text-align: left;
-  font-size: 13px;
+  font-size: 15px;
+}
+
+#sidebar .nav-item {
+  font-size: 15px;
 }
 
 #sidebar .nav-item.active {
@@ -836,7 +840,7 @@ textarea:focus {
   color: #0b1220;
   border-color: transparent;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 #snav .nav-item.active::before {
