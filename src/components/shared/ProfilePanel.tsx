@@ -523,6 +523,11 @@ export function ProfilePanel() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState("");
 
+  const [editingAbout, setEditingAbout] = useState(false);
+  const [aboutName, setAboutName] = useState("");
+  const [savingAbout, setSavingAbout] = useState(false);
+  const [aboutMsg, setAboutMsg] = useState("");
+
   useEffect(() => {
     if (!isStudent) return;
     Promise.all([
@@ -695,6 +700,40 @@ export function ProfilePanel() {
     }
   };
 
+  const startEditingAbout = () => {
+    setAboutName(user?.name || "");
+    setAboutMsg("");
+    setEditingAbout(true);
+  };
+
+  // Self-service name change via PUT /users/:id (user.service.js#update only
+  // lets a non-admin edit full_name/phone/avatar_url/preferences on their own
+  // record — email and role stay read-only here).
+  const handleSaveAbout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = aboutName.trim();
+    if (name.length < 2) {
+      setAboutMsg("Name must be at least 2 characters.");
+      return;
+    }
+    const userId = user?.id ?? user?._id;
+    if (userId == null) {
+      setAboutMsg("Couldn't identify your account. Please sign in again.");
+      return;
+    }
+    setSavingAbout(true);
+    setAboutMsg("");
+    try {
+      await api.put(`/users/${userId}`, { full_name: name });
+      updateUser({ name });
+      setEditingAbout(false);
+    } catch (err: unknown) {
+      setAboutMsg(extractErrorMessage(err, "Failed to update profile"));
+    } finally {
+      setSavingAbout(false);
+    }
+  };
+
   const initials = (user?.name || "?")
     .split(" ")
     .map((p) => p[0])
@@ -805,12 +844,42 @@ export function ProfilePanel() {
         {activeTab === "profile" && (
             <div className="space-y-4">
               <Card>
-                <h2 className="text-section-title mb-5">About</h2>
-                <div className="grid sm:grid-cols-2 gap-5 max-w-lg">
-                  <ReadOnlyField label="Name" value={user?.name} />
-                  <ReadOnlyField label="Email" value={user?.email} />
-                  <ReadOnlyField label="Role" value={<span className="capitalize">{user?.role?.replace("_", " ")}</span>} />
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-section-title">About</h2>
+                  {!editingAbout && (
+                    <Button variant="secondary" size="sm" onClick={startEditingAbout}>
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
+                {editingAbout ? (
+                  <form onSubmit={handleSaveAbout}>
+                    {aboutMsg && <p className="text-small text-danger mb-4">{aboutMsg}</p>}
+                    <div className="grid sm:grid-cols-2 gap-5 max-w-lg mb-6">
+                      <Field>
+                        <Label>Name</Label>
+                        <Input value={aboutName} onChange={(e) => setAboutName(e.target.value)} maxLength={255} required autoFocus />
+                      </Field>
+                      <ReadOnlyField label="Email" value={user?.email} />
+                      <ReadOnlyField label="Role" value={<span className="capitalize">{user?.role?.replace("_", " ")}</span>} />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button type="submit" loading={savingAbout}>
+                        Save
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={() => setEditingAbout(false)} disabled={savingAbout}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-5 max-w-lg">
+                    <ReadOnlyField label="Name" value={user?.name} />
+                    <ReadOnlyField label="Email" value={user?.email} />
+                    <ReadOnlyField label="Role" value={<span className="capitalize">{user?.role?.replace("_", " ")}</span>} />
+                  </div>
+                )}
               </Card>
 
               {/* Formerly the separate "Profile Summarizer" screen — folded
