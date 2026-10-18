@@ -197,6 +197,8 @@ export interface PlacementDashboardProps {
   onViewAllDrives: () => void;
 }
 
+const companyKey = (name: string) => name.trim().toLowerCase();
+
 export function PlacementDashboard({
   users, placements, drives, departments, studentRecords, applications,
   loading, errors, lastUpdated, onRefresh, onCreateDrive, onViewAllDrives,
@@ -220,7 +222,7 @@ export function PlacementDashboard({
       .sort((a, b) => new Date(a.application_deadline!).getTime() - new Date(b.application_deadline!).getTime()),
     [drives]
   );
-  const companiesRecruiting = useMemo(() => new Set(placements.map(p => p.company_name)), [placements]);
+  const companiesRecruiting = useMemo(() => new Set(placements.map(p => companyKey(p.company_name))), [placements]);
   const avgPackage = useMemo(
     () => (placements.length ? placements.reduce((s, p) => s + (p.salary_lpa || 0), 0) / placements.length : 0),
     [placements]
@@ -266,15 +268,19 @@ export function PlacementDashboard({
 
   // ── Recruiters: top N + "Other" ──
   const companyLeaderboard = useMemo(() => {
-    const map = new Map<string, { count: number; salarySum: number }>();
+    // Grouped case-insensitively ("tcs" and "TCS" are one recruiter); the
+    // first spelling seen is the label, preferring one that isn't all-lowercase.
+    const map = new Map<string, { name: string; count: number; salarySum: number }>();
     for (const p of placements) {
-      const entry = map.get(p.company_name) || { count: 0, salarySum: 0 };
+      const key = companyKey(p.company_name);
+      const entry = map.get(key) || { name: p.company_name.trim(), count: 0, salarySum: 0 };
+      if (entry.name === entry.name.toLowerCase() && p.company_name !== p.company_name.toLowerCase()) entry.name = p.company_name.trim();
       entry.count += 1;
       entry.salarySum += p.salary_lpa || 0;
-      map.set(p.company_name, entry);
+      map.set(key, entry);
     }
-    return Array.from(map.entries())
-      .map(([company, { count, salarySum }]) => ({ company, count, avgPackage: count ? Math.round((salarySum / count) * 10) / 10 : 0 }))
+    return Array.from(map.values())
+      .map(({ name: company, count, salarySum }) => ({ company, count, avgPackage: count ? Math.round((salarySum / count) * 10) / 10 : 0 }))
       .sort((a, b) => b.count - a.count);
   }, [placements]);
 
@@ -381,7 +387,8 @@ export function PlacementDashboard({
   };
 
   const hasPlacements = placements.length > 0;
-  const funnelMax = Math.max(1, funnelStages[0].value);
+  // Largest stage, not the first: Joined counts direct placement records, so it can exceed Applied.
+  const funnelMax = Math.max(1, ...funnelStages.map(s => s.value));
 
   return (
     <div ref={dashboardRef} style={{ marginBottom: "24px" }}>

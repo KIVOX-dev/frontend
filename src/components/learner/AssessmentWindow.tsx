@@ -12,6 +12,7 @@ import {
   createPoseLandmarker,
   type DeviceWatch,
 } from "@/lib/proctoring";
+import { useMalpracticeGuard, MALPRACTICE_MESSAGE } from "@/hooks/useMalpracticeGuard";
 import { api } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/errors";
 import { Card } from "@/components/ui/Card";
@@ -445,23 +446,26 @@ export function AssessmentWindow() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
 
+  // Leaving the screen (tab switch, minimise, another window) ends the
+  // assessment immediately and is recorded as malpractice server-side.
+  useMalpracticeGuard(stage === "quiz", () => {
+    violationsRef.current.tab_switches += 1;
+    setTerminationReason(MALPRACTICE_MESSAGE);
+    handleSubmit();
+  });
+
   // Integrity signals — self-reported counts, not a recording. See the
   // module doc comment above.
   useEffect(() => {
     if (stage !== "quiz") return;
-    const onVisibility = () => {
-      if (document.hidden) violationsRef.current.tab_switches += 1;
-    };
     const onClipboardEvent = (e: ClipboardEvent) => {
       e.preventDefault();
       violationsRef.current.copy_paste += 1;
     };
-    document.addEventListener("visibilitychange", onVisibility);
     document.addEventListener("copy", onClipboardEvent);
     document.addEventListener("paste", onClipboardEvent);
     document.addEventListener("cut", onClipboardEvent);
     return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
       document.removeEventListener("copy", onClipboardEvent);
       document.removeEventListener("paste", onClipboardEvent);
       document.removeEventListener("cut", onClipboardEvent);

@@ -13,6 +13,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { getDepartmentOptions } from "@/lib/departmentCatalog";
 import { PlacementDashboard } from "./PlacementDashboard";
 import { StudentProfileView } from "./StudentProfileView";
+import { CompanyPicker } from "@/components/shared/CompanyPicker";
 import {
   type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
   type StudentInsights, type InsightCategoryTrend, type Placement, type Drive, type PlacementApplication,
@@ -2065,7 +2066,7 @@ export function CollegeAdminDashboard() {
               </div>
               <div style={{ marginBottom: "14px" }}>
                 <label className="lbl">Company</label>
-                <input type="text" className="fi" value={placementForm.company_name} onChange={e => setPlacementForm({ ...placementForm, company_name: e.target.value })} required placeholder="e.g. TCS" />
+                <CompanyPicker value={placementForm.company_name} onChange={v => setPlacementForm({ ...placementForm, company_name: v })} required placeholder="Select or type a company" />
               </div>
               <div style={{ marginBottom: "14px" }}>
                 <label className="lbl">Role</label>
@@ -2112,7 +2113,7 @@ export function CollegeAdminDashboard() {
                 </div>
                 <div>
                   <label className="lbl">Company</label>
-                  <input type="text" className="fi" value={driveForm.company_name} onChange={e => setDriveForm({ ...driveForm, company_name: e.target.value })} required placeholder="e.g. Infosys" />
+                  <CompanyPicker value={driveForm.company_name} onChange={v => setDriveForm({ ...driveForm, company_name: v })} required placeholder="Select or type a company" />
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>

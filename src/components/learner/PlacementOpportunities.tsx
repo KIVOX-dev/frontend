@@ -6,6 +6,7 @@ import { toast } from "@/lib/toast";
 import { openPlacementProofDocument } from "@/lib/placementProof";
 import { useModalA11y } from "@/hooks/useModalA11y";
 import { MULTIPART } from "@/lib/outcomes";
+import { CompanyPicker } from "@/components/shared/CompanyPicker";
 import { StudentOutcomes } from "@/components/learner/StudentOutcomes";
 
 type Drive = {
@@ -393,7 +394,7 @@ export function PlacementOpportunities() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
               <div>
                 <label className="lbl">Company</label>
-                <input type="text" className="fi" value={reportForm.company_name} onChange={(e) => setReportForm({ ...reportForm, company_name: e.target.value })} required placeholder="e.g. TCS" />
+                <CompanyPicker value={reportForm.company_name} onChange={(v) => setReportForm({ ...reportForm, company_name: v })} required placeholder="Select or type a company" />
               </div>
               <div>
                 <label className="lbl">Role</label>

@@ -5,6 +5,7 @@ import { BarChart3, Brain, BookOpen, Table2, ArrowRight } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { useMalpracticeGuard, MALPRACTICE_MESSAGE } from "@/hooks/useMalpracticeGuard";
 import { DataPresentation } from "./DataPresentation";
 import { PracticeResults, type ResultItem } from "./PracticeResults";
 
@@ -164,6 +165,7 @@ export function PracticeModule() {
   const [timerActive, setTimerActive] = useState(false);
 
   const [sessionDone, setSessionDone] = useState(false);
+  const [malpractice, setMalpractice] = useState(false);
   // Wall-clock start of the running session, and what the results screen shows:
   // seconds used and the accuracy of earlier attempts in this category.
   const sessionStartedAt = useRef(Date.now());
@@ -270,9 +272,10 @@ export function PracticeModule() {
     }
   };
 
-  const finishSession = useCallback(() => {
+  const finishSession = useCallback((flagMalpractice = false) => {
     setTimerActive(false);
     setSessionDone(true);
+    if (flagMalpractice) setMalpractice(true);
     setTimeUsed(Math.min(sessionQuestions.length * 90, Math.round((Date.now() - sessionStartedAt.current) / 1000)));
 
     if (!activeCategory) return;
@@ -304,6 +307,7 @@ export function PracticeModule() {
         score: finalCorrect,
         max_score: sessionQuestions.length,
         percentage: Math.round((finalCorrect / sessionQuestions.length) * 100),
+        ...(flagMalpractice ? { malpractice: true } : {}),
       }).catch((err) => {
         // Was a silent console.error before — a failure here means this
         // session's score never reaches the Dashboard/Growth Trends charts
@@ -314,6 +318,9 @@ export function PracticeModule() {
       });
     }
   }, [activeCategory, activeTestId, answers, categoryStats, saveStats, sessionQuestions, trends, user?.id]);
+
+  // Leaving the test screen stops the session on the spot and flags it.
+  useMalpracticeGuard(timerActive && !sessionDone, () => finishSession(true));
 
   // Auto-submit the instant every question has an answer — matches
   // InterviewMcqRound.tsx/AptitudeTests.tsx's timer-expiry auto-submit, just
@@ -343,6 +350,18 @@ export function PracticeModule() {
   }, [timerActive, timeLeft, finishSession]);
 
   // ──── Session Complete Screen ────
+  if (sessionDone && activeCategory && malpractice) {
+    return (
+      <div className="screen active" style={{ padding: "40px" }}>
+        <div className="card" style={{ padding: "40px", textAlign: "center", maxWidth: "500px", margin: "0 auto" }}>
+          <h2 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "16px", color: "#dc2626" }}>Malpractice detected</h2>
+          <p style={{ color: "var(--muted)", marginBottom: "24px" }}>{MALPRACTICE_MESSAGE}</p>
+          <button className="btn btn-p" onClick={() => { setActiveCategory(null); setSessionDone(false); setMalpractice(false); }}>Back to Practice</button>
+        </div>
+      </div>
+    );
+  }
+
   if (sessionDone && activeCategory) {
     const items: ResultItem[] = sessionQuestions.map((q, idx) => ({
       question: q.question,
@@ -390,7 +409,7 @@ export function PracticeModule() {
             <div style={{ padding: "8px 16px", borderRadius: "8px", background: timeLeft < 120 ? "#fee2e2" : "var(--bg)", color: timeLeft < 120 ? "#dc2626" : "var(--text)", fontWeight: 700, fontSize: "16px", fontFamily: "monospace" }}>
               ⏱ {formatTime(timeLeft)}
             </div>
-            <button className="btn btn-p" onClick={finishSession}>Submit Test</button>
+            <button className="btn btn-p" onClick={() => finishSession()}>Submit Test</button>
           </div>
         </div>
 

@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
+import { useMalpracticeGuard, MALPRACTICE_MESSAGE } from "@/hooks/useMalpracticeGuard";
 import { DataPresentation } from "./DataPresentation";
 
 type Question = {
@@ -87,6 +88,7 @@ export function AptitudeTests() {
   const [submitting, setSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
+  const [malpractice, setMalpractice] = useState(false);
 
   // Practice-bank tests embed a fixed session size worth of questions per
   // InterviewMcqRound.tsx's own convention — a whole seeded bank (500 for
@@ -174,9 +176,10 @@ export function AptitudeTests() {
     }
   };
 
-  const finishTest = useCallback(async () => {
+  const finishTest = useCallback(async (flagMalpractice = false) => {
     if (!activeTest) return;
     setTimerActive(false);
+    if (flagMalpractice) setMalpractice(true);
 
     // Admin-authored assigned test — the client never saw the correct
     // answers (stripped server-side), so it can't score itself; the score
@@ -186,6 +189,7 @@ export function AptitudeTests() {
       try {
         const res = await api.post(`/test-assignments/${activeTest.assignment_id}/submit`, {
           answers: Object.fromEntries(questions.map((q) => [String(q.id), answers[String(q.id)] || ""])),
+          ...(flagMalpractice ? { malpractice: true } : {}),
         });
         setScore(res.data.score ?? 0);
         const serverReview: { question_id: string | number; selected: string | null; correct_answer: string; is_correct: boolean }[] | undefined = res.data.review;
@@ -230,6 +234,7 @@ export function AptitudeTests() {
         score: currentScore,
         max_score: questions.length,
         percentage: Math.round((currentScore / questions.length) * 100),
+        ...(flagMalpractice ? { malpractice: true } : {}),
       }).catch(() => {});
     }
   }, [activeTest, questions, answers, user?.id]);
@@ -250,6 +255,12 @@ export function AptitudeTests() {
     }, 1000);
     return () => clearInterval(timer);
   }, [timerActive, timeLeft, finishTest]);
+
+  // Leaving the test screen stops the test on the spot and flags it.
+  useMalpracticeGuard(!!activeTest && timerActive && !testCompleted, () => {
+    setReview(null);
+    finishTest(true);
+  });
 
   const handleSelectOption = (opt: string) => {
     const q = questions[currentQIndex];
@@ -311,6 +322,18 @@ export function AptitudeTests() {
       );
     }
 
+    if (testCompleted && malpractice) {
+      return (
+        <div className="screen active" style={{ padding: "40px" }}>
+          <div className="card" style={{ padding: "40px", textAlign: "center", maxWidth: "500px", margin: "0 auto" }}>
+            <h2 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "16px", color: "#dc2626" }}>Malpractice detected</h2>
+            <p style={{ color: "var(--muted)", marginBottom: "24px" }}>{MALPRACTICE_MESSAGE}</p>
+            <button className="btn btn-p" onClick={() => { setActiveTest(null); setMalpractice(false); }}>Back to Tests</button>
+          </div>
+        </div>
+      );
+    }
+
     if (testCompleted) {
       return (
         <div className="screen active" style={{ padding: "40px" }}>
@@ -349,7 +372,7 @@ export function AptitudeTests() {
             <div style={{ padding: "8px 16px", borderRadius: "8px", background: timeLeft < 120 ? "#fee2e2" : "var(--bg)", color: timeLeft < 120 ? "#dc2626" : "var(--text)", fontWeight: 700, fontSize: "16px", fontFamily: "monospace" }}>
               ⏱ {formatTime(timeLeft)}
             </div>
-            <button className="btn btn-p" disabled={submitting} onClick={finishTest}>{submitting ? "Submitting..." : "Submit Test"}</button>
+            <button className="btn btn-p" disabled={submitting} onClick={() => finishTest()}>{submitting ? "Submitting..." : "Submit Test"}</button>
           </div>
         </div>
 
