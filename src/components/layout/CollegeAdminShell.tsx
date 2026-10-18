@@ -43,7 +43,6 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
     { id: "security", label: "Security & Approvals", icon: <PracticeIcon /> },
     { id: "assessments", label: "Assessments", icon: <TestsIcon /> },
     { id: "tracking", label: "Student Tracking", icon: <IvIcon /> },
-    { id: "chat", label: "Messages", icon: <ChatIcon /> },
     { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
     // Settings lives in the profile chip's dropdown (ProfileMenu.tsx), not
     // the sidebar — one entry point instead of two for the same screen.
@@ -188,12 +187,3 @@ function ResumeIcon() {
   );
 }
 
-function ChatIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      <path d="M13 8H7" />
-      <path d="M17 12H7" />
-    </svg>
-  );
-}
