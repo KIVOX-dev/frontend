@@ -13,6 +13,7 @@ declare global {
         options: {
           sitekey: string;
           action?: string;
+          size?: "normal" | "flexible" | "compact";
           callback?: (token: string) => void;
           "expired-callback"?: () => void;
           "error-callback"?: () => void;
@@ -86,6 +87,8 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
   const widgetIdRef = useRef<string | undefined>(undefined);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -97,6 +100,18 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
       }
     },
   }));
+
+  // The widget never gets narrower than 300px, so on a phone whose card is
+  // slimmer than that it would spill past the inputs — shrink it to fit.
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const update = () => setScale(Math.min(1, el.clientWidth / 300) || 1);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [siteKey]);
 
   useEffect(() => {
     if (!siteKey) return;
@@ -114,6 +129,7 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
           action,
+          size: "flexible",
           callback: (token: string) => onVerify(token),
           "expired-callback": () => onExpire?.(),
           "error-callback": () => {
@@ -143,10 +159,14 @@ export const Turnstile = forwardRef<TurnstileHandle, TurnstileProps>(function Tu
   if (!siteKey) return null;
 
   return (
-    <div style={{ marginBottom: "12px" }}>
+    <div ref={wrapRef} style={{ marginBottom: "12px", width: "100%", maxWidth: "100%", overflow: "hidden" }}>
       <div
         ref={containerRef}
-        style={{ opacity: status === "ready" ? 1 : 0, minHeight: status === "ready" ? undefined : 0 }}
+        style={{
+          opacity: status === "ready" ? 1 : 0,
+          minHeight: status === "ready" ? undefined : 0,
+          ...(scale < 1 ? { width: "300px", transform: `scale(${scale})`, transformOrigin: "0 0", height: `${65 * scale}px` } : {}),
+        }}
       />
       {status === "loading" && (
         <p style={{ fontSize: "13px", color: "var(--muted)" }}>Loading verification…</p>

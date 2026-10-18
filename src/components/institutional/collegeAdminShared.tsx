@@ -92,13 +92,55 @@ export type InsightCategoryTrend = {
   points: { date: string; percentage: number }[];
 };
 
+export type InsightInterview = {
+  id: string;
+  role?: string | null;
+  category?: string | null;
+  overall_rating?: number | null;
+  strengths?: string[] | string | null;
+  improvements?: string[] | string | null;
+  status?: string;
+  created_at: string;
+};
+
+export type InsightBadge = {
+  skill_name: string;
+  badge_count: number;
+  certificate_issued: boolean;
+  badges_remaining: number;
+};
+
+export type InsightCertificate = {
+  id: string;
+  type: "skill" | "role";
+  skill_name?: string | null;
+  role_title?: string | null;
+  issued_at: string;
+  verify_url: string;
+};
+
 export type StudentInsights = {
   tests_completed: number;
   avg_accuracy: number;
   interviews_completed: number;
+  placements?: number;
   history: InsightAttempt[];
   category_trends: InsightCategoryTrend[];
   focus_message: string;
+  profile?: {
+    name: string | null;
+    email: string | null;
+    roll_number: string | null;
+    batch_year: number | null;
+    cgpa: number | null;
+    department: string | null;
+    target_job_role: string | null;
+    batch_rank: number | null;
+    batch_size: number | null;
+  };
+  interviews?: InsightInterview[];
+  badges?: InsightBadge[];
+  certificates?: InsightCertificate[];
 };
 
 export type Placement = {

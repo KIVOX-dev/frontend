@@ -12,61 +12,13 @@ import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { getDepartmentOptions } from "@/lib/departmentCatalog";
 import { PlacementDashboard } from "./PlacementDashboard";
+import { StudentProfileView } from "./StudentProfileView";
 import {
   type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
   type StudentInsights, type InsightCategoryTrend, type Placement, type Drive, type PlacementApplication,
   BASE_CHART_OPTIONS, ChartEmptyState, SectionError, CompanyLogo, colorForKey, monthKey, monthLabel,
   LIST_FETCH_CAP, formatCount, DepartmentMultiSelect,
 } from "./collegeAdminShared";
-
-// Matches PracticeModule.tsx's/PerformanceSummarySection.tsx's CATEGORIES
-// palette so the same 4 aptitude categories read as the same color
-// everywhere in the app, admin side included.
-const INSIGHT_CATEGORY_COLORS: Record<string, string> = {
-  quantitative: "#2563EB",
-  logical: "#16A34A",
-  verbal: "#7C3AED",
-  data_interpretation: "#D97706",
-};
-
-function CategoryTrendCard({ trend }: { trend: InsightCategoryTrend }) {
-  const color = INSIGHT_CATEGORY_COLORS[trend.category] || "var(--accent)";
-  const latest = trend.points[trend.points.length - 1]?.percentage ?? null;
-
-  return (
-    <div className="card" style={{ padding: "16px", background: "var(--bg)", border: "none" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-        <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>{trend.label}</span>
-        {latest !== null && (
-          <span style={{ fontSize: "13px", fontWeight: 800, color }}>{latest}%</span>
-        )}
-      </div>
-      {trend.points.length < 2 ? (
-        <div style={{ height: 32, display: "flex", alignItems: "center", fontSize: "12px", color: "var(--muted)" }}>
-          {trend.points.length === 0 ? "No attempts yet" : "One more attempt unlocks a trend"}
-        </div>
-      ) : (
-        <div style={{ height: 32 }}>
-          <ApexChart
-            type="line"
-            height={32}
-            width="100%"
-            series={[{ data: trend.points.map((p) => p.percentage) }]}
-            options={{
-              chart: { sparkline: { enabled: true }, animations: { enabled: false } },
-              stroke: { curve: "smooth", width: 2 },
-              colors: [color],
-              tooltip: { enabled: false },
-            }}
-          />
-        </div>
-      )}
-      <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "4px" }}>
-        {trend.points.length} attempt{trend.points.length === 1 ? "" : "s"}
-      </div>
-    </div>
-  );
-}
 
 // ApexCharts touches `window` at import time, so it must never run during SSR.
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -1052,11 +1004,6 @@ export function CollegeAdminDashboard() {
     closeAssigningTest,
     "assign-test-title"
   );
-  const { panelRef: insightsPanelRef, dialogProps: insightsDialogProps } = useModalA11y(
-    !!viewingInsightsFor,
-    closeInsights,
-    "insights-title"
-  );
   const { panelRef: editStudentPanelRef, dialogProps: editStudentDialogProps } = useModalA11y(
     !!editingStudentUser,
     closeEditStudent,
@@ -1077,6 +1024,21 @@ export function CollegeAdminDashboard() {
     closePostDrive,
     "post-drive-title"
   );
+
+  if (viewingInsightsFor) {
+    return (
+      <StudentProfileView
+        name={viewingInsightsFor.name}
+        email={viewingInsightsFor.email}
+        data={insightsData}
+        loading={insightsLoading}
+        error={insightsError}
+        onBack={closeInsights}
+        onRetry={() => handleViewInsights(viewingInsightsFor)}
+        backLabel="Back to users"
+      />
+    );
+  }
 
   return (
     <div className="screen active" style={{ padding: "40px" }}>
@@ -1935,132 +1897,6 @@ export function CollegeAdminDashboard() {
                 <button type="submit" className="btn btn-p" disabled={isAssigning || assignBatchYearOptions.length === 0}>{isAssigning ? "Assigning..." : "Assign"}</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Student Insights Modal */}
-      {viewingInsightsFor && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}>
-          <div
-            ref={insightsPanelRef}
-            {...insightsDialogProps}
-            className="card"
-            style={{ width: "100%", maxWidth: "800px", maxHeight: "90vh", overflowY: "auto", position: "relative" }}
-          >
-            <div style={{ position: "sticky", top: 0, background: "var(--card-bg, var(--surface))", padding: "24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
-              <div>
-                <h3 id="insights-title" style={{ fontSize: "20px", fontWeight: 700, color: "var(--text)" }}>{viewingInsightsFor.name}&apos;s Profile Insights</h3>
-                <p style={{ color: "var(--muted)", fontSize: "14px", marginTop: "4px" }}>{viewingInsightsFor.email}</p>
-              </div>
-              <button
-                onClick={closeInsights}
-                aria-label="Close"
-                style={{ width: "32px", height: "32px", borderRadius: "50%", border: "none", background: "var(--bg)", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ padding: "24px" }}>
-              {insightsLoading ? (
-                <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>Loading insights...</div>
-              ) : insightsError ? (
-                <SectionError
-                  message={insightsError}
-                  onRetry={viewingInsightsFor ? () => handleViewInsights(viewingInsightsFor) : undefined}
-                />
-              ) : insightsData ? (
-                <>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "32px" }}>
-                    <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
-                      <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Aptitude Tests</div>
-                      <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)" }}>{insightsData.tests_completed}</div>
-                    </div>
-                    <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
-                      <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Average Accuracy</div>
-                      <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--accent)" }}>{insightsData.avg_accuracy.toFixed(1)}%</div>
-                    </div>
-                    <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
-                      <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Mock Interviews</div>
-                      <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)" }}>{insightsData.interviews_completed}</div>
-                    </div>
-                  </div>
-
-                  {insightsData.focus_message && (
-                    <div
-                      className="card"
-                      style={{ padding: "18px 20px", background: "var(--accent-l, #eff6ff)", border: "1px solid rgba(37, 99, 235, 0.2)", marginBottom: "28px" }}
-                    >
-                      <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.03em", color: "var(--accent)", marginBottom: "6px" }}>
-                        What To Focus On
-                      </div>
-                      <p style={{ fontSize: "14px", color: "var(--text)", lineHeight: 1.6, margin: 0 }}>{insightsData.focus_message}</p>
-                    </div>
-                  )}
-
-                  {insightsData.category_trends && insightsData.category_trends.length > 0 && (
-                    <div style={{ marginBottom: "28px" }}>
-                      <h4 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px", color: "var(--text)" }}>Aptitude Growth Trends</h4>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
-                        {insightsData.category_trends.map((trend) => (
-                          <CategoryTrendCard key={trend.category} trend={trend} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <h4 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px", color: "var(--text)" }}>Detailed Test History</h4>
-                  {insightsData.history && insightsData.history.length > 0 ? (
-                    <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", fontSize: "14px" }}>
-                      <thead>
-                        <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "12px", textTransform: "uppercase" }}>
-                          <th style={{ padding: "12px 8px" }}>Date</th>
-                          <th style={{ padding: "12px 8px" }}>Score</th>
-                          <th style={{ padding: "12px 8px" }}>Accuracy</th>
-                          <th style={{ padding: "12px 8px", textAlign: "right" }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {insightsData.history.map(attempt => (
-                          <tr key={attempt.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                            <td style={{ padding: "12px 8px", color: "var(--muted)" }}>
-                              {new Date(attempt.created_at).toLocaleDateString()}
-                            </td>
-                            <td style={{ padding: "12px 8px", fontWeight: 500, color: "var(--text)" }}>
-                              {attempt.score} / {attempt.max_score}
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <div style={{ flex: 1, height: "6px", background: "var(--bg)", borderRadius: "3px", overflow: "hidden" }}>
-                                  <div style={{ height: "100%", width: `${attempt.percentage}%`, background: attempt.percentage >= 70 ? "#1e8e3e" : attempt.percentage >= 40 ? "#f59e0b" : "#dc2626" }} />
-                                </div>
-                                <span style={{ fontSize: "13px", fontWeight: 600, width: "36px", color: "var(--text)" }}>{Math.round(attempt.percentage)}%</span>
-                              </div>
-                            </td>
-                            <td style={{ padding: "12px 8px", textAlign: "right" }}>
-                              <span style={{ padding: "4px 8px", background: attempt.passed ? "#e6f4ea" : "#fee2e2", color: attempt.passed ? "#1e8e3e" : "#dc2626", borderRadius: "6px", fontSize: "12px", fontWeight: 600 }}>
-                                {attempt.passed ? "Pass" : "Fail"}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    </div>
-                  ) : (
-                    <div style={{ padding: "32px", textAlign: "center", background: "var(--bg)", borderRadius: "12px", color: "var(--muted)" }}>
-                      No assessments completed by this student yet.
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div style={{ padding: "32px", textAlign: "center", background: "var(--bg)", borderRadius: "12px", color: "var(--muted)" }}>
-                  No student profile linked to this account yet.
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}

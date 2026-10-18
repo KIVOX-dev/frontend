@@ -296,7 +296,7 @@ export function InstitutionsLanding() {
             <span className="k">04 / 05</span>
             <div className="vis" style={{ "--pc": "var(--p-sky)" }}>
               <div className="vis-in">
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "6px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(64px,1fr))", gap: "6px" }}>
                   <div style={{ border: "1px solid var(--line)", borderRadius: "6px", padding: "8px", color: "var(--ink-2)" }}>
                     <div style={{ fontSize: "11px" }}>Applied</div>
                     <b className="num" style={{ color: "var(--ink)" }}>

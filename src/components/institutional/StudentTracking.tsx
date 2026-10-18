@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { api, type ApiRequestConfig } from "@/lib/api";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
-import { useModalA11y } from "@/hooks/useModalA11y";
 import { useAuthStore } from "@/stores/authStore";
+import { type StudentInsights } from "./collegeAdminShared";
+import { StudentProfileView } from "./StudentProfileView";
 
 type Student = {
   id: number;
@@ -13,24 +14,6 @@ type Student = {
   department?: string;
   status?: string;
   created_at?: string;
-};
-
-type Attempt = {
-  id: number;
-  assessment_id: number;
-  score: number;
-  max_score: number;
-  percentage: number;
-  passed: boolean;
-  created_at: string;
-};
-
-type DashboardData = {
-  tests_completed: number;
-  avg_accuracy: number;
-  interviews_completed: number;
-  placements: number;
-  history: Attempt[];
 };
 
 // Fetches the current page of students for a given search string. Takes an
@@ -58,7 +41,7 @@ function reportFileName(name: string) {
 // Inline styles only (not the app's CSS variables/classes) so html2canvas
 // renders it identically regardless of theme; it is mounted off-screen at
 // A4 width so the on-screen modal is unaffected.
-function StudentReport({ student, data }: { student: Student; data: DashboardData }) {
+function StudentReport({ student, data }: { student: Student; data: StudentInsights }) {
   const issued = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   const initials = student.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   const passed = data.history?.filter((a) => a.passed).length ?? 0;
@@ -67,6 +50,7 @@ function StudentReport({ student, data }: { student: Student; data: DashboardDat
     [`${data.avg_accuracy.toFixed(1)}%`, "Average accuracy"],
     [String(passed), "Tests passed"],
     [String(data.interviews_completed), "Mock interviews"],
+    [String(data.badges?.length ?? 0), "Skill badges"],
   ];
   const heading: React.CSSProperties = {
     fontSize: "13px",
@@ -104,7 +88,8 @@ function StudentReport({ student, data }: { student: Student; data: DashboardDat
               [
                 ["Name", student.name],
                 ["Email", student.email],
-                ["Department", student.department || "—"],
+                ["Roll No.", data.profile?.roll_number || "—"],
+                ["Department", data.profile?.department || student.department || "—"],
               ] as const
             ).map(([k, v]) => (
               <tr key={k}>
@@ -158,6 +143,55 @@ function StudentReport({ student, data }: { student: Student; data: DashboardDat
         <p style={{ fontStyle: "italic" }}>No assessments completed by this student yet.</p>
       )}
 
+
+      <div style={heading}>2. SKILL BADGES AND CERTIFICATES</div>
+      {data.badges && data.badges.length > 0 ? (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#f4f5f7", fontSize: "10.5px", fontWeight: 700, textAlign: "left" }}>
+              <th style={{ padding: "8px" }}>SKILL</th>
+              <th style={{ padding: "8px" }}>LESSONS PASSED</th>
+              <th style={{ padding: "8px", textAlign: "right" }}>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.badges.map((b) => (
+              <tr key={b.skill_name} style={{ borderBottom: `1px solid ${REPORT_LINE}` }}>
+                <td style={{ padding: "9px 8px", fontWeight: 700 }}>{b.skill_name}</td>
+                <td style={{ padding: "9px 8px" }}>{Math.min(b.badge_count, 5)} / 5</td>
+                <td style={{ padding: "9px 8px", textAlign: "right", fontWeight: 700, color: b.certificate_issued ? "#1e8e3e" : "#b45309" }}>{b.certificate_issued ? "Certified" : "In progress"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p style={{ fontStyle: "italic" }}>No skill badges earned yet.</p>
+      )}
+
+      <div style={heading}>3. AI MOCK INTERVIEWS ATTENDED</div>
+      {data.interviews && data.interviews.length > 0 ? (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#f4f5f7", fontSize: "10.5px", fontWeight: 700, textAlign: "left" }}>
+              <th style={{ padding: "8px" }}>DATE</th>
+              <th style={{ padding: "8px" }}>ROLE</th>
+              <th style={{ padding: "8px", textAlign: "right" }}>SCORE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.interviews.map((i) => (
+              <tr key={i.id} style={{ borderBottom: `1px solid ${REPORT_LINE}` }}>
+                <td style={{ padding: "9px 8px" }}>{new Date(i.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</td>
+                <td style={{ padding: "9px 8px" }}>{i.role || i.category || "—"}</td>
+                <td style={{ padding: "9px 8px", textAlign: "right", fontWeight: 700 }}>{i.overall_rating ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p style={{ fontStyle: "italic" }}>No mock interviews attended yet.</p>
+      )}
+
       <div style={{ display: "flex", justifyContent: "space-between", gap: "40px", marginTop: "70px" }}>
         {["Training and Placement Officer", "Head of Department", "Principal"].map((r) => (
           <div key={r} style={{ flex: 1, borderTop: `1px solid ${REPORT_NAVY}`, paddingTop: "6px", fontSize: "11px" }}>{r}</div>
@@ -177,18 +211,15 @@ export function StudentTracking() {
   const [downloading, setDownloading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [studentData, setStudentData] = useState<DashboardData | null>(null);
+  const [studentData, setStudentData] = useState<StudentInsights | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   const closeInsights = useCallback(() => {
     setSelectedStudent(null);
     setStudentData(null);
+    setInsightsError(null);
   }, []);
-  const { panelRef: insightsPanelRef, dialogProps: insightsDialogProps } = useModalA11y(
-    !!selectedStudent,
-    closeInsights,
-    "student-insights-title"
-  );
 
   // Live search-as-you-type: fires 400ms after typing pauses rather than
   // waiting for an explicit submit, and cancels stale requests — see
@@ -233,18 +264,47 @@ export function StudentTracking() {
 
   const viewInsights = async (student: Student) => {
     setSelectedStudent(student);
+    setStudentData(null);
+    setInsightsError(null);
     setLoadingInsights(true);
     try {
       const res = await api.get(`/dashboard/student/${student.id}`);
       if (res.data?.success) {
         setStudentData(res.data.data);
+      } else {
+        setInsightsError("Failed to load student insights");
       }
     } catch (err) {
       console.error("Failed to load insights", err);
+      setInsightsError("Failed to load student insights");
     } finally {
       setLoadingInsights(false);
     }
   };
+
+  if (selectedStudent) {
+    return (
+      <>
+        <StudentProfileView
+          name={selectedStudent.name}
+          email={selectedStudent.email}
+          department={selectedStudent.department}
+          data={studentData}
+          loading={loadingInsights}
+          error={insightsError}
+          onBack={closeInsights}
+          onRetry={() => viewInsights(selectedStudent)}
+          onDownload={canDownloadReport ? downloadReport : undefined}
+          downloading={downloading}
+        />
+        {canDownloadReport && studentData && (
+          <div aria-hidden="true" style={{ position: "fixed", left: "-10000px", top: 0 }}>
+            <StudentReport student={selectedStudent} data={studentData} />
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="screen active" style={{ padding: "40px" }}>
@@ -309,117 +369,7 @@ export function StudentTracking() {
         <div style={{ marginTop: "12px", fontSize: "13px", color: "var(--muted)" }}>Total: {students.length} students</div>
       </div>
 
-      {canDownloadReport && selectedStudent && studentData && (
-        <div aria-hidden="true" style={{ position: "fixed", left: "-10000px", top: 0 }}>
-          <StudentReport student={selectedStudent} data={studentData} />
-        </div>
-      )}
 
-      {selectedStudent && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "20px" }}>
-          <div
-            ref={insightsPanelRef}
-            {...insightsDialogProps}
-            className="card"
-            style={{ width: "100%", maxWidth: "800px", maxHeight: "90vh", overflowY: "auto", position: "relative" }}
-          >
-            <div style={{ position: "sticky", top: 0, background: "var(--card-bg)", padding: "24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
-              <div>
-                <h3 id="student-insights-title" style={{ fontSize: "20px", fontWeight: 700 }}>{selectedStudent.name}&apos;s Profile Insights</h3>
-                <p style={{ color: "var(--muted)", fontSize: "14px", marginTop: "4px" }}>{selectedStudent.email}</p>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                {canDownloadReport && studentData && (
-                  <button
-                    type="button"
-                    onClick={downloadReport}
-                    disabled={downloading}
-                    className="btn btn-p"
-                    style={{ padding: "8px 16px", fontSize: "13px", opacity: downloading ? 0.7 : 1 }}
-                  >
-                    {downloading ? "Preparing…" : "Download as PDF"}
-                  </button>
-                )}
-                <button
-                  onClick={closeInsights}
-                  aria-label="Close"
-                  style={{ width: "32px", height: "32px", borderRadius: "50%", border: "none", background: "var(--bg)", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            
-            <div style={{ padding: "24px" }}>
-              {loadingInsights ? (
-                <div style={{ textAlign: "center", padding: "40px", color: "var(--muted)" }}>Loading insights...</div>
-              ) : studentData ? (
-                <>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "32px" }}>
-                    <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
-                      <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Aptitude Tests</div>
-                      <div style={{ fontSize: "24px", fontWeight: 800 }}>{studentData.tests_completed}</div>
-                    </div>
-                    <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
-                      <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Average Accuracy</div>
-                      <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--accent)" }}>{studentData.avg_accuracy.toFixed(1)}%</div>
-                    </div>
-                    <div className="card" style={{ padding: "20px", background: "var(--bg)", border: "none" }}>
-                      <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "4px" }}>Mock Interviews</div>
-                      <div style={{ fontSize: "24px", fontWeight: 800 }}>{studentData.interviews_completed}</div>
-                    </div>
-                  </div>
-
-                  <h4 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px" }}>Detailed Test History</h4>
-                  {studentData.history && studentData.history.length > 0 ? (
-                    <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", fontSize: "14px" }}>
-                      <thead>
-                        <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "12px", textTransform: "uppercase" }}>
-                          <th style={{ padding: "12px 8px" }}>Date</th>
-                          <th style={{ padding: "12px 8px" }}>Score</th>
-                          <th style={{ padding: "12px 8px" }}>Accuracy</th>
-                          <th style={{ padding: "12px 8px", textAlign: "right" }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {studentData.history.map(attempt => (
-                          <tr key={attempt.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                            <td style={{ padding: "12px 8px", color: "var(--muted)" }}>
-                              {new Date(attempt.created_at).toLocaleDateString()}
-                            </td>
-                            <td style={{ padding: "12px 8px", fontWeight: 500 }}>
-                              {attempt.score} / {attempt.max_score}
-                            </td>
-                            <td style={{ padding: "12px 8px" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <div style={{ flex: 1, height: "6px", background: "var(--bg)", borderRadius: "3px", overflow: "hidden" }}>
-                                  <div style={{ height: "100%", width: `${attempt.percentage}%`, background: attempt.percentage >= 70 ? "#1e8e3e" : attempt.percentage >= 40 ? "#f59e0b" : "#dc2626" }} />
-                                </div>
-                                <span style={{ fontSize: "13px", fontWeight: 600, width: "36px" }}>{Math.round(attempt.percentage)}%</span>
-                              </div>
-                            </td>
-                            <td style={{ padding: "12px 8px", textAlign: "right" }}>
-                              <span style={{ padding: "4px 8px", background: attempt.passed ? "#e6f4ea" : "#fee2e2", color: attempt.passed ? "#1e8e3e" : "#dc2626", borderRadius: "6px", fontSize: "12px", fontWeight: 600 }}>
-                                {attempt.passed ? "Pass" : "Fail"}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    </div>
-                  ) : (
-                    <div style={{ padding: "32px", textAlign: "center", background: "var(--bg)", borderRadius: "12px", color: "var(--muted)" }}>
-                      No assessments completed by this student yet.
-                    </div>
-                  )}
-                </>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

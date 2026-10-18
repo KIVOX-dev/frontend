@@ -614,6 +614,9 @@
   .tsl .bar span{display:none}
   .tsl .show{height:660px}
   .tsl .pan-ui{padding:20px}
+  .tsl .pan-ui .drives{grid-template-columns:minmax(0,1fr);max-width:none}
+  .tsl .pan-ui .drives .drive:nth-child(n+2){display:none}
+  .tsl .pan,.tsl .cta2 .pan{min-height:0}
   .tsl .pan-ui .demo{min-width:0}
   .tsl .show-ui .win{min-width:0}
   .tsl .nav-in{height:68px}

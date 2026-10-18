@@ -831,11 +831,12 @@ textarea:focus {
   font-size: 13px;
 }
 
-#snav .nav-item.active {
+#sidebar .nav-item.active {
   background: var(--surface3);
-  color: var(--ink);
+  color: #0b1220;
   border-color: transparent;
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 14px;
 }
 
 #snav .nav-item.active::before {
@@ -852,4 +853,35 @@ textarea:focus {
   padding: 0 !important;
   margin: 2px auto;
   justify-content: center;
+}
+
+/* ── Phones: compact tables ─────────────────────────────────────
+   Cells and badges shrink so Status/Action columns fit without
+   sideways scrolling; wider tables still scroll inside their card. */
+@media (max-width: 640px) {
+  thead th {
+    padding: 8px 6px;
+    font-size: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  tbody td {
+    padding: 10px 6px;
+    font-size: 12.5px;
+  }
+
+  td .badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+
+  td .btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .tn {
+    font-size: 13px;
+  }
 }
