@@ -22,11 +22,12 @@ type Lesson = {
   has_assessment: boolean;
   status: "not_started" | "in_progress" | "completed";
   watched_seconds: number;
-  // 'blocked': a malpractice attempt (external device detected — see
-  // AssessmentWindow.tsx) permanently disqualifies retaking this lesson's
-  // assessment. Enforced server-side too (course.service.js#getLessonAssessment),
+  // 'blocked': a malpractice attempt (see AssessmentWindow.tsx) disqualifies
+  // retaking this lesson's assessment until assessment_blocked_until (12 hours
+  // after the attempt). Enforced server-side too (course.service.js#getLessonAssessment),
   // this just drives the UI so the student sees why before even trying.
   assessment_status: "not_attempted" | "completed" | "blocked";
+  assessment_blocked_until?: string | null;
 };
 
 type CourseDetail = {
@@ -259,7 +260,12 @@ export function CourseViewer({
           {activeTab === "notes" ? (
             <NotesTab courseId={courseId} lessonId={activeLesson.id} playerRef={playerRef} />
           ) : (
-            <AssessmentTab courseId={courseId} lessonId={activeLesson.id} assessmentStatus={activeLesson.assessment_status} />
+            <AssessmentTab
+              courseId={courseId}
+              lessonId={activeLesson.id}
+              assessmentStatus={activeLesson.assessment_status}
+              blockedUntil={activeLesson.assessment_blocked_until}
+            />
           )}
         </div>
 
@@ -291,7 +297,7 @@ export function CourseViewer({
                   <p className="text-small font-medium text-ink line-clamp-2">{lesson.title}</p>
                   <p className="text-caption">
                     {formatTime(lesson.duration_seconds)}
-                    {lesson.assessment_status === "blocked" && <span className="text-danger font-medium"> · Assessment disqualified</span>}
+                    {lesson.assessment_status === "blocked" && <span className="text-danger font-medium"> · Assessment locked for 12h</span>}
                   </p>
                 </div>
               </button>
@@ -420,10 +426,12 @@ function AssessmentTab({
   courseId,
   lessonId,
   assessmentStatus,
+  blockedUntil,
 }: {
   courseId: string;
   lessonId: string;
   assessmentStatus: "not_attempted" | "completed" | "blocked";
+  blockedUntil?: string | null;
 }) {
   const [latestAttempt, setLatestAttempt] = useState<AssessmentAttempt | null>(null);
   const [loading, setLoading] = useState(true);
@@ -454,7 +462,10 @@ function AssessmentTab({
   if (assessmentStatus === "blocked") {
     return (
       <p className="text-small text-danger font-semibold rounded-md border border-danger/30 bg-[color-mix(in_srgb,var(--color-danger)_6%,white)] p-3">
-        This assessment was disqualified for malpractice (an external device was detected in your camera) and can&apos;t be retaken.
+        This assessment was disqualified for malpractice.{" "}
+        {blockedUntil
+          ? `You can retake it after ${new Date(blockedUntil).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}.`
+          : "You can retake it 12 hours after the attempt."}
       </p>
     );
   }
