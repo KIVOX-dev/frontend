@@ -146,13 +146,13 @@ function TrendChart({ points, color }: { points: TrendPoint[]; color: string }) 
 }
 
 /** Ring showing a category's current average score (0-100); an empty track with "—" until there's an attempt. */
-function ScoreRing({ value, color, trackColor }: { value: number | null; color: string; trackColor: string }) {
+function ScoreRing({ value, color, trackColor, size = 56 }: { value: number | null; color: string; trackColor: string; size?: number }) {
   const pct = value === null ? 0 : Math.max(0, Math.min(100, value));
   return (
     <div
       role="img"
       aria-label={value === null ? "No average score yet" : `Average score ${value}%`}
-      style={{ position: "relative", width: "56px", height: "56px", flexShrink: 0 }}
+      style={{ position: "relative", width: `${size}px`, height: `${size}px`, flexShrink: 0 }}
     >
       <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
         <circle cx="18" cy="18" r="15.9155" fill="none" stroke={trackColor} strokeWidth="3.5" />
@@ -169,8 +169,8 @@ function ScoreRing({ value, color, trackColor }: { value: number | null; color: 
         />
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
-        <span style={{ fontSize: value === null ? "14px" : "13px", fontWeight: 800, color: "var(--text)" }}>{value === null ? "—" : `${value}%`}</span>
-        {value !== null && <span style={{ fontSize: "8px", fontWeight: 600, color: "var(--muted)", marginTop: "2px" }}>avg</span>}
+        <span style={{ fontSize: `${Math.round(size * (value === null ? 0.25 : 0.23))}px`, fontWeight: 800, color: "var(--text)" }}>{value === null ? "—" : `${value}%`}</span>
+        {value !== null && <span style={{ fontSize: `${Math.max(8, Math.round(size * 0.14))}px`, fontWeight: 600, color: "var(--muted)", marginTop: "2px" }}>avg</span>}
       </div>
     </div>
   );
@@ -571,6 +571,20 @@ export function PracticeModule() {
         ))}
       </div>
 
+      {/* Current average score per category, above the cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "20px", marginBottom: "28px" }}>
+        {CATEGORIES.map(cat => {
+          const stats = categoryStats[cat.id];
+          const accuracy = stats && stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : null;
+          return (
+            <div key={cat.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", textAlign: "center" }}>
+              <ScoreRing value={accuracy} color={cat.color} trackColor={cat.colorLight} size={92} />
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)" }}>{cat.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Category cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
         {CATEGORIES.map(cat => {
@@ -617,7 +631,9 @@ export function PracticeModule() {
                   <div style={{ width: "56px", height: "56px", borderRadius: "16px", background: cat.gradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 8px 16px -6px ${cat.color}66` }}>
                     <Icon size={26} strokeWidth={2} />
                   </div>
-                  <ScoreRing value={accuracy} color={cat.color} trackColor={cat.colorLight} />
+                  <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: cat.colorLight, color: cat.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <ArrowRight size={18} strokeWidth={2.25} />
+                  </div>
                 </div>
                 <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text)", marginBottom: "6px" }}>{cat.label}</h3>
                 <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px", lineHeight: 1.5 }}>{cat.description}</p>

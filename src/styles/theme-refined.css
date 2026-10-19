@@ -768,6 +768,43 @@ textarea:focus {
   white-space: nowrap;
 }
 
+/* On the blue hero the global button colors (blue primary, white secondary)
+   either vanish into the banner or compete with it: primary is solid white,
+   secondaries are translucent outlines, so there is one clear main action. */
+.hero .hbtn-w {
+  background: #fff;
+  color: var(--accent);
+  border: 1px solid #fff;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+}
+
+.hero .hbtn-w:hover {
+  background: #f1f6ff;
+  border-color: #f1f6ff;
+  color: var(--accent2);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
+.hero .hbtn-gh {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+.hero .hbtn-gh:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: #fff;
+  color: #fff;
+}
+
+.hero .hbtn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 @media (min-width: 641px) {
   .sg {
     grid-template-columns: repeat(6, minmax(0, 1fr));
