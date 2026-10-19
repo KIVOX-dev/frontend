@@ -67,8 +67,8 @@ export function CollegeAdminLogin({ onBack }: { onBack?: () => void }) {
             </button>
           </div>
         )}
-        <div style={{ textAlign: "center", marginBottom: "30px" }}>
-          <div className="flex justify-center mb-6">
+        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+          <div className="flex justify-center mb-3">
             <Logo variant="brand" height={72} priority />
           </div>
           <h2 style={{ fontSize: "24px", color: "var(--text)", fontWeight: 700, marginBottom: "8px" }}>

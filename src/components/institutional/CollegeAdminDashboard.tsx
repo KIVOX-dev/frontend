@@ -123,6 +123,8 @@ export function CollegeAdminDashboard() {
   const [driveForm, setDriveForm] = useState({ title: "", company_name: "", location: "", job_type: "full_time", salary_min_lpa: "", salary_max_lpa: "", application_deadline: "", eligible_departments: [] as string[] });
   const [driveMsg, setDriveMsg] = useState("");
   const [postingDrive, setPostingDrive] = useState(false);
+  const [driveLogo, setDriveLogo] = useState<{ ref: string; preview: string } | null>(null);
+  const [uploadingDriveLogo, setUploadingDriveLogo] = useState(false);
 
   // Assessment form — questions are auto-drawn from the real question bank
   // (source_category + question_count) at assign time, never manually
@@ -566,6 +568,26 @@ export function CollegeAdminDashboard() {
     }
   };
 
+  const handleUploadDriveLogo = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      setDriveMsg("Logo must be under 2 MB.");
+      return;
+    }
+    setUploadingDriveLogo(true);
+    setDriveMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("logo", file);
+      const res = await api.post("/placements/logo", fd);
+      const data = res.data?.data ?? res.data;
+      setDriveLogo({ ref: data.logo_ref, preview: data.preview_url });
+    } catch (err: unknown) {
+      setDriveMsg(apiErrorMessage(err, "Failed to upload logo"));
+    } finally {
+      setUploadingDriveLogo(false);
+    }
+  };
+
   const handleCreateDrive = async (e: React.FormEvent) => {
     e.preventDefault();
     setDriveMsg("");
@@ -586,9 +608,11 @@ export function CollegeAdminDashboard() {
         salary_max_lpa: driveForm.salary_max_lpa ? parseFloat(driveForm.salary_max_lpa) : undefined,
         application_deadline: driveForm.application_deadline || undefined,
         eligible_departments: driveForm.eligible_departments.length ? driveForm.eligible_departments : undefined,
+        company_logo_url: driveLogo?.ref || undefined,
         status: "open",
       });
       setShowPostDrive(false);
+      setDriveLogo(null);
       setDriveForm({ title: "", company_name: "", location: "", job_type: "full_time", salary_min_lpa: "", salary_max_lpa: "", application_deadline: "", eligible_departments: [] });
       fetchDrives();
     } catch (err: unknown) {
@@ -1231,7 +1255,7 @@ export function CollegeAdminDashboard() {
                     <td style={{ padding: "12px 8px", fontWeight: 500 }}>{d.title}</td>
                     <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <CompanyLogo name={d.company_name} size={22} />
+                        <CompanyLogo name={d.company_name} size={22} logoUrl={d.company_logo_url} />
                         {d.company_name}
                       </div>
                     </td>
@@ -2102,8 +2126,8 @@ export function CollegeAdminDashboard() {
       {/* Post Drive Modal */}
       {showPostDrive && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "24px" }}>
-          <div ref={postDrivePanelRef} {...postDriveDialogProps} className="card" style={{ padding: "24px", width: "100%", maxWidth: "480px", maxHeight: "90vh", overflowY: "auto" }}>
-            <h3 id="post-drive-title" style={{ fontSize: "18px", fontWeight: 700, marginBottom: "14px", color: "var(--text)" }}>Post Placement Drive</h3>
+          <div ref={postDrivePanelRef} {...postDriveDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "760px", maxHeight: "92vh", overflowY: "auto" }}>
+            <h3 id="post-drive-title" style={{ fontSize: "22px", fontWeight: 700, marginBottom: "14px", color: "var(--text)" }}>Post Placement Drive</h3>
             {driveMsg && <div style={{ padding: "10px", marginBottom: "10px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", color: "#DC2626", fontSize: "13px" }}>{driveMsg}</div>}
             <form onSubmit={handleCreateDrive}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
@@ -2113,7 +2137,16 @@ export function CollegeAdminDashboard() {
                 </div>
                 <div>
                   <label className="lbl">Company</label>
-                  <CompanyPicker value={driveForm.company_name} onChange={v => setDriveForm({ ...driveForm, company_name: v })} required placeholder="Select or type a company" />
+                  <CompanyPicker
+                    value={driveForm.company_name}
+                    onChange={v => setDriveForm({ ...driveForm, company_name: v })}
+                    required
+                    placeholder="Select or type a company"
+                    logoUrl={driveLogo?.preview}
+                    uploading={uploadingDriveLogo}
+                    onUploadLogo={handleUploadDriveLogo}
+                    onClearLogo={() => setDriveLogo(null)}
+                  />
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
@@ -2177,7 +2210,7 @@ export function CollegeAdminDashboard() {
                 />
               </div>
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                <button type="button" className="btn" disabled={postingDrive} onClick={() => { setShowPostDrive(false); setDriveMsg(""); }}>Cancel</button>
+                <button type="button" className="btn" disabled={postingDrive} onClick={() => { setShowPostDrive(false); setDriveMsg(""); setDriveLogo(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-p" disabled={postingDrive}>{postingDrive ? "Posting..." : "Post Drive"}</button>
               </div>
             </form>

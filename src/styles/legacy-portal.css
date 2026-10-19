@@ -446,7 +446,10 @@ a:focus-visible,
 .lp-right {
   flex: 1;
   display: flex;
-  align-items: center;
+  /* Not align-items:center — a card taller than the viewport would overflow
+     above the scroll origin and get its top clipped. margin:auto on .lp-card
+     centers when it fits and falls back to top-aligned + scrollable. */
+  align-items: flex-start;
   justify-content: center;
   padding: 40px;
   overflow-y: auto
@@ -455,6 +458,7 @@ a:focus-visible,
 .lp-card {
   width: 100%;
   max-width: 420px;
+  margin: auto;
   position: relative;
   /* Above AuthSplitLayout.tsx's decorative logo watermark (position:
      absolute, z-index: 1, 6% opacity) — without this, that z-index beats
@@ -7334,3 +7338,30 @@ tbody tr:hover td {
   padding: 8px 0;
 }
 
+
+/* Short desktop viewports (laptops, browser zoom): tighten the auth card so
+   the whole sign-in form is visible without scrolling. */
+@media (max-height: 900px) {
+  .lp-right {
+    padding: 20px
+  }
+
+  .lp-card {
+    padding: 24px 28px
+  }
+
+  .lp-card img {
+    max-height: 52px;
+    width: auto
+  }
+}
+
+@media (max-width: 480px) {
+  .lp-right {
+    padding: 16px
+  }
+
+  .lp-card {
+    padding: 24px 20px
+  }
+}

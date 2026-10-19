@@ -16,11 +16,18 @@ type Props = {
   onChange: (value: string) => void;
   placeholder?: string;
   required?: boolean;
+  /** Preview URL of a logo uploaded from the user's device (shown instead of the guessed one). */
+  logoUrl?: string | null;
+  uploading?: boolean;
+  /** Provide to enable "Upload logo from device". */
+  onUploadLogo?: (file: File) => void;
+  onClearLogo?: () => void;
 };
 
 // Searchable company dropdown with logos. Typing filters the list; a name that
 // isn't listed is offered as "Use “…”", so no recruiter is ever locked out.
-export function CompanyPicker({ value, onChange, placeholder = "Select or type a company", required }: Props) {
+export function CompanyPicker({ value, onChange, placeholder = "Select or type a company", required, logoUrl, uploading, onUploadLogo, onClearLogo }: Props) {
+  const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const listId = useId();
@@ -54,7 +61,7 @@ export function CompanyPicker({ value, onChange, placeholder = "Select or type a
     <div ref={wrapRef} style={{ position: "relative" }}>
       <div style={{ position: "relative" }}>
         <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", display: "flex", pointerEvents: "none" }}>
-          {value.trim() ? <CompanyLogo name={value} size={22} /> : <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--bg)", border: "1px dashed var(--border)" }} />}
+          {value.trim() || logoUrl ? <CompanyLogo name={value || "?"} size={22} logoUrl={logoUrl} /> : <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--bg)", border: "1px dashed var(--border)" }} />}
         </span>
         <input
           type="text"
@@ -91,6 +98,35 @@ export function CompanyPicker({ value, onChange, placeholder = "Select or type a
           ▾
         </button>
       </div>
+
+      {onUploadLogo && (
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px", fontSize: "12px" }}>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onUploadLogo(f);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => fileRef.current?.click()}
+            style={{ border: "1px solid var(--border)", background: "transparent", borderRadius: "8px", padding: "5px 10px", cursor: uploading ? "default" : "pointer", color: "var(--text)", fontSize: "12px", fontWeight: 600 }}
+          >
+            {uploading ? "Uploading…" : logoUrl ? "Change logo" : "Upload logo from device"}
+          </button>
+          {logoUrl && onClearLogo && (
+            <button type="button" onClick={onClearLogo} style={{ border: "none", background: "none", color: "var(--muted)", cursor: "pointer", fontSize: "12px", textDecoration: "underline", padding: 0 }}>
+              Remove
+            </button>
+          )}
+        </div>
+      )}
 
       {open && (
         <ul

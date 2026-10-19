@@ -187,7 +187,6 @@ function SocialIntegrationRow({
         ) : !editing ? (
           <Button
             size="sm"
-            variant="secondary"
             onClick={() => {
               setValue("");
               setError("");

@@ -162,6 +162,7 @@ export type Drive = {
   id: number;
   title: string;
   company_name: string;
+  company_logo_url?: string | null;
   location?: string;
   job_type: string;
   status: string;
@@ -248,6 +249,15 @@ const KNOWN_DOMAINS: Record<string, string> = {
   "tech mahindra": "techmahindra.com",
   mindtree: "mindtree.com",
   flipkart: "flipkart.com",
+  hcltech: "hcltech.com",
+  oracle: "oracle.com",
+  sap: "sap.com",
+  adobe: "adobe.com",
+  cisco: "cisco.com",
+  dell: "dell.com",
+  freshworks: "freshworks.com",
+  paytm: "paytm.com",
+  zomato: "zomato.com",
 };
 
 function guessDomain(companyName: string): string | null {
@@ -258,13 +268,25 @@ function guessDomain(companyName: string): string | null {
   return slug ? `${slug}.com` : null;
 }
 
-export function CompanyLogo({ name, size = 28 }: { name: string; size?: number }) {
-  const [failed, setFailed] = useState(false);
+// `logoUrl` is an admin-uploaded logo (signed preview URL) and always wins.
+// Otherwise: unavatar -> Google's favicon service (sharper, covers domains
+// unavatar misses) -> initials badge.
+export function CompanyLogo({ name, size = 28, logoUrl }: { name: string; size?: number; logoUrl?: string | null }) {
+  const [stage, setStage] = useState(0);
+  const [uploadFailed, setUploadFailed] = useState(false);
   const domain = guessDomain(name);
   const color = colorForKey(name);
   const initials = name.trim().slice(0, 2).toUpperCase() || "?";
+  const imgStyle = { borderRadius: "50%", objectFit: "contain" as const, background: "#fff", border: "1px solid var(--border)", flexShrink: 0 };
 
-  if (!domain || failed) {
+  if (logoUrl && !uploadFailed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- signed storage URL, host not known to next/image
+      <img src={logoUrl} alt={`${name} logo`} width={size} height={size} style={imgStyle} onError={() => setUploadFailed(true)} />
+    );
+  }
+
+  if (!domain || stage > 1) {
     return (
       <div
         title={name}
@@ -275,14 +297,19 @@ export function CompanyLogo({ name, size = 28 }: { name: string; size?: number }
     );
   }
 
+  const src = stage === 0
+    ? `https://unavatar.io/${domain}`
+    : `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=128`;
+
   return (
     <Image
-      src={`https://unavatar.io/${domain}`}
+      key={stage}
+      src={src}
       alt={`${name} logo`}
       width={size}
       height={size}
-      style={{ borderRadius: "50%", objectFit: "contain", background: "#fff", border: "1px solid var(--border)", flexShrink: 0 }}
-      onError={() => setFailed(true)}
+      style={imgStyle}
+      onError={() => setStage((n) => n + 1)}
     />
   );
 }
