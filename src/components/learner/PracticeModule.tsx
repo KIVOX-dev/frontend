@@ -145,6 +145,37 @@ function TrendChart({ points, color }: { points: TrendPoint[]; color: string }) 
   );
 }
 
+/** Ring showing a category's current average score (0-100); an empty track with "—" until there's an attempt. */
+function ScoreRing({ value, color, trackColor }: { value: number | null; color: string; trackColor: string }) {
+  const pct = value === null ? 0 : Math.max(0, Math.min(100, value));
+  return (
+    <div
+      role="img"
+      aria-label={value === null ? "No average score yet" : `Average score ${value}%`}
+      style={{ position: "relative", width: "56px", height: "56px", flexShrink: 0 }}
+    >
+      <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+        <circle cx="18" cy="18" r="15.9155" fill="none" stroke={trackColor} strokeWidth="3.5" />
+        <circle
+          cx="18"
+          cy="18"
+          r="15.9155"
+          fill="none"
+          stroke={color}
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeDasharray={`${pct} 100`}
+          style={{ transition: "stroke-dasharray 0.6s ease" }}
+        />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+        <span style={{ fontSize: value === null ? "14px" : "13px", fontWeight: 800, color: "var(--text)" }}>{value === null ? "—" : `${value}%`}</span>
+        {value !== null && <span style={{ fontSize: "8px", fontWeight: 600, color: "var(--muted)", marginTop: "2px" }}>avg</span>}
+      </div>
+    </div>
+  );
+}
+
 export function PracticeModule() {
   const { user } = useAuthStore();
 
@@ -586,9 +617,7 @@ export function PracticeModule() {
                   <div style={{ width: "56px", height: "56px", borderRadius: "16px", background: cat.gradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 8px 16px -6px ${cat.color}66` }}>
                     <Icon size={26} strokeWidth={2} />
                   </div>
-                  <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: cat.colorLight, color: cat.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <ArrowRight size={18} strokeWidth={2.25} />
-                  </div>
+                  <ScoreRing value={accuracy} color={cat.color} trackColor={cat.colorLight} />
                 </div>
                 <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text)", marginBottom: "6px" }}>{cat.label}</h3>
                 <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px", lineHeight: 1.5 }}>{cat.description}</p>
@@ -596,11 +625,6 @@ export function PracticeModule() {
                   <div style={{ fontSize: "12px", color: "var(--muted)", display: "flex", alignItems: "center", gap: "12px" }}>
                     {stats && <span>{stats.sessions} sessions</span>}
                     {stats && <span>{stats.total} questions</span>}
-                    {accuracy !== null && (
-                      <span style={{ padding: "3px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: 700, background: accuracy >= 70 ? "#dcfce7" : accuracy >= 40 ? "#fef3c7" : "#fee2e2", color: accuracy >= 70 ? "#15803d" : accuracy >= 40 ? "#92400e" : "#b91c1c" }}>
-                        {accuracy}% avg
-                      </span>
-                    )}
                   </div>
                 )}
                 <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px solid var(--border)" }}>
