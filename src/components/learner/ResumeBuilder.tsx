@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { ResumeTemplatePicker } from "@/components/learner/ResumeTemplatePicker";
 import { 
   FileText, Sparkles, Plus, Trash2, ArrowUp, ArrowDown, Check, X, 
   Download, RefreshCw, ZoomIn, ZoomOut, Briefcase, GraduationCap, 
@@ -1559,16 +1560,7 @@ export function ResumeBuilder() {
           <div className={`lg:col-span-6 space-y-6 min-w-0 lg:sticky lg:top-4 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1 ${mobilePane === "edit" ? "hidden lg:block" : ""}`}>
             <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-100 shadow-xs flex flex-wrap justify-between items-center gap-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <select 
-                  value={formData.template} 
-                  onChange={e => setFormData({ ...formData, template: e.target.value })}
-                  className="fi text-xs bg-slate-50 border border-slate-200"
-                >
-                  <option value="modern">Modern Tech</option>
-                  <option value="classic">Classic Professional</option>
-                  <option value="minimal">Clean Minimalist</option>
-                  <option value="creative">Creative Bold</option>
-                </select>
+                <ResumeTemplatePicker value={formData.template} onChange={(template) => setFormData({ ...formData, template })} />
                 
                 <div className="flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
                   <button 
