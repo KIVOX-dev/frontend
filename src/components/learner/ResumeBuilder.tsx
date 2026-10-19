@@ -720,7 +720,7 @@ export function ResumeBuilder() {
             <FileText className="w-6 h-6 text-emerald-brand" />
             AI Resume Workspace
           </h2>
-          <p className="text-slate-500 text-sm mt-1">Design, analyze, and optimize your ATS resume with Groq AI assistance.</p>
+          <p className="text-slate-500 text-sm mt-1">Design, analyze, and optimize your ATS resume with AI assistance.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {saveStatus && (
@@ -1531,7 +1531,7 @@ export function ResumeBuilder() {
             {/* TAB: AI TOOLS */}
             {activeTab === "assistant" && (
               <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-6">
-                <h3 className="font-bold text-slate-900 text-lg border-b pb-2">Groq AI Helper Hub</h3>
+                <h3 className="font-bold text-slate-900 text-lg border-b pb-2">AI Helper Hub</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 border rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer text-center" onClick={generatePrepQuestions}>
                     <Sparkles className="w-5 h-5 text-emerald-brand mx-auto mb-2" />
@@ -1680,7 +1680,7 @@ export function ResumeBuilder() {
               <button onClick={() => setShowImportModal(false)} className="p-1 rounded hover:bg-slate-100"><X className="w-5 h-5 text-slate-400" /></button>
             </div>
             <div className="space-y-2">
-              <p className="text-xs text-slate-500">Paste all text content from your existing resume PDF or DOCX file. The Groq AI model will parse it into structured fields.</p>
+              <p className="text-xs text-slate-500">Paste all text content from your existing resume PDF or DOCX file. The AI model will parse it into structured fields.</p>
               <textarea 
                 value={importText} 
                 onChange={e => setImportText(e.target.value)} 

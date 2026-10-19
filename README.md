@@ -70,7 +70,7 @@ This frontend is one piece of a three-service system:
 ```
 talentsnaps-frontend/ ← this repo — Next.js app (Vercel)
 backend/node-api/    ← Express + MongoDB API (Cloud Run)
-backend/ai-service/  ← FastAPI + Groq — resume analysis, AI features (Cloud Run)
+backend/ai-service/  ← FastAPI + OpenAI — resume analysis, AI features (Cloud Run)
 ```
 
 The frontend never talks to a database directly — every data operation goes through `node-api`, which in turn calls `ai-service` for anything LLM-backed (resume feedback, etc.). See [`next.config.mjs`](next.config.mjs) for how the API origin is wired into both the build and the Content Security Policy.

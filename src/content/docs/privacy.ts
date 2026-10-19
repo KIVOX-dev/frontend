@@ -150,7 +150,7 @@ export const privacy: Doc = {
           title: "AI features",
           blocks: [
             {
-              p: "Some features send data to an AI model provider (Groq) to generate a response. We send only what the feature needs:",
+              p: "Some features send data to an AI model provider (OpenAI) to generate a response. We send only what the feature needs:",
             },
             {
               ul: [
@@ -219,7 +219,7 @@ export const privacy: Doc = {
               ["Google Cloud", "Runs our servers and stores uploaded files such as profile photos and offer letters."],
               ["MongoDB", "Hosts our database."],
               ["Brevo", "Sends account emails such as verification and password reset."],
-              ["Groq", "Runs the AI model behind question generation and resume features."],
+              ["OpenAI", "Runs the AI model behind question generation and resume features."],
               ["Google", "Sign in with Google, YouTube video playback, and speech-to-text in Chrome."],
               ["GitHub, LinkedIn, Stack Exchange", "Account connections you choose to make."],
               ["LeetCode, HackerRank", "Public statistics for usernames you enter."],
