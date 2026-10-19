@@ -518,7 +518,10 @@ export function ResumeBuilder() {
       await html2pdf().set(opt).from(element).save();
     } catch (err) {
       console.error("PDF export failed", err);
-      toast.error(err, "Failed to export PDF.");
+      // Export is entirely client-side (html2pdf/html2canvas), so skip the
+      // axios-shaped parsing — it would report any thrown Error as a network failure.
+      const detail = err instanceof Error && err.message ? ` (${err.message})` : "";
+      toast.error(`Failed to export PDF${detail}.`);
     } finally {
       setSaving(false);
     }

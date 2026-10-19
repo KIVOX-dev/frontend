@@ -46,6 +46,12 @@ const CATEGORIES = ["Quantitative Aptitude", "Logical Reasoning", "Verbal Abilit
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+// "S. Arunikha" greets as "Arunikha", not "S." — skip leading initials.
+const greetingName = (full: string) => {
+  const parts = full.trim().split(/\s+/);
+  return parts.find((p) => p.replace(/\./g, "").length > 1) ?? parts[0];
+};
+
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
@@ -141,7 +147,7 @@ export function LearnerDashboard() {
         </div>
         <div className="hero-sub">
           {hasActivity
-            ? `Welcome back${user?.name ? `, ${user.name.split(" ")[0]}` : ""}. ${plural(testsDone, "test")} done so far — keep practising to climb the national leaderboard.`
+            ? `Welcome back${user?.name ? `, ${greetingName(user.name)}` : ""}. ${plural(testsDone, "test")} done so far — keep practising to climb the national leaderboard.`
             : "Welcome to TalentSnaps. Start a practice session to build your aptitude profile and unlock your national leaderboard ranking."}
         </div>
         <div className="hero-acts">
