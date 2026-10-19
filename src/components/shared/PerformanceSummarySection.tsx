@@ -20,6 +20,8 @@ type CategoryTrend = {
 type ProfileSummary = {
   has_data: boolean;
   executive_summary: string;
+  // One fact per entry, addressed to the student; absent on older API versions.
+  highlights?: string[];
   top_skill: string | null;
   weakness: string | null;
   ideal_role: string | null;
@@ -135,7 +137,15 @@ export function PerformanceSummarySection() {
             Download Report
           </Button>
         </div>
-        <p className="text-small text-ink mb-5">{summary.executive_summary}</p>
+        {summary.highlights && summary.highlights.length > 0 ? (
+          <ul className="list-disc pl-5 space-y-1.5 text-small text-ink mb-5">
+            {summary.highlights.map((h) => (
+              <li key={h}>{h}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-small text-ink mb-5">{summary.executive_summary}</p>
+        )}
 
         <div className="grid sm:grid-cols-3 gap-5 pt-5 border-t border-line mb-6">
           <StatField label="Top Skill" value={summary.top_skill} />
