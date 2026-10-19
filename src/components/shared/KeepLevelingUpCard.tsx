@@ -7,29 +7,38 @@ export type FocusArea = {
   text: string;
 };
 
+// How many suggestions the compact (dashboard) card lists before "N more".
+const COMPACT_VISIBLE = 3;
+
 /** "Keep Leveling Up": the next steps that will move the readiness score. Shared by Profile and the learner Dashboard. */
 export function KeepLevelingUpCard({ focusAreas, compact = false }: { focusAreas: FocusArea[]; compact?: boolean }) {
-  // Compact (dashboard): only the top suggestion. The list is recomputed from real
+  // Compact (dashboard): only the top few suggestions. The list is recomputed from real
   // activity, so finishing one drops it out and the next takes its place.
   if (compact) {
-    const next = focusAreas[0];
-    const more = focusAreas.length - 1;
-    const isGap = next?.severity === "gap";
+    const shown = focusAreas.slice(0, COMPACT_VISIBLE);
+    const more = focusAreas.length - shown.length;
     return (
       <Card>
         <div className="flex items-center justify-between gap-2 mb-3">
           <h3 className="text-sm font-semibold text-ink">Keep Leveling Up</h3>
-          {more > 0 && <span className="text-caption">{more} more after this</span>}
+          {more > 0 && <span className="text-caption">{more} more after {shown.length === 1 ? "this" : "these"}</span>}
         </div>
-        {next ? (
-          <div className={cn("flex gap-2.5 items-start rounded-md p-3 border", isGap ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#EFF6FF] border-[#BFDBFE]")}>
-            <span
-              className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0 mt-0.5 whitespace-nowrap"
-              style={{ background: isGap ? "#FDE68A" : "#BFDBFE", color: isGap ? "#92400E" : "#1D4ED8" }}
-            >
-              {isGap ? "Try this next" : "Keep going"}
-            </span>
-            <p className="text-small text-ink">{next.text}</p>
+        {shown.length > 0 ? (
+          <div className="space-y-2.5">
+            {shown.map((next, i) => {
+              const isGap = next.severity === "gap";
+              return (
+                <div key={i} className={cn("flex gap-2.5 items-start rounded-md p-3 border", isGap ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#EFF6FF] border-[#BFDBFE]")}>
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0 mt-0.5 whitespace-nowrap"
+                    style={{ background: isGap ? "#FDE68A" : "#BFDBFE", color: isGap ? "#92400E" : "#1D4ED8" }}
+                  >
+                    {isGap ? "Try this next" : "Keep going"}
+                  </span>
+                  <p className="text-small text-ink">{next.text}</p>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <p className="text-small">You&apos;re all caught up — nothing outstanding right now.</p>

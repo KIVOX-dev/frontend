@@ -142,6 +142,25 @@ function evaluatePosture(result: PoseLandmarkerResult): string | null {
   return null;
 }
 
+// Head turned well to one side (nose far off the shoulder midline) — the
+// "looking at someone/something else" pose. Same offset the soft "Please face
+// the camera" warning uses, but this one escalates (see the strike rule in
+// the detection loop) instead of just showing a banner.
+function isHeadTurned(result: PoseLandmarkerResult): boolean {
+  const lm = result.landmarks[0];
+  const nose = lm?.[POSE_LANDMARK.NOSE];
+  const left = lm?.[POSE_LANDMARK.LEFT_SHOULDER];
+  const right = lm?.[POSE_LANDMARK.RIGHT_SHOULDER];
+  if (!nose || !left || !right) return false;
+  if ([left, right].some((p) => (p.visibility ?? 0) < 0.5)) return false;
+  return Math.abs(nose.x - (left.x + right.x) / 2) > 0.12;
+}
+
+// Looking away this long in one go counts as a strike; a quick glance at the
+// question or a thinking pause doesn't. The second strike ends the interview.
+const LOOK_AWAY_STRIKE_MS = 2500;
+const LOOK_AWAY_MAX_STRIKES = 2;
+
 type FaceBox = { x: number; y: number; w: number; h: number };
 
 // Face box from BlazePose's 11 face landmarks (nose, eyes, ears, mouth), in
@@ -368,6 +387,12 @@ export function LearnerMockInterview() {
   const poseLandmarkerRef = useRef<PoseLandmarker | null>(null);
   const poseLoopRef = useRef<number | null>(null);
   const postureIssueSinceRef = useRef<number | null>(null);
+  // Head-turn strikes: since = when the current look-away began, active = it
+  // has already been counted (so one long look is one strike, not one per
+  // frame), strikes = total this interview — survives the loop restarting.
+  const lookAwaySinceRef = useRef<number | null>(null);
+  const lookAwayActiveRef = useRef(false);
+  const lookAwayStrikesRef = useRef(0);
   const lastPoseTimestampRef = useRef(0);
   const objectDetectorRef = useRef<DeviceWatch | null>(null);
   // The device watch is created once on mount, but what a result should do
@@ -396,6 +421,7 @@ export function LearnerMockInterview() {
   const [poseModelReady, setPoseModelReady] = useState(false);
   const [faceModelReady, setFaceModelReady] = useState(false);
   const [postureWarning, setPostureWarning] = useState<string | null>(null);
+  const [lookAwayWarning, setLookAwayWarning] = useState<string | null>(null);
   const [cameraDisconnected, setCameraDisconnected] = useState(false);
   const [faceBox, setFaceBox] = useState<FaceBox | null>(null);
   const [videoAspect, setVideoAspect] = useState(4 / 3);
@@ -682,6 +708,24 @@ export function LearnerMockInterview() {
               }
             }
             poseIssue = evaluatePosture(result);
+            if (isHeadTurned(result)) {
+              if (lookAwaySinceRef.current == null) lookAwaySinceRef.current = now;
+              if (!lookAwayActiveRef.current && now - lookAwaySinceRef.current > LOOK_AWAY_STRIKE_MS) {
+                lookAwayActiveRef.current = true;
+                lookAwayStrikesRef.current += 1;
+                if (lookAwayStrikesRef.current >= LOOK_AWAY_MAX_STRIKES) {
+                  terminateRef.current("You turned away from the camera again after a warning — the interview was stopped.");
+                  return;
+                }
+                setLookAwayWarning(
+                  "Warning: keep your face towards the camera. Turning away again will end the interview."
+                );
+              }
+            } else {
+              lookAwaySinceRef.current = null;
+              lookAwayActiveRef.current = false;
+              setLookAwayWarning(null);
+            }
             if (absentSinceRef.current == null) updatePostureWarning(now);
           }
           consecutiveErrors = 0;
@@ -710,6 +754,9 @@ export function LearnerMockInterview() {
       if (poseLoopRef.current) cancelAnimationFrame(poseLoopRef.current);
       postureIssueSinceRef.current = null;
       absentSinceRef.current = null;
+      lookAwaySinceRef.current = null;
+      lookAwayActiveRef.current = false;
+      setLookAwayWarning(null);
       voter.reset();
       multiFaceVoter.reset();
       setPostureWarning(null);
@@ -1109,7 +1156,7 @@ export function LearnerMockInterview() {
                 <div>
                   <strong style={{ fontSize: "14px" }}>Camera &amp; Microphone Check</strong>
                   <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
-                    Required to start — this interview watches the camera in real time: stay in view, and keep phones and other devices out of frame, or it will stop. It can also transcribe spoken answers.
+                    Required to start — this interview watches the camera in real time: stay in view and face the camera (turning away for a few seconds gives one warning, a second time ends it), and keep phones and other devices out of frame, or it will stop. It can also transcribe spoken answers.
                   </p>
                 </div>
                 {mediaStatus !== "granted" && (
@@ -1461,7 +1508,7 @@ export function LearnerMockInterview() {
         </div>
       </div>
 
-      {(absentSecondsLeft != null || postureWarning || cameraDisconnected) && (
+      {(absentSecondsLeft != null || postureWarning || lookAwayWarning || cameraDisconnected) && (
         <div style={{ background: "rgba(239,68,68,0.1)", color: "var(--red)", padding: "10px 24px", fontSize: "13px", fontWeight: 600, textAlign: "center", borderBottom: "1px solid var(--border)" }}>
           {absentSecondsLeft != null ? (
             <>
@@ -1469,7 +1516,7 @@ export function LearnerMockInterview() {
               <strong style={{ fontSize: "16px", fontVariantNumeric: "tabular-nums" }}>{absentSecondsLeft}s</strong> or the interview will stop.
             </>
           ) : (
-            <>⚠ {cameraDisconnected ? "Camera disconnected — please reconnect your webcam to continue." : postureWarning}</>
+            <>⚠ {cameraDisconnected ? "Camera disconnected — please reconnect your webcam to continue." : lookAwayWarning ?? postureWarning}</>
           )}
         </div>
       )}
