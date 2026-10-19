@@ -320,18 +320,19 @@
 /* ---------- nav ---------- */
 .tsl .nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;background:rgb(255 255 255 / .9);backdrop-filter:blur(12px);transition:box-shadow .3s}
 .tsl .nav.scrolled{box-shadow:0 1px 0 var(--dash)}
-.tsl .nav-in{display:flex;align-items:center;justify-content:space-between;gap:24px;height:80px;padding-inline:var(--gut)}
+.tsl .nav-in{display:flex;align-items:center;justify-content:space-between;gap:24px;height:64px;padding-inline:var(--gut)}
 .tsl .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
 /* Official lockup image; height sets the size, width follows its aspect ratio. */
-.tsl .logo .lockup{height:46px;width:auto;display:block}
+.tsl .logo .lockup{height:38px;width:auto;display:block}
 .tsl .fgrid .logo .lockup{height:52px}
-.tsl .links{display:flex;gap:30px;font-size:16.5px}
+.tsl .links{display:flex;gap:26px;font-size:15px}
 .tsl .links a{text-decoration:none;color:var(--ink);position:relative;padding:6px 0}
 .tsl .links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1.5px;background:var(--ink);transform:scaleX(0);transform-origin:right;transition:transform .35s var(--ease)}
 .tsl .links a:hover::after,.tsl .links a[aria-current="page"]::after{transform:scaleX(1);transform-origin:left}
 .tsl .links a[aria-current="page"]{font-weight:600}
 .tsl .nav-r{display:flex;align-items:center;gap:20px}
 /* Log in shares the outline button style (btn btn-line btn-sm). */
+.tsl .nav .btn-sm{padding:9px 16px;font-size:14px}
 
 /* ---------- hero ---------- */
 .tsl .hero{padding:clamp(64px,8vw,112px) clamp(8px,3vw,40px) clamp(48px,6vw,80px);text-align:center;display:flex;flex-direction:column;align-items:center;gap:26px}
@@ -367,8 +368,8 @@
 /* ---------- stacked feature rows: each row sticks under the nav and the next one slides up over it ---------- */
 .tsl .page{counter-reset:stk}
 .tsl .stack{position:relative}
-.tsl .row.stk{position:sticky;top:94px;background:var(--bg);border-top:1px solid var(--dash);margin-top:-1px;counter-increment:stk}
-.tsl .row.stk .split{height:clamp(520px,calc(100vh - 94px),720px);min-height:0}
+.tsl .row.stk{position:sticky;top:78px;background:var(--bg);border-top:1px solid var(--dash);margin-top:-1px;counter-increment:stk}
+.tsl .row.stk .split{height:clamp(520px,calc(100vh - 78px),720px);min-height:0}
 .tsl .row.stk + .rule{margin-top:0}
 @media (max-width:1080px){
   .tsl .row.stk{position:relative;top:auto}
@@ -619,8 +620,8 @@
   .tsl .pan,.tsl .cta2 .pan{min-height:0}
   .tsl .pan-ui .demo{min-width:0}
   .tsl .show-ui .win{min-width:0}
-  .tsl .nav-in{height:68px}
-  .tsl .nav .logo .lockup{height:38px}
+  .tsl .nav-in{height:60px}
+  .tsl .nav .logo .lockup{height:34px}
   .tsl .nav .btn-sm{padding:10px 14px;font-size:14px}
 }
 /* Narrow phones: smaller logo and buttons so Log in and the main button both fit. */
