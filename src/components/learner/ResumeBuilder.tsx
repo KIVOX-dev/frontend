@@ -517,7 +517,7 @@ export function ResumeBuilder() {
       await html2pdf().set(opt).from(element).save();
     } catch (err) {
       console.error("PDF export failed", err);
-      toast.error("Failed to export PDF.");
+      toast.error(err, "Failed to export PDF.");
     } finally {
       setSaving(false);
     }
@@ -1556,7 +1556,7 @@ export function ResumeBuilder() {
           </div>
 
           {/* Right panel: Live Resume preview */}
-          <div className={`lg:col-span-6 space-y-6 min-w-0 lg:sticky lg:top-24 ${mobilePane === "edit" ? "hidden lg:block" : ""}`}>
+          <div className={`lg:col-span-6 space-y-6 min-w-0 lg:sticky lg:top-4 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1 ${mobilePane === "edit" ? "hidden lg:block" : ""}`}>
             <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-100 shadow-xs flex flex-wrap justify-between items-center gap-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <select 

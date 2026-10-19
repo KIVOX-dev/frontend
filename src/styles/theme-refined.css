@@ -492,6 +492,74 @@ textarea:focus {
 
 .lp-right {
   background: var(--bg);
+  /* Top-aligned + an auto-margin card centers it when there's room and lets
+     the pane scroll from the top when there isn't (align-items:center clips
+     the top of a card taller than the screen, e.g. at 125-150% zoom). */
+  align-items: flex-start;
+}
+
+.lp-right > .lp-card {
+  margin-block: auto;
+}
+
+/* Short screens / zoomed browsers: tighten the card so sign-in fits without scrolling. */
+@media (max-height: 860px) {
+  .lp-right {
+    padding: 20px 24px;
+  }
+
+  .lp-card {
+    padding: 22px 28px;
+  }
+
+  .lp-card > div[style*="text-align: center"] {
+    margin-bottom: 14px !important;
+  }
+
+  .lp-card > div[style*="text-align: center"] .mb-6 {
+    margin-bottom: 6px !important;
+  }
+
+  .lp-card img {
+    max-height: 52px;
+    width: auto;
+  }
+
+  .lp-card h2 {
+    font-size: 21px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .lp-card .l-tabs {
+    margin-bottom: 12px !important;
+  }
+
+  .lp-card .lbl {
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+
+  .lp-card .fi {
+    padding-block: 8px;
+  }
+
+  .lp-card .l-submit {
+    padding-block: 9px;
+  }
+
+  .lp-card .or-div {
+    margin-top: 10px !important;
+  }
+}
+
+@media (max-height: 700px) {
+  .lp-card {
+    padding: 16px 24px;
+  }
+
+  .lp-card img {
+    max-height: 40px;
+  }
 }
 
 /* ── 7b. Settings panel (sv3-*) ─────────────────────────────── */
