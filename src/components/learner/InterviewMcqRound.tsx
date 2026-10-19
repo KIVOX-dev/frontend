@@ -70,8 +70,8 @@ export function InterviewMcqRound({
       const res = await api.post<{ source: "ai" | "unavailable"; questions: McqQuestion[] }>(
         `/interviews/generate-mcq?role=${encodeURIComponent(role)}&company=${encodeURIComponent(company)}&count=${QUESTION_COUNT}`,
         undefined,
-        // A 20-question set takes the model longer than the 30s default.
-        { timeout: 60_000 },
+        // A 25-question set takes the model longer than the 30s default.
+        { timeout: 100_000 },
       );
       if (res.data?.source === "ai" && res.data.questions?.length >= 5) qs = res.data.questions;
     } catch (err) {
