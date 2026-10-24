@@ -18,7 +18,7 @@ import {
   type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
   type StudentInsights, type InsightCategoryTrend, type Placement, type Drive, type PlacementApplication,
   BASE_CHART_OPTIONS, ChartEmptyState, SectionError, CompanyLogo, colorForKey, monthKey, monthLabel,
-  LIST_FETCH_CAP, formatCount, DepartmentMultiSelect, StudentAvatar, compareNames,
+  LIST_FETCH_CAP, formatCount, DepartmentMultiSelect, compareNames,
 } from "./collegeAdminShared";
 
 // ApexCharts touches `window` at import time, so it must never run during SSR.
@@ -282,7 +282,6 @@ export function CollegeAdminDashboard() {
           status: u.status,
           department: u.department,
           roll_number: u.roll_number,
-          avatar_url: u.avatar_url,
           created_at: u.created_at,
         }));
       setUsers(mapped);
@@ -1033,7 +1032,6 @@ export function CollegeAdminDashboard() {
       <StudentProfileView
         name={viewingInsightsFor.name}
         email={viewingInsightsFor.email}
-        avatarUrl={viewingInsightsFor.avatar_url}
         data={insightsData}
         loading={insightsLoading}
         error={insightsError}
@@ -1415,12 +1413,7 @@ export function CollegeAdminDashboard() {
             <tbody>
               {filteredUsers.map(u => (
                 <tr key={u.id} id={`row-${u.id}`} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <StudentAvatar name={u.name} url={u.avatar_url} />
-                      {u.name}
-                    </div>
-                  </td>
+                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>{u.name}</td>
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.role === "student" ? (u.roll_number || "—") : "—"}</td>
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.email}</td>
                   <td style={{ padding: "12px 8px" }}>

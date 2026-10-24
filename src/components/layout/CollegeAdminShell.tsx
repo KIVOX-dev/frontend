@@ -42,7 +42,6 @@ export function CollegeAdminShell({ children }: { children: React.ReactNode }) {
     { id: "users", label: "Manage Users", icon: <ProfileIcon /> },
     { id: "security", label: "Security & Approvals", icon: <PracticeIcon /> },
     { id: "assessments", label: "Assessments", icon: <TestsIcon /> },
-    { id: "tracking", label: "Student Tracking", icon: <IvIcon /> },
     { id: "profile-info", label: "Profile", icon: <ProfileIcon /> },
     // Settings lives in the profile chip's dropdown (ProfileMenu.tsx), not
     // the sidebar — one entry point instead of two for the same screen.
@@ -155,14 +154,6 @@ function MncIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
       <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
-    </svg>
-  );
-}
-
-function IvIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
     </svg>
   );
 }

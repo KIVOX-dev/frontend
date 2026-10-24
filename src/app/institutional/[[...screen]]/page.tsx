@@ -28,7 +28,6 @@ const CollegeAdminDashboard = dynamic(() => import("@/components/institutional/C
 const ReportsCompliance = dynamic(() => import("@/components/institutional/ReportsCompliance").then((m) => m.ReportsCompliance));
 const FacultyDashboard = dynamic(() => import("@/components/institutional/FacultyDashboard").then((m) => m.FacultyDashboard));
 const InstitutionalApproval = dynamic(() => import("@/components/institutional/InstitutionalApproval").then((m) => m.InstitutionalApproval));
-const StudentTracking = dynamic(() => import("@/components/institutional/StudentTracking").then((m) => m.StudentTracking));
 const AddStudentPanel = dynamic(() => import("@/components/institutional/AddStudentPanel").then((m) => m.AddStudentPanel));
 const FacultyUpload = dynamic(() => import("@/components/faculty/FacultyUpload").then((m) => m.FacultyUpload));
 const AptitudeTests = dynamic(() => import("@/components/learner/AptitudeTests").then((m) => m.AptitudeTests));
@@ -246,8 +245,6 @@ function InstitutionalContent() {
         return <ReportsCompliance />;
       case "users":
         return <CollegeAdminDashboard />;
-      case "tracking":
-        return <StudentTracking />;
       case "history":
         return <TestHistory />;
       case "tests":
