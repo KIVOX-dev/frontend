@@ -577,10 +577,12 @@ export function ProfilePanel() {
       // application/json header so the browser sets the correct
       // multipart/form-data boundary itself — explicitly setting
       // "multipart/form-data" here would omit that boundary and break the upload.
-      const res = await api.post<StudentProfile>("/students/profile/avatar", formData, {
+      // Students keep their photo on their student profile; every other role
+      // stores it on their own user account.
+      const res = await api.post<StudentProfile>(isStudent ? "/students/profile/avatar" : "/users/me/avatar", formData, {
         headers: { "Content-Type": undefined },
       } as ApiRequestConfig);
-      setStudentProfile(res.data);
+      if (isStudent) setStudentProfile(res.data);
       // Keeps the top-right profile chip (ProfileMenu.tsx) in sync instantly —
       // it reads avatar_url off the shared auth store, not this component's
       // own state.
@@ -605,10 +607,11 @@ export function ProfilePanel() {
     try {
       const formData = new FormData();
       formData.append("cover", file);
-      const res = await api.post<StudentProfile>("/students/profile/cover", formData, {
+      const res = await api.post<StudentProfile>(isStudent ? "/students/profile/cover" : "/users/me/cover", formData, {
         headers: { "Content-Type": undefined },
       } as ApiRequestConfig);
-      setStudentProfile(res.data);
+      if (isStudent) setStudentProfile(res.data);
+      else if (res.data.cover_image_url) updateUser({ cover_image_url: res.data.cover_image_url });
     } catch (err: unknown) {
       setCoverError(extractErrorMessage(err, "Couldn't upload cover image"));
     } finally {
@@ -734,6 +737,11 @@ export function ProfilePanel() {
     }
   };
 
+  // Photo and banner shown on the page: a student's live in their student
+  // profile, everyone else's on the signed-in account itself.
+  const avatarSrc = isStudent ? studentProfile?.avatar_url : typeof user?.avatar_url === "string" ? user.avatar_url : null;
+  const coverSrc = isStudent ? studentProfile?.cover_image_url : typeof user?.cover_image_url === "string" ? user.cover_image_url : null;
+
   const initials = (user?.name || "?")
     .split(" ")
     .map((p) => p[0])
@@ -745,16 +753,15 @@ export function ProfilePanel() {
     <div className="py-4 md:p-10 max-w-5xl mx-auto">
       {/* Cover banner */}
       <div className="relative h-32 md:h-40 rounded-xl overflow-hidden">
-        {studentProfile?.cover_image_url ? (
+        {coverSrc ? (
           // eslint-disable-next-line @next/next/no-img-element -- externally hosted (GCS), not a static/imported asset next/image expects
-          <img src={studentProfile.cover_image_url} alt="" className="absolute inset-0 size-full object-cover" />
+          <img src={coverSrc} alt="" className="absolute inset-0 size-full object-cover" />
         ) : (
           <div
             className="absolute inset-0"
             style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 55%, white) 100%)" }}
           />
         )}
-        {isStudent && (
           <label className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-md bg-black/50 hover:bg-black/65 text-white text-xs font-medium px-2.5 py-1.5 cursor-pointer transition-colors">
             <Camera className="size-3.5" />
             {uploadingCover ? "Uploading…" : "Edit banner"}
@@ -766,7 +773,7 @@ export function ProfilePanel() {
               disabled={uploadingCover}
             />
           </label>
-        )}
+
       </div>
       {coverError && <p className="text-small text-danger mt-1 px-2">{coverError}</p>}
 
@@ -776,12 +783,11 @@ export function ProfilePanel() {
       <div className="px-2 -mt-12 md:-mt-14 mb-6">
         <div className="relative inline-block">
           <Avatar
-            src={studentProfile?.avatar_url}
+            src={avatarSrc}
             fallback={initials}
             size="lg"
             className="size-24 md:size-28 text-3xl ring-4 ring-white shadow-md"
           />
-          {isStudent && (
             <label className="absolute bottom-0 right-0 flex items-center justify-center size-8 rounded-full bg-ink text-white cursor-pointer shadow-md hover:bg-ink/90 transition-colors">
               <Camera className="size-4" />
               <input
@@ -792,7 +798,7 @@ export function ProfilePanel() {
                 disabled={uploadingAvatar}
               />
             </label>
-          )}
+
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="min-w-0">

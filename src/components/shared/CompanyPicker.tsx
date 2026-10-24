@@ -11,6 +11,19 @@ export const COMPANY_OPTIONS = [
   "Oracle", "SAP", "Adobe", "Cisco", "Dell", "Freshworks", "Paytm", "Zomato",
 ];
 
+// One spelling per company, wherever it's shown: "tcs", "TCS " and "Tcs" all
+// read "TCS". Listed companies use their catalog spelling; any other name
+// typed entirely in lower case is title-cased, and a name with deliberate
+// capitals (e.g. "iGate", "McKinsey") is left exactly as typed.
+const companyKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+export function displayCompanyName(name: string | null | undefined): string {
+  const clean = (name ?? "").trim().replace(/\s+/g, " ");
+  if (!clean) return "";
+  const listed = COMPANY_OPTIONS.find((c) => companyKey(c) === companyKey(clean));
+  if (listed) return listed;
+  return clean === clean.toLowerCase() ? clean.replace(/(^|[\s&/-])[a-z]/g, (m) => m.toUpperCase()) : clean;
+}
+
 type Props = {
   value: string;
   onChange: (value: string) => void;

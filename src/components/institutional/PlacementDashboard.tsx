@@ -6,6 +6,7 @@ import {
   FileSpreadsheet, RefreshCw, Download, Plus, ArrowUpRight, ArrowDownRight, ExternalLink,
 } from "./dazzleIcons";
 import { toast } from "@/lib/toast";
+import { displayCompanyName } from "@/components/shared/CompanyPicker";
 import {
   type User, type Placement, type Drive, type Department, type StudentRecord, type PlacementApplication,
   BASE_CHART_OPTIONS, ChartEmptyState, SectionError, CompanyLogo, monthKey, monthLabel,
@@ -273,8 +274,7 @@ export function PlacementDashboard({
     const map = new Map<string, { name: string; count: number; salarySum: number }>();
     for (const p of placements) {
       const key = companyKey(p.company_name);
-      const entry = map.get(key) || { name: p.company_name.trim(), count: 0, salarySum: 0 };
-      if (entry.name === entry.name.toLowerCase() && p.company_name !== p.company_name.toLowerCase()) entry.name = p.company_name.trim();
+      const entry = map.get(key) || { name: displayCompanyName(p.company_name), count: 0, salarySum: 0 };
       entry.count += 1;
       entry.salarySum += p.salary_lpa || 0;
       map.set(key, entry);
@@ -611,7 +611,7 @@ export function PlacementDashboard({
                 <div key={d.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", border: "1px solid var(--border)", borderRadius: "10px", minWidth: 0 }}>
                   <CompanyLogo name={d.company_name} size={32} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.company_name}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayCompanyName(d.company_name)}</div>
                     <div style={{ fontSize: "12px", color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>

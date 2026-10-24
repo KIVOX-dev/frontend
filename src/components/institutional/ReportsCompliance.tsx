@@ -3,12 +3,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { displayRoleName } from "@/lib/roleName";
 import { extractErrorMessage } from "@/lib/errors";
 import { openOutcomeProofDocument, openPlacementProofDocument } from "@/lib/placementProof";
 import { MULTIPART, STATUS_BADGE, STATUS_LABEL, type StudentOutcome, type VerificationStatus } from "@/lib/outcomes";
 import { OutcomeFormModal } from "@/components/shared/OutcomeFormModal";
+import { displayCompanyName } from "@/components/shared/CompanyPicker";
 import { FileSpreadsheet, FileDown } from "./dazzleIcons";
-import { SectionError, StudentAvatar } from "./collegeAdminShared";
+import { CompanyLogo, SectionError, StudentAvatar } from "./collegeAdminShared";
 
 type TabId = "nirf" | "naac" | "nba" | "higher-studies" | "competitive-exams" | "offer-letters" | "audit-log";
 type Department = { id: string; name: string };
@@ -70,7 +72,7 @@ type OfferReport = {
 };
 
 type AuditReport = {
-  rows: { id: string; at: string; action: string; actor: string; actor_role: string | null; student: string | null; subject: string | null; detail: string | null }[];
+  rows: { id: string; at: string; action: string; actor: string; actor_role: string | null; actor_avatar_url?: string | null; student: string | null; student_avatar_url?: string | null; subject: string | null; detail: string | null }[];
   total: number;
   page: number;
   limit: number;
@@ -914,8 +916,8 @@ function OfferLetters({ report, reminding, busyId, onRemind, onUpload }: { repor
                 </td>
                 <td style={td}>{r.roll_number ?? "—"}</td>
                 <td style={td}>{r.department}</td>
-                <td style={td}>{r.company}</td>
-                <td style={td}>{r.role}</td>
+                <td style={td}>{displayCompanyName(r.company)}</td>
+                <td style={td}>{displayRoleName(r.role)}</td>
                 <td style={td}>
                   <span style={{ padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: 600, background: STATUS_STYLE[r.status].bg, color: STATUS_STYLE[r.status].color }}>
                     {STATUS_STYLE[r.status].label}
@@ -924,11 +926,11 @@ function OfferLetters({ report, reminding, busyId, onRemind, onUpload }: { repor
                 <td style={{ ...td, textAlign: "right" }}>
                   <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
                     {r.has_letter && (
-                      <button type="button" onClick={() => openPlacementProofDocument(r.id)} style={linkButton}>
+                      <button type="button" className="btn btn-o btn-sm" onClick={() => openPlacementProofDocument(r.id)}>
                         View
                       </button>
                     )}
-                    <button type="button" disabled={busyId === r.id} onClick={() => onUpload(r.id)} style={actionButton("var(--accent)")}>
+                    <button type="button" className="btn btn-p btn-sm" disabled={busyId === r.id} onClick={() => onUpload(r.id)}>
                       {busyId === r.id ? "Uploading…" : r.has_letter ? "Replace" : "Upload"}
                     </button>
                   </div>
@@ -942,6 +944,11 @@ function OfferLetters({ report, reminding, busyId, onRemind, onUpload }: { repor
     </>
   );
 }
+
+// "18 Oct 2026, 2:27 PM" — the same unambiguous format for every row (the
+// browser's default mixed 10/18/2026 with the viewer's locale).
+const formatAuditTime = (iso: string) =>
+  new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
 
 function AuditTable({ report, onPage }: { report: AuditReport; onPage: (page: number) => void }) {
   const pages = Math.max(1, Math.ceil(report.total / report.limit));
@@ -965,17 +972,42 @@ function AuditTable({ report, onPage }: { report: AuditReport; onPage: (page: nu
           <tbody>
             {report.rows.map((r) => (
               <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                <td style={{ ...td, whiteSpace: "nowrap" }}>{new Date(r.at).toLocaleString()}</td>
+                <td style={{ ...td, whiteSpace: "nowrap" }}>{formatAuditTime(r.at)}</td>
                 <td style={td}>
-                  {r.actor}
-                  {r.actor_role && <span style={{ color: "var(--muted)", fontSize: "12px" }}> · {r.actor_role.replace("_", " ")}</span>}
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <StudentAvatar name={r.actor} url={r.actor_avatar_url} />
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{r.actor}</div>
+                      {r.actor_role && <div style={{ color: "var(--muted)", fontSize: "12px", textTransform: "capitalize" }}>{r.actor_role.replace("_", " ")}</div>}
+                    </div>
+                  </div>
                 </td>
                 <td style={td}>
                   {ACTION_LABEL[r.action] ?? r.action}
                   {r.detail && <span style={{ color: "var(--muted)" }}> — {r.detail}</span>}
                 </td>
-                <td style={td}>{r.student ?? "—"}</td>
-                <td style={td}>{r.subject ?? "—"}</td>
+                <td style={td}>
+                  {r.student ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <StudentAvatar name={r.student} url={r.student_avatar_url} />
+                      <span style={{ fontWeight: 500 }}>{r.student}</span>
+                    </div>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td style={td}>
+                  {/* Placement events carry a company (shown with its logo, in its standard spelling);
+                      exam / higher-study events carry a plain description. */}
+                  {r.subject && r.action.startsWith("placement_") ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <CompanyLogo name={r.subject} size={22} />
+                      {displayCompanyName(r.subject)}
+                    </div>
+                  ) : (
+                    (r.subject ?? "—")
+                  )}
+                </td>
               </tr>
             ))}
             {report.rows.length === 0 && <Empty cols={5}>No activity recorded yet for this selection.</Empty>}

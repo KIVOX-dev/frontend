@@ -366,7 +366,13 @@ export function StudentProfileView({ name, email, department, avatarUrl, data, l
               <Empty>No assessments completed by this student yet.</Empty>
             ) : (
               <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", fontSize: "14px" }}>
+                <table style={{ width: "100%", minWidth: "480px", textAlign: "left", borderCollapse: "collapse", fontSize: "14px", tableLayout: "fixed" }}>
+                  <colgroup>
+                    <col style={{ width: "24%" }} />
+                    <col style={{ width: "18%" }} />
+                    <col style={{ width: "40%" }} />
+                    <col style={{ width: "18%" }} />
+                  </colgroup>
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--muted)", fontSize: "12px", textTransform: "uppercase" }}>
                       <th style={{ padding: "12px 8px" }}>Date</th>
@@ -378,14 +384,16 @@ export function StudentProfileView({ name, email, department, avatarUrl, data, l
                   <tbody>
                     {[...history].reverse().map((a) => (
                       <tr key={a.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                        <td style={{ padding: "12px 8px", color: "var(--muted)" }}>{shortDate(a.created_at)}</td>
-                        <td style={{ padding: "12px 8px", fontWeight: 500, color: "var(--text)" }}>{a.score} / {a.max_score}</td>
+                        <td style={{ padding: "12px 8px", color: "var(--muted)", whiteSpace: "nowrap" }}>{shortDate(a.created_at)}</td>
+                        <td style={{ padding: "12px 8px", fontWeight: 500, color: "var(--text)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{a.score} / {a.max_score}</td>
                         <td style={{ padding: "12px 8px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <div style={{ flex: 1, height: "6px", background: "var(--bg)", borderRadius: "3px", overflow: "hidden" }}>
-                              <div style={{ height: "100%", width: `${a.percentage}%`, background: scoreColor(a.percentage) }} />
+                          {/* Bar and percentage sit together at a fixed width, with a visible
+                              track so a 0% attempt reads as an empty bar, not a blank gap. */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px", maxWidth: "260px" }}>
+                            <div style={{ flex: 1, height: "8px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${Math.min(100, Math.max(0, a.percentage))}%`, background: scoreColor(a.percentage), borderRadius: "4px" }} />
                             </div>
-                            <span style={{ fontSize: "13px", fontWeight: 600, width: "36px", color: "var(--text)" }}>{Math.round(a.percentage)}%</span>
+                            <span style={{ fontSize: "13px", fontWeight: 600, minWidth: "40px", textAlign: "right", color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{Math.round(a.percentage)}%</span>
                           </div>
                         </td>
                         <td style={{ padding: "12px 8px", textAlign: "right" }}>

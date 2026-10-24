@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { LayoutList, LayoutGrid, FileSpreadsheet, FileDown } from "./dazzleIcons";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { displayRoleName } from "@/lib/roleName";
 import { extractErrorMessage as apiErrorMessage } from "@/lib/errors";
 import { openPlacementProofDocument } from "@/lib/placementProof";
 import { useModalA11y } from "@/hooks/useModalA11y";
@@ -13,7 +14,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { getDepartmentOptions } from "@/lib/departmentCatalog";
 import { PlacementDashboard } from "./PlacementDashboard";
 import { StudentProfileView } from "./StudentProfileView";
-import { CompanyPicker } from "@/components/shared/CompanyPicker";
+import { CompanyPicker, displayCompanyName } from "@/components/shared/CompanyPicker";
 import {
   type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
   type StudentInsights, type InsightCategoryTrend, type Placement, type Drive, type PlacementApplication,
@@ -197,9 +198,21 @@ export function CollegeAdminDashboard() {
   // would silently merge them into one filter option covering attempts from
   // BOTH. test_id is always present and unique even when the test itself no
   // longer exists (see test.service.js#collegeResults's fallback comment).
+  //
+  // Attempts whose test was deleted come back labelled "Unknown test (N pts)" —
+  // one label per deleted test — and listing each separately buried the real
+  // tests under a long run of identical-looking rows. They're folded into a
+  // single "Deleted tests" entry at the end instead.
+  const DELETED_TESTS = "__deleted__";
+  const isDeletedTest = (r: AttemptResult) => r.test_title.startsWith("Unknown test");
   const resultTestOptions = useMemo(() => {
     const byId = new Map<string, { id: string; label: string; count: number }>();
+    let deletedCount = 0;
     for (const r of results) {
+      if (isDeletedTest(r)) {
+        deletedCount += 1;
+        continue;
+      }
       const existing = byId.get(r.test_id);
       if (existing) {
         existing.count += 1;
@@ -207,13 +220,19 @@ export function CollegeAdminDashboard() {
         byId.set(r.test_id, { id: r.test_id, label: r.test_title, count: 1 });
       }
     }
-    return Array.from(byId.values()).sort((a, b) => a.label.localeCompare(b.label));
+    const options = Array.from(byId.values()).sort((a, b) => a.label.localeCompare(b.label));
+    if (deletedCount > 0) options.push({ id: DELETED_TESTS, label: "Deleted tests", count: deletedCount });
+    return options;
   }, [results]);
   const filteredResults = useMemo(
     () =>
-      [...(resultsTestFilter ? results.filter((r) => r.test_id === resultsTestFilter) : results)].sort(
-        (a, b) => compareNames(a.student_name, b.student_name) || compareNames(a.test_title, b.test_title)
-      ),
+      [
+        ...(resultsTestFilter === DELETED_TESTS
+          ? results.filter(isDeletedTest)
+          : resultsTestFilter
+            ? results.filter((r) => r.test_id === resultsTestFilter)
+            : results),
+      ].sort((a, b) => compareNames(a.student_name, b.student_name) || compareNames(a.test_title, b.test_title)),
     [results, resultsTestFilter]
   );
 
@@ -528,10 +547,11 @@ export function CollegeAdminDashboard() {
   const companyStats = useMemo(() => {
     const byCompany = new Map<string, { company: string; count: number; totalSalary: number }>();
     for (const p of placements) {
-      const entry = byCompany.get(p.company_name) || { company: p.company_name, count: 0, totalSalary: 0 };
+      const company = displayCompanyName(p.company_name);
+      const entry = byCompany.get(company) || { company, count: 0, totalSalary: 0 };
       entry.count += 1;
       entry.totalSalary += p.salary_lpa || 0;
-      byCompany.set(p.company_name, entry);
+      byCompany.set(company, entry);
     }
     return Array.from(byCompany.values())
       .map(c => ({ ...c, avgSalary: c.totalSalary / c.count }))
@@ -570,8 +590,8 @@ export function CollegeAdminDashboard() {
         // student_id is a UUID (the students collection's own row id) —
         // never a number, so it must be sent as-is, not through parseInt().
         student_id: placementForm.student_id,
-        company_name: placementForm.company_name,
-        role: placementForm.role,
+        company_name: displayCompanyName(placementForm.company_name),
+        role: displayRoleName(placementForm.role),
         salary_lpa: parseFloat(placementForm.salary_lpa) || 0,
         work_type: placementForm.work_type,
         mode: placementForm.mode,
@@ -643,7 +663,7 @@ export function CollegeAdminDashboard() {
     try {
       await api.post("/placements", {
         title: driveForm.title,
-        company_name: driveForm.company_name,
+        company_name: displayCompanyName(driveForm.company_name),
         location: driveForm.location || undefined,
         job_type: driveForm.job_type,
         salary_min_lpa: driveForm.salary_min_lpa ? parseFloat(driveForm.salary_min_lpa) : undefined,
@@ -1167,10 +1187,10 @@ export function CollegeAdminDashboard() {
                     <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <CompanyLogo name={p.company_name} size={22} />
-                        {p.company_name}
+                        {displayCompanyName(p.company_name)}
                       </div>
                     </td>
-                    <td style={{ padding: "12px 8px" }}>{p.role}</td>
+                    <td style={{ padding: "12px 8px" }}>{displayRoleName(p.role)}</td>
                     <td style={{ padding: "12px 8px" }}>{p.salary_lpa}</td>
                     <td style={{ padding: "12px 8px" }}>
                       <span style={{ padding: "4px 10px", background: p.verification_status === "verified" ? "#e6f4ea" : p.verification_status === "rejected" ? "#fee2e2" : "#fef3c7", color: p.verification_status === "verified" ? "#1e8e3e" : p.verification_status === "rejected" ? "#dc2626" : "#b45309", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{p.verification_status}</span>
@@ -1281,7 +1301,7 @@ export function CollegeAdminDashboard() {
                     <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <CompanyLogo name={d.company_name} size={22} logoUrl={d.company_logo_url} />
-                        {d.company_name}
+                        {displayCompanyName(d.company_name)}
                       </div>
                     </td>
                     <td style={{ padding: "12px 8px" }}>{d.applicant_count}</td>
@@ -1474,13 +1494,15 @@ export function CollegeAdminDashboard() {
                     <span style={{ padding: "4px 10px", background: u.status === "approved" ? "#e6f4ea" : u.status === "pending" ? "#fef3c7" : "#fee2e2", color: u.status === "approved" ? "#1e8e3e" : u.status === "pending" ? "#b45309" : "#dc2626", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{u.status}</span>
                   </td>
                   <td style={{ padding: "12px 8px", textAlign: "right" }}>
-                    {u.role === "student" && (
-                      <button onClick={() => handleViewInsights(u)} style={{ background: "none", border: "none", color: "var(--purple, #7c3aed)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}>View Insights</button>
-                    )}
-                    {u.role === "student" && (
-                      <button onClick={() => openEditStudent(u)} style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}>Edit</button>
-                    )}
-                    <button onClick={() => handleDeleteUser(u.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>Delete</button>
+                    <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", whiteSpace: "nowrap" }}>
+                      {u.role === "student" && (
+                        <button className="btn btn-o btn-sm" onClick={() => handleViewInsights(u)}>View Insights</button>
+                      )}
+                      {u.role === "student" && (
+                        <button className="btn btn-p btn-sm" onClick={() => openEditStudent(u)}>Edit</button>
+                      )}
+                      <button className="btn btn-red btn-sm" onClick={() => handleDeleteUser(u.id)}>Delete</button>
+                    </div>
                   </td>
                 </tr>
               ))}
