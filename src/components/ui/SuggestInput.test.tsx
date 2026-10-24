@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { SuggestInput } from "./SuggestInput";
@@ -40,9 +41,14 @@ describe("SuggestInput", () => {
   });
 
   it("never blocks text that isn't in the list", () => {
-    const { input, onChange } = setup("");
+    function Harness() {
+      const [v, setV] = useState("");
+      return <SuggestInput value={v} onChange={setV} suggestions={CITIES} placeholder="Location" />;
+    }
+    render(<Harness />);
+    const input = screen.getByPlaceholderText("Location") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "Smalltown" } });
-    expect(onChange).toHaveBeenCalledWith("Smalltown");
+    expect(input.value).toBe("Smalltown");
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 });
