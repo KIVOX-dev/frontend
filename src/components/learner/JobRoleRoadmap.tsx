@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
+const VISIBLE_PER_SKILL = 6;
+
 type RoadmapPlaylist = {
   youtubePlaylistId: string;
   title: string;
@@ -76,6 +78,11 @@ export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null
     }
   };
 
+  // Added playlists drop out of the list and the next unseen one from the
+  // backend's larger pool slides into the freed slot.
+  const visiblePlaylists = (step: RoadmapStep) =>
+    (step.playlists ?? []).filter((p) => !addedIds.has(p.youtubePlaylistId)).slice(0, VISIBLE_PER_SKILL);
+
   if (!targetJobRole) {
     return (
       <Card className="max-w-xl mx-auto text-center py-10">
@@ -139,12 +146,15 @@ export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null
               </span>
             </div>
 
-            {!step.playlists?.length ? (
-              <p className="text-small text-ink-muted">No playlists available for this skill right now.</p>
+            {!visiblePlaylists(step).length ? (
+              <p className="text-small text-ink-muted">
+                {step.playlists?.length
+                  ? "You've added every suggested playlist for this skill."
+                  : "No playlists available for this skill right now."}
+              </p>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {step.playlists.map((playlist) => {
-                  const added = addedIds.has(playlist.youtubePlaylistId);
+                {visiblePlaylists(step).map((playlist) => {
                   return (
                     <div key={playlist.youtubePlaylistId} className="rounded-md border border-line overflow-hidden flex flex-col">
                       <div className="relative aspect-video bg-paper-tint shrink-0">
@@ -166,19 +176,17 @@ export function JobRoleRoadmap({ targetJobRole }: { targetJobRole: string | null
                         <p className="text-caption mb-3 min-h-[1lh] truncate">{playlist.channelTitle}</p>
                         <Button
                           size="sm"
-                          variant={added ? "secondary" : "primary"}
+                          variant="primary"
                           className="w-full mt-auto"
-                          disabled={added || addingId === playlist.youtubePlaylistId}
+                          disabled={addingId === playlist.youtubePlaylistId}
                           onClick={() => handleAdd(playlist)}
                         >
                           {addingId === playlist.youtubePlaylistId ? (
                             <Loader2 className="size-3.5 animate-spin" />
-                          ) : added ? (
-                            <CheckCircle2 className="size-3.5" />
                           ) : (
                             <Play className="size-3.5" />
                           )}
-                          {added ? "Added to Learnings" : "Add to Learnings"}
+                          Add to Learnings
                         </Button>
                       </div>
                     </div>
