@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Field, Label, Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { SuggestInput } from "@/components/ui/SuggestInput";
+import { COMPANY_SUGGESTIONS, JOB_TITLE_SUGGESTIONS, LOCATION_SUGGESTIONS } from "@/lib/suggestions";
 import { PerformanceSummarySection } from "@/components/shared/PerformanceSummarySection";
 import { IntegrationsSection } from "@/components/shared/IntegrationsSection";
 import { SkillsSection } from "@/components/shared/SkillsSection";
@@ -230,11 +232,11 @@ function WorkExperienceModal({
         <div className="grid sm:grid-cols-2 gap-4">
           <Field>
             <Label>Job Title *</Label>
-            <Input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Eg. UI/UX Designer" required />
+            <SuggestInput value={jobTitle} onChange={setJobTitle} suggestions={JOB_TITLE_SUGGESTIONS} placeholder="Eg. UI/UX Designer" required />
           </Field>
           <Field>
             <Label>Company Name *</Label>
-            <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Eg. Microsoft" required />
+            <SuggestInput value={companyName} onChange={setCompanyName} suggestions={COMPANY_SUGGESTIONS} placeholder="Eg. Microsoft" required />
           </Field>
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
@@ -273,7 +275,7 @@ function WorkExperienceModal({
         </div>
         <Field>
           <Label>Location</Label>
-          <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Eg. Bengaluru, India" />
+          <SuggestInput value={location} onChange={setLocation} suggestions={LOCATION_SUGGESTIONS} placeholder="Eg. Bengaluru, India" />
         </Field>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field>

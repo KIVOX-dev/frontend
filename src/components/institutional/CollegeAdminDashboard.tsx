@@ -378,6 +378,25 @@ export function CollegeAdminDashboard() {
     }
   };
 
+  // A drive counts as open unless it's been closed or cancelled. Closing stops
+  // students applying (the API rejects new applications); reopening lets them again.
+  const isDriveOpen = (d: Drive) => d.status !== "closed" && d.status !== "cancelled";
+  const [togglingDriveId, setTogglingDriveId] = useState<number | null>(null);
+  const handleToggleDrive = async (d: Drive) => {
+    const closing = isDriveOpen(d);
+    if (closing && !confirm(`Close "${d.title}"? Students won't be able to apply until you reopen it.`)) return;
+    setTogglingDriveId(d.id);
+    try {
+      await api.put(`/placements/${d.id}`, { status: closing ? "closed" : "open" });
+      await fetchDrives();
+      toast.success(closing ? "Drive closed" : "Drive reopened");
+    } catch (err) {
+      toast.error(err, closing ? "Couldn't close the drive" : "Couldn't reopen the drive");
+    } finally {
+      setTogglingDriveId(null);
+    }
+  };
+
   // Drives every fetch this component needs — not just on mount, but also
   // the Placement Dashboard's Refresh button. Promise.allSettled (not
   // Promise.all) so one failing list doesn't stop the others from loading,
@@ -1292,6 +1311,7 @@ export function CollegeAdminDashboard() {
                   <th style={{ padding: "12px 8px" }}>Applicants</th>
                   <th style={{ padding: "12px 8px" }}>Deadline</th>
                   <th style={{ padding: "12px 8px" }}>Status</th>
+                  <th style={{ padding: "12px 8px", textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1307,12 +1327,21 @@ export function CollegeAdminDashboard() {
                     <td style={{ padding: "12px 8px" }}>{d.applicant_count}</td>
                     <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{d.application_deadline ? new Date(d.application_deadline).toLocaleDateString() : "—"}</td>
                     <td style={{ padding: "12px 8px" }}>
-                      <span style={{ padding: "4px 10px", background: d.status === "active" ? "#e6f4ea" : "#f3f4f6", color: d.status === "active" ? "#1e8e3e" : "#6b7280", borderRadius: "6px", fontSize: "12px", fontWeight: 600, textTransform: "capitalize" }}>{d.status}</span>
+                      <span style={{ padding: "4px 10px", background: isDriveOpen(d) ? "#e6f4ea" : "#fee2e2", color: isDriveOpen(d) ? "#1e8e3e" : "#dc2626", borderRadius: "6px", fontSize: "12px", fontWeight: 600 }}>{isDriveOpen(d) ? "Open" : "Closed"}</span>
+                    </td>
+                    <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                      <button
+                        className={isDriveOpen(d) ? "btn btn-red btn-sm" : "btn btn-green btn-sm"}
+                        disabled={togglingDriveId === d.id}
+                        onClick={() => handleToggleDrive(d)}
+                      >
+                        {togglingDriveId === d.id ? "Saving…" : isDriveOpen(d) ? "Close" : "Open"}
+                      </button>
                     </td>
                   </tr>
                 ))}
                 {drives.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No students have applied for a drive — none have been posted yet.</td></tr>
+                  <tr><td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No students have applied for a drive — none have been posted yet.</td></tr>
                 )}
               </tbody>
             </table>

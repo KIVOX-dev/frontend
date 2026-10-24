@@ -8,6 +8,7 @@ import { extractErrorMessage } from "@/lib/errors";
 import { useUiStore } from "@/stores/uiStore";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 
 type StudentSetupProfile = {
@@ -21,6 +22,7 @@ type JobRole = {
   title: string;
   description: string;
   skill_count: number;
+  skills?: string[];
 };
 
 type BadgeProgress = {
@@ -59,6 +61,16 @@ export function SetupWizard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
+  const [roleQuery, setRoleQuery] = useState("");
+  const visibleRoles = (roles || []).filter((role) => {
+    const q = roleQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      role.title.toLowerCase().includes(q) ||
+      role.description.toLowerCase().includes(q) ||
+      (role.skills ?? []).some((sk) => sk.toLowerCase().includes(q))
+    );
+  });
   const [openStep, setOpenStep] = useState<StepId | null>(null);
 
   const loadRoadmap = (roleId: string) => {
@@ -199,8 +211,19 @@ export function SetupWizard() {
                   )}
 
                   {step.id === "job-role" && (
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      {(roles || []).map((role) => (
+                    <div>
+                      {/* 30+ roles: searchable by role name, description or any skill in it,
+                          and scrolls inside its own box instead of stretching the page. */}
+                      <Input
+                        type="search"
+                        value={roleQuery}
+                        onChange={(e) => setRoleQuery(e.target.value)}
+                        placeholder="Search roles, e.g. Java, data, design…"
+                        aria-label="Search job roles"
+                        className="mb-3"
+                      />
+                      <div className="grid sm:grid-cols-2 gap-3 max-h-[420px] overflow-y-auto pr-1">
+                      {visibleRoles.map((role) => (
                         <button
                           key={role.id}
                           type="button"
@@ -222,6 +245,10 @@ export function SetupWizard() {
                           <p className="text-caption text-ink-muted mt-1">{role.skill_count} skills</p>
                         </button>
                       ))}
+                      {roles && roles.length > 0 && visibleRoles.length === 0 && (
+                        <p className="text-small text-ink-muted sm:col-span-2 py-4 text-center">No roles match “{roleQuery}”.</p>
+                      )}
+                      </div>
                     </div>
                   )}
 
