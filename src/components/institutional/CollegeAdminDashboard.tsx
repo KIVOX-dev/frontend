@@ -133,7 +133,7 @@ export function CollegeAdminDashboard() {
   const [assessmentForm, setAssessmentForm] = useState({
     title: "", description: "", source_category: "quantitative", question_count: 20,
     difficulty: "medium", duration_minutes: 30, total_marks: 100, pass_percentage: 40,
-    status: "active", start_at: "", end_at: "", department_id: "", batch_year: String(new Date().getFullYear()),
+    status: "active", start_at: "", end_at: "",
   });
 
   // Assign-test form — separate from the create form: assigning a test to a
@@ -866,40 +866,14 @@ export function CollegeAdminDashboard() {
         end_at: assessmentForm.end_at ? istDatetimeLocalToIso(assessmentForm.end_at) : null,
       });
 
-      let assignNote = "";
-      let assignFailed = false;
-      if (assessmentForm.department_id) {
-        try {
-          // A department-sized roster (100+ students) is real per-student
-          // work server-side even with the chunked-concurrency fix —
-          // overridden here rather than raising the shared 30s default
-          // everywhere, same reasoning as the batch-upload endpoint.
-          const assignRes = await api.post("/test-assignments", {
-            test_id: res.data.id,
-            department_id: assessmentForm.department_id,
-            batch_year: parseInt(assessmentForm.batch_year, 10) || new Date().getFullYear(),
-          }, { timeout: 4 * 60 * 1000 });
-          const { assigned_count, matched_students } = assignRes.data as { assigned_count: number; matched_students: number };
-          assignNote = `Assigned to ${assigned_count} of ${matched_students} matching student(s).`;
-        } catch (assignErr: any) {
-          assignFailed = true;
-          assignNote = `Created, but assigning it failed: ${apiErrorMessage(assignErr, "unknown error")}`;
-        }
-      }
-
       setShowCreateAssessment(false);
       setAssessmentForm({
         title: "", description: "", source_category: "quantitative", question_count: 20,
         difficulty: "medium", duration_minutes: 30, total_marks: 100, pass_percentage: 40,
-        status: "active", start_at: "", end_at: "", department_id: "", batch_year: String(new Date().getFullYear()),
+        status: "active", start_at: "", end_at: "",
       });
       fetchAssessments();
-      if (assignNote) {
-        if (assignFailed) toast.warning("Assessment created", assignNote);
-        else toast.success("Assessment created", assignNote);
-      } else {
-        toast.success("Assessment created");
-      }
+      toast.success("Assessment created", "Use Assign to send it to a department and batch.");
     } catch (err: any) {
       toast.error(err, "Failed to create assessment");
     }
@@ -1821,22 +1795,7 @@ export function CollegeAdminDashboard() {
                   <input type="datetime-local" className="fi" value={assessmentForm.end_at} onChange={e => setAssessmentForm({ ...assessmentForm, end_at: e.target.value })} />
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
-                <div>
-                  <label className="lbl">Department (Optional)</label>
-                  <select className="fi" value={assessmentForm.department_id} onChange={e => setAssessmentForm({ ...assessmentForm, department_id: e.target.value })}>
-                    <option value="">Assign later / all</option>
-                    {departments.map(dept => (
-                      <option key={dept.id} value={dept.id}>{dept.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="lbl">Batch Year {assessmentForm.department_id && <span style={{ color: "var(--red)" }}>*</span>}</label>
-                  <input type="number" className="fi" value={assessmentForm.batch_year} onChange={e => setAssessmentForm({ ...assessmentForm, batch_year: e.target.value })} disabled={!assessmentForm.department_id} />
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "20px" }}>
                 <button type="button" className="btn" onClick={() => setShowCreateAssessment(false)}>Cancel</button>
                 <button type="submit" className="btn btn-p">Create</button>
               </div>
@@ -1862,6 +1821,7 @@ export function CollegeAdminDashboard() {
                   selected={assignForm.department_ids}
                   onChange={department_ids => setAssignForm({ ...assignForm, department_ids })}
                   placeholder="Select departments…"
+                  inline
                 />
               </div>
               <div style={{ marginBottom: "20px" }}>

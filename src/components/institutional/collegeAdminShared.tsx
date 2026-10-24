@@ -393,12 +393,17 @@ export function DepartmentMultiSelect({
   onChange,
   placeholder = "Select departments…",
   emptyMessage = "No departments found for this institution yet.",
+  inline = false,
 }: {
   options: { id: string; label: string }[];
   selected: string[];
   onChange: (next: string[]) => void;
   placeholder?: string;
   emptyMessage?: string;
+  // Renders the open panel in the normal flow (pushing following fields
+  // down) instead of floating over them — for use inside a scrolling modal,
+  // where a floating panel gets clipped and hides the controls below it.
+  inline?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -467,15 +472,12 @@ export function DepartmentMultiSelect({
         <div
           role="listbox"
           style={{
-            position: "absolute",
-            top: "calc(100% + 4px)",
-            left: 0,
-            right: 0,
-            zIndex: 20,
+            ...(inline
+              ? { marginTop: "6px" }
+              : { position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20, boxShadow: "0 8px 24px rgba(0,0,0,.12)" }),
             background: "var(--surface)",
             border: "1.5px solid var(--border2)",
             borderRadius: "var(--r2)",
-            boxShadow: "0 8px 24px rgba(0,0,0,.12)",
             padding: "10px",
           }}
         >
