@@ -3,6 +3,7 @@ import { api, type ApiRequestConfig } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { extractErrorMessage } from "@/lib/errors";
 import { useAuthStore } from "@/stores/authStore";
+import { StudentAvatar } from "@/components/institutional/collegeAdminShared";
 
 type User = {
   id: string;
@@ -13,6 +14,7 @@ type User = {
   status: string;
   institution_id?: string | null;
   department?: string | null;
+  avatar_url?: string | null;
   preferences?: { plan?: "base" | "pro" } | null;
 };
 
@@ -106,12 +108,17 @@ const UserRow = React.memo(function UserRow({
   return (
     <tr className="hover:bg-gray-50/30 transition-colors">
       <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900 break-words">
-        {user.full_name}
-        {/* Email has its own column from md up; below that it sits under the name. */}
-        <div className="md:hidden text-xs text-gray-500 mt-0.5 font-normal break-all">{user.email}</div>
-        {collegeName && (
-          <div className="text-xs text-gray-400 mt-0.5 font-normal">{collegeName}</div>
-        )}
+        <div className="flex items-center gap-3">
+          <StudentAvatar name={user.full_name} url={user.avatar_url} />
+          <div className="min-w-0">
+            {user.full_name}
+            {/* Email has its own column from md up; below that it sits under the name. */}
+            <div className="md:hidden text-xs text-gray-500 mt-0.5 font-normal break-all">{user.email}</div>
+            {collegeName && (
+              <div className="text-xs text-gray-400 mt-0.5 font-normal">{collegeName}</div>
+            )}
+          </div>
+        </div>
       </td>
       <td className="hidden md:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-gray-500 text-sm break-all">{user.email}</td>
       <td className="hidden lg:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-gray-500 text-sm">
@@ -483,6 +490,7 @@ export function SuperAdminDashboard() {
           <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage all portal accounts and requests here. Update, delete, and approve institutions, faculty, and students.</p>
         </div>
         <div className="flex items-center gap-4 sm:gap-6 sm:border-l sm:pl-6 border-gray-100">
+          <StudentAvatar name={user?.name || "Super Admin"} url={typeof user?.avatar_url === "string" ? user.avatar_url : null} sizePx={40} />
           <div className="text-right hidden sm:block">
             <p className="text-sm font-semibold text-gray-800">{user?.name || 'Super Admin'}</p>
             <p className="text-xs text-gray-500">{user?.email}</p>
