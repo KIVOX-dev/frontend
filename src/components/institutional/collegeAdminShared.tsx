@@ -436,7 +436,11 @@ export function DepartmentMultiSelect({
     if (!open) setSearch("");
   }, [open]);
 
-  const filtered = options.filter((o) => o.label.toLowerCase().includes(search.trim().toLowerCase()));
+  // Compared with punctuation and spaces stripped, so typing "msc" or "bsc cs"
+  // still finds "M.Sc. Computer Science (CS-5)" / "B.Sc. (CS)".
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const needle = normalize(search);
+  const filtered = options.filter((o) => normalize(o.label).includes(needle));
   const allFilteredSelected = filtered.length > 0 && filtered.every((o) => selected.includes(o.id));
 
   const summary =
