@@ -105,22 +105,24 @@ const UserRow = React.memo(function UserRow({
 }) {
   return (
     <tr className="hover:bg-gray-50/30 transition-colors">
-      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900 break-words">
         {user.full_name}
+        {/* Email has its own column from md up; below that it sits under the name. */}
+        <div className="md:hidden text-xs text-gray-500 mt-0.5 font-normal break-all">{user.email}</div>
         {collegeName && (
           <div className="text-xs text-gray-400 mt-0.5 font-normal">{collegeName}</div>
         )}
       </td>
-      <td className="px-6 py-4 text-gray-500">{user.email}</td>
-      <td className="px-6 py-4 text-gray-500 text-sm">
+      <td className="hidden md:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-gray-500 text-sm break-all">{user.email}</td>
+      <td className="hidden lg:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-gray-500 text-sm">
         {user.role === "student" ? (rollNumber || "—") : "—"}
       </td>
-      <td className="px-6 py-4">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
         <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 capitalize border border-blue-100">
           {roleLabel(user.role)}
         </span>
       </td>
-      <td className="px-6 py-4">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
         <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize border ${
           user.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
           user.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
@@ -129,10 +131,10 @@ const UserRow = React.memo(function UserRow({
           {user.status}
         </span>
       </td>
-      <td className="px-6 py-4 text-gray-500 text-sm">
+      <td className="hidden md:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-gray-500 text-sm whitespace-nowrap">
         {new Date(user.created_at).toLocaleDateString()}
       </td>
-      <td className="px-6 py-4 text-right space-x-3">
+      <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-right space-x-3 whitespace-nowrap">
         {activeTab === "pending" ? (
           <>
             <button
@@ -441,37 +443,46 @@ export function SuperAdminDashboard() {
   // loaded rather than a fixed catalog — department is free text set at
   // onboarding time (see FacultyUpload), so the real values in use are
   // whatever faculty actually typed/uploaded.
-  const departmentOptions = Array.from(
-    new Set(
-      users
-        .filter((u) => u.role === "student" && u.department)
-        .map((u) => u.department as string)
-    )
-  ).sort();
+  const departmentOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          users
+            .filter((u) => u.role === "student" && u.department)
+            .map((u) => u.department as string)
+        )
+      ).sort(),
+    [users]
+  );
 
-  const filteredUsers = users.filter((u) => {
-    if (filterCollege && u.institution_id !== filterCollege) return false;
-    if (filterRole && u.role !== filterRole) return false;
-    if (filterRole === "student" && filterDepartment && u.department !== filterDepartment) return false;
-    return true;
-  });
+  // Recomputed only when the data or a filter/sort changes — not on every
+  // keystroke in an open modal, which re-renders this whole component.
+  const sortedUsers = useMemo(() => {
+    const filtered = users.filter((u) => {
+      if (filterCollege && u.institution_id !== filterCollege) return false;
+      if (filterRole && u.role !== filterRole) return false;
+      if (filterRole === "student" && filterDepartment && u.department !== filterDepartment) return false;
+      return true;
+    });
+    return filtered.sort((a, b) => {
+      if (sortBy === "name") return a.full_name.localeCompare(b.full_name);
+      if (sortBy === "role") return a.role.localeCompare(b.role);
+      if (sortBy === "status") return a.status.localeCompare(b.status);
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [users, filterCollege, filterRole, filterDepartment, sortBy]);
 
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    if (sortBy === "name") return a.full_name.localeCompare(b.full_name);
-    if (sortBy === "role") return a.role.localeCompare(b.role);
-    if (sortBy === "status") return a.status.localeCompare(b.status);
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  const collegeNameById = useMemo(() => new Map(colleges.map((c) => [c.id, c.name])), [colleges]);
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-wrap gap-4 justify-between items-center bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-gray-100">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">Super Admin Dashboard</h1>
           <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage all portal accounts and requests here. Update, delete, and approve institutions, faculty, and students.</p>
         </div>
-        <div className="flex items-center space-x-6 border-l pl-6 border-gray-100">
+        <div className="flex items-center gap-4 sm:gap-6 sm:border-l sm:pl-6 border-gray-100">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-semibold text-gray-800">{user?.name || 'Super Admin'}</p>
             <p className="text-xs text-gray-500">{user?.email}</p>
@@ -486,14 +497,14 @@ export function SuperAdminDashboard() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H9m4 9H6.2c-1.12 0-1.68 0-2.108-.218a2 2 0 01-.874-.875C3 19.48 3 18.92 3 17.8V6.2c0-1.12 0-1.68.218-2.107a2 2 0 01.874-.874C4.52 3 5.08 3 6.2 3H13" />
             </svg>
-            <span>Log Out</span>
+            <span className="hidden sm:inline">Log Out</span>
           </button>
         </div>
       </div>
       
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 20v-2a5 5 0 00-10 0v2h10zm0 0h8v-1c0-2.945-2.239-5-5-5-1.413 0-2.69.626-3.6 1.631M11 7a3 3 0 11-6 0 3 3 0 016 0zm7 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -504,7 +515,7 @@ export function SuperAdminDashboard() {
             <p className="text-2xl font-bold text-gray-900">{formatCount(stats.total)}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-yellow-50 text-yellow-600 rounded-xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l2.5 1.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -515,7 +526,7 @@ export function SuperAdminDashboard() {
             <p className="text-2xl font-bold text-gray-900">{formatCount(stats.pending)}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-gray-100 flex items-center space-x-4">
           <div className="p-3 bg-green-50 text-green-600 rounded-xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12.333L10.461 15 16 9m5 3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -577,12 +588,12 @@ export function SuperAdminDashboard() {
 
       {activeTab === "pending" || activeTab === "all" ? (
       <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col gap-3">
-          <div className="flex justify-between items-center">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col gap-3">
+          <div className="flex flex-wrap justify-between items-center gap-3">
             <h2 className="font-semibold text-gray-700">
               {activeTab === "pending" ? "Pending Approvals" : "All Users"} ({sortedUsers.length}{sortedUsers.length !== users.length ? ` of ${users.length}` : ""})
             </h2>
-            <div className="flex space-x-3">
+            <div className="flex flex-wrap items-center gap-3">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
@@ -675,13 +686,13 @@ export function SuperAdminDashboard() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50/50 text-gray-500 text-sm border-b border-gray-100">
-                  <th className="px-6 py-4 font-medium">Name</th>
-                  <th className="px-6 py-4 font-medium">Email</th>
-                  <th className="px-6 py-4 font-medium">Roll No.</th>
-                  <th className="px-6 py-4 font-medium">Role</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Date</th>
-                  <th className="px-6 py-4 font-medium text-right">Actions</th>
+                  <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Name</th>
+                  <th className="hidden md:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Email</th>
+                  <th className="hidden lg:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Roll No.</th>
+                  <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Role</th>
+                  <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Status</th>
+                  <th className="hidden md:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Date</th>
+                  <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -690,7 +701,7 @@ export function SuperAdminDashboard() {
                     key={u.id}
                     user={u}
                     activeTab={activeTab}
-                    collegeName={u.institution_id ? (colleges.find(c => c.id === u.institution_id)?.name || `Institution: ${u.institution_id}`) : null}
+                    collegeName={u.institution_id ? (collegeNameById.get(u.institution_id) || `Institution: ${u.institution_id}`) : null}
                     rollNumber={rollNumberByUserId.get(u.id) ?? null}
                     onAction={handleAction}
                     onEdit={handleEditClick}
@@ -704,26 +715,26 @@ export function SuperAdminDashboard() {
       </div>
       ) : activeTab === "assessments" ? (
       <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-wrap justify-between items-center gap-3">
           <h2 className="font-semibold text-gray-700">All Assessments ({formatCount(assessments.length)})</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 text-gray-500 text-sm border-b border-gray-100">
-                <th className="px-6 py-4 font-medium">Title</th>
-                <th className="px-6 py-4 font-medium">Type</th>
-                <th className="px-6 py-4 font-medium">Difficulty</th>
-                <th className="px-6 py-4 font-medium">Duration</th>
-                <th className="px-6 py-4 font-medium">Marks</th>
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Title</th>
+                <th className="hidden sm:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Type</th>
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Difficulty</th>
+                <th className="hidden md:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Duration</th>
+                <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Marks</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {assessments.map((a) => (
                 <tr key={a.id} className="hover:bg-gray-50/30 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{a.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{a.assessment_type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900 break-words">{a.title}</td>
+                  <td className="hidden sm:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{a.assessment_type}</td>
+                  <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize border ${
                       a.difficulty === 'hard' ? 'bg-red-50 text-red-700 border-red-100' : 
                       a.difficulty === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 
@@ -732,13 +743,13 @@ export function SuperAdminDashboard() {
                       {a.difficulty}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.duration_minutes} min</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.total_marks}</td>
+                  <td className="hidden md:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500">{a.duration_minutes} min</td>
+                  <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500">{a.total_marks}</td>
                 </tr>
               ))}
               {assessments.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">No assessments found.</td>
+                  <td colSpan={5} className="px-3 sm:px-6 py-8 text-center text-gray-500 text-sm">No assessments found.</td>
                 </tr>
               )}
             </tbody>
@@ -747,9 +758,9 @@ export function SuperAdminDashboard() {
       </div>
       ) : (
       <div className="bg-white shadow-xl shadow-gray-200/50 rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-wrap justify-between items-center gap-3">
           <h2 className="font-semibold text-gray-700">Institutions ({institutions.length})</h2>
-          <div className="flex space-x-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button onClick={() => setIsCreatingInstitution(true)} className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors">
               + Add Institution
             </button>
@@ -776,29 +787,34 @@ export function SuperAdminDashboard() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50/50 text-gray-500 text-sm border-b border-gray-100">
-                  <th className="px-6 py-4 font-medium">Name</th>
-                  <th className="px-6 py-4 font-medium">Code</th>
-                  <th className="px-6 py-4 font-medium">Location</th>
-                  <th className="px-6 py-4 font-medium">Contact</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium text-right">Actions</th>
+                  <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Name</th>
+                  <th className="hidden sm:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Code</th>
+                  <th className="hidden md:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Location</th>
+                  <th className="hidden lg:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Contact</th>
+                  <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium">Status</th>
+                  <th className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {institutions.map((inst) => (
                   <tr key={inst.id} className="hover:bg-gray-50/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{inst.name}</td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">{inst.code}</td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">{inst.location || "—"}</td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">{inst.contact_email || "—"}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-sm font-medium text-gray-900 break-words">
+                      {inst.name}
+                      {/* Code has its own column from sm up; location from md up. */}
+                      <div className="sm:hidden text-xs text-gray-400 mt-0.5 font-normal">{inst.code}</div>
+                      {inst.location && <div className="md:hidden text-xs text-gray-400 mt-0.5 font-normal">{inst.location}</div>}
+                    </td>
+                    <td className="hidden sm:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-gray-500 text-sm">{inst.code}</td>
+                    <td className="hidden md:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-gray-500 text-sm">{inst.location || "—"}</td>
+                    <td className="hidden lg:table-cell px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-gray-500 text-sm break-all">{inst.contact_email || "—"}</td>
+                    <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
                       <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize border ${
                         inst.is_active ? "bg-green-50 text-green-700 border-green-100" : "bg-gray-50 text-gray-500 border-gray-100"
                       }`}>
                         {inst.is_active ? "active" : "inactive"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-right">
                       <button
                         onClick={() => handleDeleteInstitution(inst.id)}
                         className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
@@ -818,7 +834,7 @@ export function SuperAdminDashboard() {
       {/* Edit Modal */}
       {editingUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+          <div className="bg-white rounded-xl shadow-2xl p-5 sm:p-6 w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">Edit User</h3>
             <div className="space-y-4">
               <div>
@@ -903,7 +919,7 @@ export function SuperAdminDashboard() {
       {/* Create Modal */}
       {isCreatingUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+          <div className="bg-white rounded-xl shadow-2xl p-5 sm:p-6 w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">Add New User</h3>
             <div className="space-y-4">
               <div>
@@ -984,7 +1000,7 @@ export function SuperAdminDashboard() {
       {/* Create Institution Modal */}
       {isCreatingInstitution && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+          <div className="bg-white rounded-xl shadow-2xl p-5 sm:p-6 w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">Add Institution</h3>
             <div className="space-y-4">
               <div>

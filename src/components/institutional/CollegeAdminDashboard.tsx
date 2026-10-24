@@ -18,7 +18,7 @@ import {
   type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
   type StudentInsights, type InsightCategoryTrend, type Placement, type Drive, type PlacementApplication,
   BASE_CHART_OPTIONS, ChartEmptyState, SectionError, CompanyLogo, colorForKey, monthKey, monthLabel,
-  LIST_FETCH_CAP, formatCount, DepartmentMultiSelect, compareNames,
+  LIST_FETCH_CAP, formatCount, DepartmentMultiSelect, StudentAvatar, compareNames,
 } from "./collegeAdminShared";
 
 // ApexCharts touches `window` at import time, so it must never run during SSR.
@@ -114,6 +114,9 @@ export function CollegeAdminDashboard() {
 
   // Add placement form
   const [showAddPlacement, setShowAddPlacement] = useState(false);
+  // Add Placement narrows the student list in two steps: department first,
+  // then batch year — only students matching both are offered.
+  const [placementFilter, setPlacementFilter] = useState({ department_id: "", batch_year: "" });
   const [placementForm, setPlacementForm] = useState({ student_id: "", company_name: "", role: "", salary_lpa: "", work_type: "onsite", mode: "campus", location: "" });
   const [placementMsg, setPlacementMsg] = useState("");
   const [verifyingPlacementId, setVerifyingPlacementId] = useState<string | null>(null);
@@ -282,6 +285,7 @@ export function CollegeAdminDashboard() {
           status: u.status,
           department: u.department,
           roll_number: u.roll_number,
+          avatar_url: u.avatar_url,
           created_at: u.created_at,
         }));
       setUsers(mapped);
@@ -435,6 +439,41 @@ export function CollegeAdminDashboard() {
   // student record (placements key on its id), not on the user.
   const studentRecordById = useMemo(() => new Map(studentRecords.map(s => [s.id, s])), [studentRecords]);
   const departmentNameById = useMemo(() => new Map(departments.map(d => [String(d.id), d.name])), [departments]);
+
+  // Add Placement filters. Departments offered are only ones that actually
+  // have students; years only those in the chosen department; students only
+  // those matching both.
+  const placementDeptOptions = useMemo(() => {
+    const withStudents = new Set(studentRecords.map(s => String(s.department_id || "")).filter(Boolean));
+    return departments
+      .filter(d => withStudents.has(String(d.id)))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [departments, studentRecords]);
+  const placementYearOptions = useMemo(() => {
+    if (!placementFilter.department_id) return [] as number[];
+    const years = new Set<number>();
+    for (const s of studentRecords) {
+      if (String(s.department_id) === placementFilter.department_id && typeof s.batch_year === "number") years.add(s.batch_year);
+    }
+    return Array.from(years).sort((a, b) => b - a);
+  }, [studentRecords, placementFilter.department_id]);
+  const placementStudentOptions = useMemo(() => {
+    if (!placementFilter.department_id || !placementFilter.batch_year) return [];
+    const recordIdByUser = new Map(
+      studentRecords
+        .filter(s => String(s.department_id) === placementFilter.department_id && String(s.batch_year) === placementFilter.batch_year)
+        .map(s => [String(s.user_id), s.id])
+    );
+    return studentUsers.flatMap(u => {
+      const recordId = recordIdByUser.get(String(u.id));
+      return recordId ? [{ recordId, user: u }] : [];
+    });
+  }, [studentRecords, studentUsers, placementFilter]);
+
+  // Fresh filters each time the modal is reopened.
+  useEffect(() => {
+    if (!showAddPlacement) setPlacementFilter({ department_id: "", batch_year: "" });
+  }, [showAddPlacement]);
 
   // Assign Test's batch-year filter is an exact match against each student's
   // batch_year (their graduation year, not the calendar year they enrolled
@@ -1032,6 +1071,7 @@ export function CollegeAdminDashboard() {
       <StudentProfileView
         name={viewingInsightsFor.name}
         email={viewingInsightsFor.email}
+        avatarUrl={viewingInsightsFor.avatar_url}
         data={insightsData}
         loading={insightsLoading}
         error={insightsError}
@@ -1413,7 +1453,12 @@ export function CollegeAdminDashboard() {
             <tbody>
               {filteredUsers.map(u => (
                 <tr key={u.id} id={`row-${u.id}`} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>{u.name}</td>
+                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <StudentAvatar name={u.name} url={u.avatar_url} />
+                      {u.name}
+                    </div>
+                  </td>
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.role === "student" ? (u.roll_number || "—") : "—"}</td>
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.email}</td>
                   <td style={{ padding: "12px 8px" }}>
@@ -2037,47 +2082,70 @@ export function CollegeAdminDashboard() {
           <div ref={addPlacementPanelRef} {...addPlacementDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
             <h3 id="add-placement-title" style={{ fontSize: "20px", fontWeight: 700, marginBottom: "20px", color: "var(--text)" }}>Add Placement</h3>
             <form onSubmit={handleCreatePlacement}>
+              {/* Step 1 and 2: narrow by department, then batch year. Each step
+                  unlocks the next, and changing one clears whatever depended on it. */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+                <div>
+                  <label className="lbl">Department</label>
+                  <select
+                    className="fi"
+                    value={placementFilter.department_id}
+                    onChange={e => {
+                      setPlacementFilter({ department_id: e.target.value, batch_year: "" });
+                      setPlacementForm({ ...placementForm, student_id: "" });
+                    }}
+                    required
+                  >
+                    <option value="">Select department</option>
+                    {placementDeptOptions.map(d => (
+                      <option key={d.id} value={d.id}>{d.code ? `${d.name} (${d.code})` : d.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="lbl">Batch Year</label>
+                  <select
+                    className="fi"
+                    value={placementFilter.batch_year}
+                    onChange={e => {
+                      setPlacementFilter({ ...placementFilter, batch_year: e.target.value });
+                      setPlacementForm({ ...placementForm, student_id: "" });
+                    }}
+                    disabled={!placementFilter.department_id}
+                    required
+                  >
+                    <option value="">{placementFilter.department_id ? "Select year" : "Select department first"}</option>
+                    {placementYearOptions.map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {/* Step 3: only students matching both filters. */}
               <div style={{ marginBottom: "14px" }}>
                 <label className="lbl">Student</label>
-                <select className="fi" value={placementForm.student_id} onChange={e => setPlacementForm({ ...placementForm, student_id: e.target.value })} required>
-                  <option value="">Select a student</option>
-                  {studentUsers.map(s => {
-                    // The dropdown must submit the students collection's row
-                    // id, not this user's own id — see student_id comment in
-                    // handleCreatePlacement. Skip anyone whose student
-                    // profile hasn't loaded/resolved rather than submit the
-                    // wrong id.
-                    const studentRecordId = studentRecordIdByUserId.get(String(s.id));
-                    if (!studentRecordId) return null;
-                    return (
-                      <option key={s.id} value={studentRecordId}>{s.name} ({s.email})</option>
-                    );
-                  })}
+                <select
+                  className="fi"
+                  value={placementForm.student_id}
+                  onChange={e => setPlacementForm({ ...placementForm, student_id: e.target.value })}
+                  disabled={!placementFilter.department_id || !placementFilter.batch_year}
+                  required
+                >
+                  <option value="">
+                    {!placementFilter.department_id || !placementFilter.batch_year
+                      ? "Select department and year first"
+                      : placementStudentOptions.length === 0
+                        ? "No students match"
+                        : "Select a student"}
+                  </option>
+                  {/* The value submitted is the students collection's row id,
+                      not the user's own id — see student_id comment in
+                      handleCreatePlacement. */}
+                  {placementStudentOptions.map(({ recordId, user }) => (
+                    <option key={recordId} value={recordId}>{user.name} ({user.email})</option>
+                  ))}
                 </select>
               </div>
-              {/* Read-only, derived from the selected student's profile —
-                  never typed, so they update automatically when the student changes. */}
-              {(() => {
-                const record = placementForm.student_id ? studentRecordById.get(placementForm.student_id) : undefined;
-                const department = record
-                  ? (record.department_id && departmentNameById.get(String(record.department_id)))
-                    || userByStudentRecordId.get(record.id)?.department
-                    || "Not set"
-                  : "";
-                const batchYear = record ? (record.batch_year ? String(record.batch_year) : "Not set") : "";
-                return (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
-                    <div>
-                      <label className="lbl">Department</label>
-                      <input type="text" className="fi" value={department} readOnly tabIndex={-1} placeholder="Select a student first" />
-                    </div>
-                    <div>
-                      <label className="lbl">Batch Year</label>
-                      <input type="text" className="fi" value={batchYear} readOnly tabIndex={-1} placeholder="Select a student first" />
-                    </div>
-                  </div>
-                );
-              })()}
               <div style={{ marginBottom: "14px" }}>
                 <label className="lbl">Company</label>
                 <CompanyPicker value={placementForm.company_name} onChange={v => setPlacementForm({ ...placementForm, company_name: v })} required placeholder="Select or type a company" />

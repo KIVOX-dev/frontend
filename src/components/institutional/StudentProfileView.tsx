@@ -3,7 +3,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import {
-  type StudentInsights, type InsightCategoryTrend, BASE_CHART_OPTIONS, SectionError,
+  type StudentInsights, type InsightCategoryTrend, BASE_CHART_OPTIONS, SectionError, StudentAvatar,
 } from "./collegeAdminShared";
 
 // ApexCharts touches `window` at import time — never during SSR.
@@ -92,6 +92,7 @@ type Props = {
   name: string;
   email: string;
   department?: string;
+  avatarUrl?: string | null;
   data: StudentInsights | null;
   loading: boolean;
   error?: string | null;
@@ -105,8 +106,7 @@ type Props = {
 // Full-page student profile (replaces the old insights modal). Mirrors the
 // sections of the printable TalentSnaps report: header + KPIs, aptitude
 // charts, skill badges & certificates, AI mock interviews, and test history.
-export function StudentProfileView({ name, email, department, data, loading, error, onBack, onRetry, onDownload, downloading, backLabel = "Back to students" }: Props) {
-  const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+export function StudentProfileView({ name, email, department, avatarUrl, data, loading, error, onBack, onRetry, onDownload, downloading, backLabel = "Back to students" }: Props) {
   const profile = data?.profile;
   const dept = profile?.department || department;
   const interviews = data?.interviews ?? [];
@@ -146,9 +146,7 @@ export function StudentProfileView({ name, email, department, data, loading, err
       </button>
 
       <div className="card" style={{ padding: "28px", marginBottom: "28px", display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ width: "84px", height: "84px", borderRadius: "50%", background: "#6d3fc4", color: "#fff", fontSize: "28px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          {initials}
-        </div>
+        <StudentAvatar name={name} url={avatarUrl} sizePx={84} />
         <div style={{ flex: 1, minWidth: "260px" }}>
           <h2 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text)", marginBottom: "10px" }}>{name}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "8px 24px", fontSize: "13px" }}>

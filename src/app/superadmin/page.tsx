@@ -24,7 +24,7 @@ export default function SuperAdminPage() {
   }
 
   return (
-    <div className="h-screen bg-paper-tint/50 py-12 overflow-y-auto">
+    <div className="h-dvh bg-paper-tint/50 py-4 sm:py-8 lg:py-12 overflow-y-auto">
       <SuperAdminDashboard />
     </div>
   );
