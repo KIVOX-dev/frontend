@@ -1154,8 +1154,13 @@ export function CollegeAdminDashboard() {
                   return (
                   <tr key={p.id} id={`row-${p.id}`} style={{ borderBottom: "1px solid var(--border)" }}>
                     <td style={{ padding: "12px 8px", fontWeight: 500 }}>
-                      <div style={{ color: "var(--text)" }}>{student?.name || `Student #${p.student_id}`}</div>
-                      {student?.email && <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 400 }}>{student.email}</div>}
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <StudentAvatar name={student?.name || ""} url={record?.avatar_url || student?.avatar_url} />
+                        <div>
+                          <div style={{ color: "var(--text)" }}>{student?.name || `Student #${p.student_id}`}</div>
+                          {student?.email && <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 400 }}>{student.email}</div>}
+                        </div>
+                      </div>
                     </td>
                     <td style={{ padding: "12px 8px", fontSize: "14px", color: department ? "var(--text)" : "var(--muted)" }}>{department || "—"}</td>
                     <td style={{ padding: "12px 8px", fontSize: "14px", color: record?.batch_year ? "var(--text)" : "var(--muted)" }}>{record?.batch_year || "—"}</td>

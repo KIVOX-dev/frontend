@@ -8,7 +8,7 @@ import { openOutcomeProofDocument, openPlacementProofDocument } from "@/lib/plac
 import { MULTIPART, STATUS_BADGE, STATUS_LABEL, type StudentOutcome, type VerificationStatus } from "@/lib/outcomes";
 import { OutcomeFormModal } from "@/components/shared/OutcomeFormModal";
 import { FileSpreadsheet, FileDown } from "./dazzleIcons";
-import { SectionError } from "./collegeAdminShared";
+import { SectionError, StudentAvatar } from "./collegeAdminShared";
 
 type TabId = "nirf" | "naac" | "nba" | "higher-studies" | "competitive-exams" | "offer-letters" | "audit-log";
 type Department = { id: string; name: string };
@@ -65,7 +65,7 @@ type LetterStatus = "pending" | "uploaded" | "verified" | "rejected";
 type OfferReport = {
   available_years: number[];
   counts: Record<LetterStatus, number> & { total: number };
-  rows: { id: string; student: string; roll_number: string | null; department: string; company: string; role: string; status: LetterStatus; has_letter: boolean }[];
+  rows: { id: string; student: string; avatar_url?: string | null; roll_number: string | null; department: string; company: string; role: string; status: LetterStatus; has_letter: boolean }[];
   completeness: Completeness;
 };
 
@@ -906,7 +906,12 @@ function OfferLetters({ report, reminding, busyId, onRemind, onUpload }: { repor
           <tbody>
             {report.rows.map((r) => (
               <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                <td style={{ ...td, fontWeight: 500 }}>{r.student}</td>
+                <td style={{ ...td, fontWeight: 500 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <StudentAvatar name={r.student} url={r.avatar_url} />
+                    {r.student}
+                  </div>
+                </td>
                 <td style={td}>{r.roll_number ?? "—"}</td>
                 <td style={td}>{r.department}</td>
                 <td style={td}>{r.company}</td>

@@ -106,6 +106,7 @@ export type StudentRecord = {
   department_id?: string;
   batch_year?: number;
   roll_number?: string;
+  avatar_url?: string | null;
 };
 
 export type InsightAttempt = {
