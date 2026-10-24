@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { api, type ApiRequestConfig } from "@/lib/api";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { useAuthStore } from "@/stores/authStore";
-import { type StudentInsights } from "./collegeAdminShared";
+import { type StudentInsights, StudentAvatar, compareNames } from "./collegeAdminShared";
 import { StudentProfileView } from "./StudentProfileView";
 
 type Student = {
@@ -14,6 +14,7 @@ type Student = {
   department?: string;
   status?: string;
   created_at?: string;
+  avatar_url?: string | null;
 };
 
 // Fetches the current page of students for a given search string. Takes an
@@ -227,7 +228,7 @@ export function StudentTracking() {
   // key still works, bypassing the debounce via runNow() for anyone who
   // wants results the instant they finish typing.
   const { data: studentsData, loading, error, runNow } = useDebouncedSearch(search, fetchStudentsPage, { delay: 400 });
-  const students = studentsData ?? [];
+  const students = useMemo(() => [...(studentsData ?? [])].sort((a, b) => compareNames(a.name, b.name)), [studentsData]);
 
   useEffect(() => {
     if (error) console.error("Failed to fetch students", error);
@@ -289,6 +290,7 @@ export function StudentTracking() {
           name={selectedStudent.name}
           email={selectedStudent.email}
           department={selectedStudent.department}
+          avatarUrl={selectedStudent.avatar_url}
           data={studentData}
           loading={loadingInsights}
           error={insightsError}
@@ -343,7 +345,12 @@ export function StudentTracking() {
             <tbody>
               {students.map(s => (
                 <tr key={s.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>{s.name}</td>
+                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <StudentAvatar name={s.name} url={s.avatar_url} />
+                      {s.name}
+                    </div>
+                  </td>
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{s.email}</td>
                   <td style={{ padding: "12px 8px" }}>{s.department || "—"}</td>
                   <td style={{ padding: "12px 8px" }}>

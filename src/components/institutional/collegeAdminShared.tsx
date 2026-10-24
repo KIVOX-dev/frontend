@@ -21,7 +21,38 @@ export type User = {
   department?: string;
   roll_number?: string;
   created_at?: string;
+  avatar_url?: string | null;
 };
+
+// A–Z by name, ignoring case and accents; names that differ only in a
+// number sort naturally (Student 2 before Student 10). Unnamed rows go last.
+export function compareNames(a?: string | null, b?: string | null): number {
+  const x = (a || "").trim();
+  const y = (b || "").trim();
+  if (!x && !y) return 0;
+  if (!x) return 1;
+  if (!y) return -1;
+  return x.localeCompare(y, undefined, { sensitivity: "base", numeric: true });
+}
+
+// Round profile photo, falling back to the person's initials when they have
+// none (or the image fails to load).
+export function StudentAvatar({ name, url, sizePx = 36 }: { name: string; url?: string | null; sizePx?: number }) {
+  const [failed, setFailed] = useState(false);
+  const initials = (name || "").split(" ").filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase() || "?";
+  const size = `${sizePx}px`;
+  if (url && !failed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- signed storage URL, not a next/image source
+      <img src={url} alt="" onError={() => setFailed(true)} style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+    );
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", background: "#6d3fc4", color: "#fff", fontSize: `${Math.round(sizePx / 3)}px`, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      {initials}
+    </div>
+  );
+}
 
 export type Assessment = {
   id: string;

@@ -18,7 +18,7 @@ import {
   type User, type Assessment, type AttemptResult, type Department, type StudentRecord,
   type StudentInsights, type InsightCategoryTrend, type Placement, type Drive, type PlacementApplication,
   BASE_CHART_OPTIONS, ChartEmptyState, SectionError, CompanyLogo, colorForKey, monthKey, monthLabel,
-  LIST_FETCH_CAP, formatCount, DepartmentMultiSelect,
+  LIST_FETCH_CAP, formatCount, DepartmentMultiSelect, StudentAvatar, compareNames,
 } from "./collegeAdminShared";
 
 // ApexCharts touches `window` at import time, so it must never run during SSR.
@@ -207,7 +207,10 @@ export function CollegeAdminDashboard() {
     return Array.from(byId.values()).sort((a, b) => a.label.localeCompare(b.label));
   }, [results]);
   const filteredResults = useMemo(
-    () => (resultsTestFilter ? results.filter((r) => r.test_id === resultsTestFilter) : results),
+    () =>
+      [...(resultsTestFilter ? results.filter((r) => r.test_id === resultsTestFilter) : results)].sort(
+        (a, b) => compareNames(a.student_name, b.student_name) || compareNames(a.test_title, b.test_title)
+      ),
     [results, resultsTestFilter]
   );
 
@@ -279,6 +282,7 @@ export function CollegeAdminDashboard() {
           status: u.status,
           department: u.department,
           roll_number: u.roll_number,
+          avatar_url: u.avatar_url,
           created_at: u.created_at,
         }));
       setUsers(mapped);
@@ -416,7 +420,7 @@ export function CollegeAdminDashboard() {
   const studentsById = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
   // Shared by the Shortlist and Add Placement modals below, which used to
   // each run this same filter independently on every render (PROJECT_AUDIT_REPORT.md P2/component-audit).
-  const studentUsers = useMemo(() => users.filter(u => u.role === "student"), [users]);
+  const studentUsers = useMemo(() => users.filter(u => u.role === "student").sort((a, b) => compareNames(a.name, b.name)), [users]);
   const studentRecordIdByUserId = useMemo(
     () => new Map(studentRecords.map(s => [String(s.user_id), s.id])),
     [studentRecords]
@@ -479,7 +483,7 @@ export function CollegeAdminDashboard() {
     () => users.filter(u =>
       (!userRoleFilter || u.role === userRoleFilter) &&
       (!userDeptFilter || u.department === userDeptFilter)
-    ),
+    ).sort((a, b) => compareNames(a.name, b.name)),
     [users, userRoleFilter, userDeptFilter]
   );
 
@@ -1029,6 +1033,7 @@ export function CollegeAdminDashboard() {
       <StudentProfileView
         name={viewingInsightsFor.name}
         email={viewingInsightsFor.email}
+        avatarUrl={viewingInsightsFor.avatar_url}
         data={insightsData}
         loading={insightsLoading}
         error={insightsError}
@@ -1100,7 +1105,10 @@ export function CollegeAdminDashboard() {
             </thead>
             <tbody>
               {[...placements]
-                .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+                .sort((a, b) =>
+                  compareNames(userByStudentRecordId.get(a.student_id)?.name, userByStudentRecordId.get(b.student_id)?.name) ||
+                  (b.created_at || "").localeCompare(a.created_at || "")
+                )
                 .map(p => {
                   const student = userByStudentRecordId.get(p.student_id);
                   const record = studentRecordById.get(p.student_id);
@@ -1407,7 +1415,12 @@ export function CollegeAdminDashboard() {
             <tbody>
               {filteredUsers.map(u => (
                 <tr key={u.id} id={`row-${u.id}`} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>{u.name}</td>
+                  <td style={{ padding: "12px 8px", fontWeight: 500 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <StudentAvatar name={u.name} url={u.avatar_url} />
+                      {u.name}
+                    </div>
+                  </td>
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.role === "student" ? (u.roll_number || "—") : "—"}</td>
                   <td style={{ padding: "12px 8px", color: "var(--muted)", fontSize: "14px" }}>{u.email}</td>
                   <td style={{ padding: "12px 8px" }}>
@@ -1536,13 +1549,14 @@ export function CollegeAdminDashboard() {
                     <td style={{ padding: "12px 8px", textAlign: "right" }}>
                       {!a.category && (
                         <button
+                          className="btn btn-p btn-sm"
                           onClick={() => { setAssigningTest(a); setAssignResult(null); setAssignForm({ department_ids: [], batch_year: new Date().getFullYear() }); }}
-                          style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "13px", fontWeight: 600, marginRight: "16px" }}
+                          style={{ marginRight: "8px" }}
                         >
                           Assign
                         </button>
                       )}
-                      <button onClick={() => handleDeleteAssessment(a.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>Delete</button>
+                      <button className="btn btn-red btn-sm" onClick={() => handleDeleteAssessment(a.id)}>Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -2048,6 +2062,29 @@ export function CollegeAdminDashboard() {
                   })}
                 </select>
               </div>
+              {/* Read-only, derived from the selected student's profile —
+                  never typed, so they update automatically when the student changes. */}
+              {(() => {
+                const record = placementForm.student_id ? studentRecordById.get(placementForm.student_id) : undefined;
+                const department = record
+                  ? (record.department_id && departmentNameById.get(String(record.department_id)))
+                    || userByStudentRecordId.get(record.id)?.department
+                    || "Not set"
+                  : "";
+                const batchYear = record ? (record.batch_year ? String(record.batch_year) : "Not set") : "";
+                return (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+                    <div>
+                      <label className="lbl">Department</label>
+                      <input type="text" className="fi" value={department} readOnly tabIndex={-1} placeholder="Select a student first" />
+                    </div>
+                    <div>
+                      <label className="lbl">Batch Year</label>
+                      <input type="text" className="fi" value={batchYear} readOnly tabIndex={-1} placeholder="Select a student first" />
+                    </div>
+                  </div>
+                );
+              })()}
               <div style={{ marginBottom: "14px" }}>
                 <label className="lbl">Company</label>
                 <CompanyPicker value={placementForm.company_name} onChange={v => setPlacementForm({ ...placementForm, company_name: v })} required placeholder="Select or type a company" />
@@ -2086,7 +2123,7 @@ export function CollegeAdminDashboard() {
       {/* Post Drive Modal */}
       {showPostDrive && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "24px" }}>
-          <div ref={postDrivePanelRef} {...postDriveDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "760px", maxHeight: "92vh", overflowY: "auto" }}>
+          <div ref={postDrivePanelRef} {...postDriveDialogProps} className="card" style={{ padding: "36px 40px", width: "100%", maxWidth: "960px", maxHeight: "94vh", overflowY: "auto" }}>
             <h3 id="post-drive-title" style={{ fontSize: "22px", fontWeight: 700, marginBottom: "14px", color: "var(--text)" }}>Post Placement Drive</h3>
             {driveMsg && <div style={{ padding: "10px", marginBottom: "10px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", color: "#DC2626", fontSize: "13px" }}>{driveMsg}</div>}
             <form onSubmit={handleCreateDrive}>
@@ -2167,6 +2204,7 @@ export function CollegeAdminDashboard() {
                   selected={driveForm.eligible_departments}
                   onChange={eligible_departments => setDriveForm({ ...driveForm, eligible_departments })}
                   placeholder="All departments"
+                  inline
                 />
               </div>
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
