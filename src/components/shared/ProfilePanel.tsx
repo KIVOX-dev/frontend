@@ -41,9 +41,11 @@ type StudentProfile = {
   cover_image_url?: string | null;
   work_experience?: WorkExperienceEntry[] | null;
   education?: EducationEntry[] | null;
+  target_job_role?: string | null;
 };
 
 type Department = { id: string; name: string };
+type JobRoleOption = { id: string; title: string };
 
 type Tab = "profile" | "career" | "student" | "skills" | "integrations";
 
@@ -527,6 +529,8 @@ export function ProfilePanel() {
 
   const [editingAbout, setEditingAbout] = useState(false);
   const [aboutName, setAboutName] = useState("");
+  const [aboutRole, setAboutRole] = useState("");
+  const [jobRoles, setJobRoles] = useState<JobRoleOption[]>([]);
   const [savingAbout, setSavingAbout] = useState(false);
   const [aboutMsg, setAboutMsg] = useState("");
 
@@ -535,10 +539,12 @@ export function ProfilePanel() {
     Promise.all([
       api.get<StudentProfile>("/students/profile"),
       api.get<Department[]>("/departments").catch(() => ({ data: [] })),
+      api.get<JobRoleOption[]>("/roadmap/roles").catch(() => ({ data: [] })),
     ])
-      .then(([profileRes, deptRes]) => {
+      .then(([profileRes, deptRes, rolesRes]) => {
         setStudentProfile(profileRes.data);
         setDepartments(deptRes.data || []);
+        setJobRoles(rolesRes.data || []);
       })
       .catch(() => setProfileMissing(true))
       .finally(() => setProfileLoading(false));
@@ -707,6 +713,7 @@ export function ProfilePanel() {
 
   const startEditingAbout = () => {
     setAboutName(user?.name || "");
+    setAboutRole(studentProfile?.target_job_role || "");
     setAboutMsg("");
     setEditingAbout(true);
   };
@@ -731,6 +738,10 @@ export function ProfilePanel() {
     try {
       await api.put(`/users/${userId}`, { full_name: name });
       updateUser({ name });
+      if (isStudent && aboutRole && aboutRole !== (studentProfile?.target_job_role || "")) {
+        await api.put("/roadmap/target-role", { roleId: aboutRole });
+        setStudentProfile((prev) => (prev ? { ...prev, target_job_role: aboutRole } : prev));
+      }
       setEditingAbout(false);
     } catch (err: unknown) {
       setAboutMsg(extractErrorMessage(err, "Failed to update profile"));
@@ -871,6 +882,23 @@ export function ProfilePanel() {
                       </Field>
                       <ReadOnlyField label="Email" value={user?.email} />
                       <ReadOnlyField label="Role" value={<span className="capitalize">{user?.role?.replace("_", " ")}</span>} />
+                      {isStudent && (
+                        <Field>
+                          <Label>Preferred Job Role</Label>
+                          <select
+                            className="h-11 w-full rounded-md border border-line bg-white px-3.5 text-base text-ink focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors duration-150"
+                            value={aboutRole}
+                            onChange={(e) => setAboutRole(e.target.value)}
+                          >
+                            <option value="">Select a job role</option>
+                            {jobRoles.map((role) => (
+                              <option key={role.id} value={role.id}>
+                                {role.title}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      )}
                     </div>
                     <div className="flex gap-3">
                       <Button type="submit" loading={savingAbout}>
@@ -886,6 +914,15 @@ export function ProfilePanel() {
                     <ReadOnlyField label="Name" value={user?.name} />
                     <ReadOnlyField label="Email" value={user?.email} />
                     <ReadOnlyField label="Role" value={<span className="capitalize">{user?.role?.replace("_", " ")}</span>} />
+                    {isStudent && (
+                      <ReadOnlyField
+                        label="Preferred Job Role"
+                        value={
+                          jobRoles.find((r) => r.id === studentProfile?.target_job_role)?.title ??
+                          studentProfile?.target_job_role?.replace(/[-_]/g, " ")
+                        }
+                      />
+                    )}
                   </div>
                 )}
               </Card>
