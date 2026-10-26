@@ -4,7 +4,7 @@ import { LegacyRouteMarker } from "@/components/shared/LegacyStyleGuard";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/institution/login" },
-  title: "College Login: Admins, Faculty & Students",
+  title: "Institutional Login: Admins, Faculty & Students",
   description:
     "Sign in to the TalentSnaps institutional portal to run placement drives, assessments, student tracking and NIRF-ready reports.",
 };
