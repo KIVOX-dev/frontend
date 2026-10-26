@@ -7,7 +7,11 @@
 // instead), which is fine — these headers are production-only below.
 function apiOrigin() {
   try {
-    return process.env.NEXT_PUBLIC_API_URL ? new URL(process.env.NEXT_PUBLIC_API_URL).origin : null;
+    // The API's real address — still needed in connect-src when API calls go
+    // through this site's own /api/v1 (NEXT_PUBLIC_USE_API_PROXY), because
+    // the chat WebSocket and signed document links connect to it directly.
+    const direct = process.env.NEXT_PUBLIC_API_DIRECT_URL || process.env.NEXT_PUBLIC_API_URL;
+    return direct && /^https?:/.test(direct) ? new URL(direct).origin : null;
   } catch {
     return null;
   }
@@ -133,6 +137,15 @@ const nextConfig = {
   // the final stage. Without this the image would need the full dev
   // node_modules tree (~10x larger) just to run `next start`.
   output: "standalone",
+  experimental: {
+    // Calls to /api/v1 are forwarded to the API by src/middleware.ts. Some of
+    // them run long (assigning a test to a whole department, batch uploads —
+    // the browser allows those 4 minutes), so the forwarder waits 5 minutes
+    // instead of Next's default 30 seconds, and buffers request bodies up to
+    // 25 MB (default 10 MB) so a large upload isn't cut off.
+    proxyTimeout: 5 * 60 * 1000,
+    middlewareClientMaxBodySize: "25mb",
+  },
   images: {
     // `domains` is deprecated in favor of `remotePatterns` (Next warns on
     // every build otherwise) — same three hosts, just the current config
@@ -175,6 +188,10 @@ const nextConfig = {
       { source: "/docs", destination: "/docs/individuals/terms-and-conditions", permanent: false },
       { source: "/docs/:audience(individuals|institutions|recruiters)", destination: "/docs/:audience/terms-and-conditions", permanent: false },
       { source: "/institution", destination: "/institution/login", permanent: false },
+      // app.talentsnaps.com is the institutional sign-in address: its home page
+      // is the role picker, not the marketing site. (Temporary, not permanent,
+      // so it can be pointed elsewhere later without browsers remembering it.)
+      { source: "/", has: [{ type: "host", value: "app.talentsnaps.com" }], destination: "/institution/login", permanent: false },
     ];
   },
   // The institutional role picker's public URL. Served by the /institutional

@@ -23,6 +23,14 @@ COPY . .
 
 ARG NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Optional: send API calls through this site's own /api/v1 (see src/middleware.ts)
+# so the login cookie is first-party. Needs API_PROXY_TARGET (and API_PROXY_SECRET)
+# set at runtime on the service. NEXT_PUBLIC_API_DIRECT_URL is then the API's real
+# address, still used by the chat WebSocket and signed document links.
+ARG NEXT_PUBLIC_USE_API_PROXY=""
+ENV NEXT_PUBLIC_USE_API_PROXY=$NEXT_PUBLIC_USE_API_PROXY
+ARG NEXT_PUBLIC_API_DIRECT_URL=""
+ENV NEXT_PUBLIC_API_DIRECT_URL=$NEXT_PUBLIC_API_DIRECT_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build

@@ -1,4 +1,5 @@
-import { api, getApiUrl } from "@/lib/api";
+import { api } from "@/lib/api";
+import { getApiDirectUrl } from "@/lib/apiUrl";
 import { toast } from "@/lib/toast";
 
 // Backend serves stored documents (offer letters, admission proofs, score
@@ -25,7 +26,7 @@ async function openSignedDocument(proofUrlEndpoint: string): Promise<void> {
 
   try {
     const res = await api.get<{ url: string }>(proofUrlEndpoint);
-    const origin = getApiUrl().replace(/\/api\/v1\/?$/, "");
+    const origin = getApiDirectUrl().replace(/\/api\/v1\/?$/, "");
     const target = `${origin}${res.data.url}`;
 
     // The record can outlive its file (uploads from before durable storage

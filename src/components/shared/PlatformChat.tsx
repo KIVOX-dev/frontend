@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuthStore } from "@/stores/authStore";
-import { api, getApiUrl } from "@/lib/api";
+import { api } from "@/lib/api";
+import { getApiDirectUrl } from "@/lib/apiUrl";
 import { useReconnectingSocket } from "@/hooks/useReconnectingSocket";
 
 type Contact = {
@@ -146,7 +147,7 @@ export function PlatformChat() {
   const wsUrl = useMemo(() => {
     if (!user || !token) return null;
     const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
-    return getApiUrl().replace(/^http(s)?:/, protocol) + `/chat/ws`;
+    return getApiDirectUrl().replace(/^http(s)?:/, protocol) + `/chat/ws`;
   }, [user, token]);
 
   const { status: socketStatus, send: sendSocketMessage } = useReconnectingSocket(wsUrl, wsProtocols, handleIncomingMessage);
