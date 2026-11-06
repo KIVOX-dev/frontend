@@ -369,6 +369,7 @@ export function LearnerMockInterview() {
   // 3-round attempt: the server-side session that stores every round's result, and the GD round.
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [gdActive, setGdActive] = useState(false);
+  const [startingGd, setStartingGd] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1071,8 +1072,11 @@ export function LearnerMockInterview() {
         sessionId={sessionId}
         studentName={user?.name || "You"}
         onExit={() => {
+          // Quitting midway keeps Round 1 and marks the attempt incomplete (no final report).
+          api.post(`/mock-sessions/${sessionId}/abandon`).catch(() => undefined);
           setGdActive(false);
           setMcqActive(false);
+          setSessionId(null);
         }}
         onComplete={() => {
           setGdActive(false);
@@ -1088,21 +1092,37 @@ export function LearnerMockInterview() {
       <InterviewMcqRound
         role={role}
         company={company}
-        continuing={loading}
+        continuing={loading || startingGd}
         onExit={() => setMcqActive(false)}
         onContinue={async (result) => {
+          if (startingGd) return;
           setMcqResult(result);
-          // Create the attempt and store Round 1, then go to the group discussion. If the new
-          // session API is unavailable, fall back to the previous flow so nothing is blocked.
+          setStartingGd(true);
+          // Create the attempt (or reuse it on retry), store Round 1, then open the group
+          // discussion. There is deliberately NO fallback that skips Round 2: all three rounds
+          // are mandatory, so a failure here is shown and can be retried.
           try {
-            const created = await api.post("/mock-sessions", { role, company });
-            const id = created.data.data.id as string;
-            await api.post(`/mock-sessions/${id}/rounds/1`, { items: result.items });
-            setSessionId(id);
+            let id = sessionId;
+            if (!id) {
+              const created = await api.post("/mock-sessions", { role, company });
+              id = created.data.data.id as string;
+              setSessionId(id);
+            }
+            try {
+              await api.post(`/mock-sessions/${id}/rounds/1`, { items: result.items });
+            } catch (err) {
+              // 400 = Round 1 was already stored by an earlier try whose reply was lost.
+              if ((err as { response?: { status?: number } }).response?.status !== 400) throw err;
+            }
             setGdActive(true);
           } catch (err) {
-            console.error("Could not start the 3-round attempt, using the legacy flow", err);
-            startInterview();
+            const status = (err as { response?: { status?: number } }).response?.status;
+            console.error("Could not start Round 2", err);
+            toast.warning(
+              `Couldn't start Round 2${status ? ` (error ${status})` : ""}. Check your connection and tap Continue to Round 2 again.`
+            );
+          } finally {
+            setStartingGd(false);
           }
         }}
       />
@@ -1292,6 +1312,7 @@ export function LearnerMockInterview() {
               style={{ width: "100%", padding: "11px", justifyContent: "center" }}
               onClick={() => {
                 setMcqResult(null);
+                setSessionId(null); // every "Start" is a brand-new attempt
                 setMcqActive(true);
               }}
               disabled={mediaStatus !== "granted"}
