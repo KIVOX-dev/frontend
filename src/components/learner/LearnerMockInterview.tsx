@@ -328,7 +328,7 @@ export function LearnerMockInterview() {
   const [setup, setSetup] = useState(true);
   const [role, setRole] = useState("Software Engineer");
   const [company, setCompany] = useState("TCS");
-  const [round, setRound] = useState("technical");
+  const [round, setRound] = useState("hr"); // Round 3 of the 3-round flow is always the HR interview
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -1115,7 +1115,7 @@ export function LearnerMockInterview() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
           <div>
             <h2 style={{ fontSize: "22px", marginBottom: "2px", fontWeight: 700, color: "var(--text)" }}>AI Mock Interviewer</h2>
-            <p style={{ color: "var(--muted)" }}>A written test, then a spoken interview, both tailored to your role and company.</p>
+            <p style={{ color: "var(--muted)" }}>A written test, a group discussion, then an HR interview, all tailored to your role and company.</p>
           </div>
 
           <div style={{ display: "flex", background: "var(--bg)", padding: "4px", borderRadius: "10px", border: "1px solid var(--border)", width: "fit-content" }}>
@@ -1188,9 +1188,10 @@ export function LearnerMockInterview() {
                 <RoundIcon d="M12 8h.01M12 11v5m9-4a9 9 0 11-18 0 9 9 0 0118 0z" size={18} />
               </span>
               <div>
-                <strong>Two rounds</strong><br/>
-                <b>Round 1:</b> a timed written test in {companyTestName(company)}&apos;s pattern, with technical questions for a {role} (90 seconds per question).<br/>
-                <b>Round 2:</b> a spoken interview, 10 questions with exactly 60 seconds each. Plagiarism checks are active.
+                <strong>Three rounds</strong><br/>
+                <b>Round 1:</b> a timed written test in {companyTestName(company)}&apos;s pattern for a {role} (90 seconds per question).<br/>
+                <b>Round 2:</b> a group discussion with four AI participants (2 min prep, up to 14 min, 1 min closing).<br/>
+                <b>Round 3:</b> an HR interview, answered out loud. You see your scores after each round and the full report after Round 3.
               </div>
             </div>
 
@@ -1328,7 +1329,7 @@ export function LearnerMockInterview() {
                   <h3 style={{ textAlign: "center", fontSize: "18px", fontWeight: 600, marginBottom: "18px" }}>How it works?</h3>
                   {[
                     { title: "Why AI interviews?", items: ["Questions are tailored to the role and company you pick, so you practise what recruiters actually ask.", "No generic questions — just a realistic, unbiased interview you can repeat as often as you like."] },
-                    { title: "How will it happen?", items: ["Round 1 is a timed written test in your chosen company's pattern.", "Round 2 is a spoken interview: 10 questions, exactly 60 seconds each, with your camera on."] },
+                    { title: "How will it happen?", items: ["Round 1 is a timed written test in your chosen company's pattern.", "Round 2 is a group discussion with four AI participants: 2 minutes to prepare, up to 14 minutes of discussion and a 1 minute closing summary.", "Round 3 is a spoken HR interview with your camera on. Your scores for each round appear as you go, and the full report after Round 3."] },
                     { title: "The outcome", items: ["Get an overall score and feedback on your answers after the interview.", "Review every attempt later in your interview history."] },
                   ].map((sec, i) => (
                     <div key={sec.title} style={{ marginBottom: "16px" }}>
@@ -1392,32 +1393,22 @@ export function LearnerMockInterview() {
             </div>
 
             <div className="card" style={{ padding: "18px", borderRadius: "16px" }}>
-              <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>Round 2 Focus</div>
-              <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "2px", marginBottom: "12px" }}>Choose what the spoken interview (Round 2) covers.</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "8px" }}>
-                {INTERVIEW_ROUNDS.map((r) => {
-                  const active = round === r.id;
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => setRound(r.id)}
-                      aria-pressed={active}
-                      style={{
-                        textAlign: "left", padding: "10px 12px", borderRadius: "12px", cursor: "pointer",
-                        background: active ? "var(--accent-l)" : "var(--bg)",
-                        border: `1.5px solid ${active ? "var(--accent)" : "var(--border)"}`,
-                        transition: "all .15s",
-                      }}
-                    >
-                      <span style={{ width: "34px", height: "34px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "6px", background: active ? "var(--accent)" : "var(--accent-l)", color: active ? "#fff" : "var(--accent)" }}>
-                        <RoundIcon d={r.icon} />
-                      </span>
-                      <span style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "var(--text)" }}>{r.label}</span>
-                      <span style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginTop: "2px", lineHeight: 1.4 }}>{r.desc}</span>
-                    </button>
-                  );
-                })}
+              <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>Your 3 rounds</div>
+              <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "2px", marginBottom: "12px" }}>You complete all three, whatever you score. Scores appear after each round.</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {[
+                  { n: 1, title: "Written test", desc: "Timed MCQs in your company's pattern" },
+                  { n: 2, title: "Group discussion", desc: "You + 4 AI participants · pick a topic or get a random one" },
+                  { n: 3, title: "HR interview", desc: "Spoken questions with follow-ups on your answers" },
+                ].map((r) => (
+                  <div key={r.n} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", borderRadius: "12px", background: "var(--bg)", border: "1px solid var(--border)" }}>
+                    <span style={{ width: "30px", height: "30px", borderRadius: "50%", background: "var(--accent)", color: "#fff", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{r.n}</span>
+                    <span>
+                      <span style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "var(--text)" }}>{r.title}</span>
+                      <span style={{ display: "block", fontSize: "12px", color: "var(--muted)", marginTop: "1px" }}>{r.desc}</span>
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1488,7 +1479,7 @@ export function LearnerMockInterview() {
               <div style={{ fontSize: "12px", color: "var(--muted)" }}>{mcqResult.correct} of {mcqResult.total} correct</div>
             </div>
             <div>
-              <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Round 2 · Spoken interview</div>
+              <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 600 }}>Round 3 · HR interview</div>
               <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--text)" }}>{interviewScore != null ? `${interviewScore}/10` : terminationReason ? "Stopped" : "Saved"}</div>
               <div style={{ fontSize: "12px", color: "var(--muted)" }}>{Object.values(answers).filter((a) => a.trim()).length} of {questions.length} answered</div>
             </div>
@@ -1536,7 +1527,7 @@ export function LearnerMockInterview() {
             </div>
           )}
           <div>
-            <div style={{ fontWeight: 600, fontSize: "15px" }}>Round 2 · {role} · {ROUND_LABEL[round] ?? "Technical"}</div>
+            <div style={{ fontWeight: 600, fontSize: "15px" }}>Round 3 · {role} · {ROUND_LABEL[round] ?? "HR"}</div>
             <div style={{ fontSize: "12px", color: "var(--muted)" }}>{company} · Plagiarism Monitor Active</div>
           </div>
         </div>

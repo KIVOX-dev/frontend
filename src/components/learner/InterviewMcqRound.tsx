@@ -173,7 +173,7 @@ export function InterviewMcqRound({
         </div>
       )}
       <div>
-        <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--accent)", letterSpacing: ".04em", textTransform: "uppercase" }}>Round 1 of 2 · Written test</div>
+        <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--accent)", letterSpacing: ".04em", textTransform: "uppercase" }}>Round 1 of 3 · Written test</div>
         <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text)" }}>
           {companyTestName(company)} · {role}
         </div>
@@ -255,9 +255,9 @@ export function InterviewMcqRound({
           </div>
 
           <div className="card" style={{ padding: "28px" }}>
-            <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>Next: Round 2 · Spoken interview</div>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>Next: Round 2 · Group discussion</div>
             <p style={{ fontSize: "13px", color: "var(--muted)", margin: "6px 0 18px", lineHeight: 1.6 }}>
-              10 questions for a {role} at {company}, answered out loud with 60 seconds each. Your camera and microphone stay on for this round.
+              A group discussion with four AI participants: 2 minutes to prepare, up to 14 minutes of discussion and a 1 minute closing summary. You continue to every round whatever your score. Your microphone is used for this round.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <button className="btn btn-p" style={{ justifyContent: "center", padding: "12px" }} onClick={() =>
