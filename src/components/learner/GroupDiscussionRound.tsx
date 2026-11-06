@@ -285,7 +285,7 @@ export function GroupDiscussionRound({
       params.set("difficulty", difficulty);
       if (random) params.set("random", "true");
       const res = await api.get(`/mock-sessions/gd/topics?${params.toString()}`);
-      const data = res.data.data as { topic?: Topic; topics?: Topic[] };
+      const data = res.data as { topic?: Topic; topics?: Topic[] };
       const chosen = data.topic ?? data.topics?.[Math.floor(Math.random() * (data.topics?.length || 1))];
       if (!chosen) return toast.warning("No topic found for that choice. Try another.");
       topicRef.current = chosen;
@@ -331,7 +331,7 @@ export function GroupDiscussionRound({
         turns: turnsRef.current,
         duration_seconds: Math.round((Date.now() - startRef.current) / 1000),
       });
-      onComplete(res.data.data.round as GdRoundResult);
+      onComplete(res.data.round as GdRoundResult);
     } catch {
       submittedRef.current = false;
       setPhase("closing");
@@ -351,7 +351,7 @@ export function GroupDiscussionRound({
         student_name: studentName,
         closing_done: closingDoneRef.current,
       });
-      const reply = res.data.data as TurnReply;
+      const reply = res.data as TurnReply;
       if (reply.action === "wait") {
         nextAskAtRef.current = Date.now() + 4000;
         return;
@@ -378,7 +378,7 @@ export function GroupDiscussionRound({
         student_speaking_ms: Date.now() - speakStartRef.current,
         ms_since_last_interrupt: lastInterruptRef.current ? Date.now() - lastInterruptRef.current : Number.MAX_SAFE_INTEGER,
       });
-      const reply = res.data.data as InterruptReply;
+      const reply = res.data as InterruptReply;
       if (reply.interrupt && recRef.current) {
         lastInterruptRef.current = Date.now();
         stopMic(true); // keep what the student said so far

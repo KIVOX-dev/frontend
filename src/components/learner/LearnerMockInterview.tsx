@@ -1105,7 +1105,7 @@ export function LearnerMockInterview() {
             let id = sessionId;
             if (!id) {
               const created = await api.post("/mock-sessions", { role, company });
-              id = created.data.data.id as string;
+              id = created.data.id as string;
               setSessionId(id);
             }
             try {
@@ -1118,9 +1118,9 @@ export function LearnerMockInterview() {
           } catch (err) {
             const status = (err as { response?: { status?: number } }).response?.status;
             console.error("Could not start Round 2", err);
-            toast.warning(
-              `Couldn't start Round 2${status ? ` (error ${status})` : ""}. Check your connection and tap Continue to Round 2 again.`
-            );
+            // Always say what failed: an HTTP status, or the error text for non-HTTP failures.
+            const why = status ? `error ${status}` : err instanceof Error ? err.message : "no response";
+            toast.warning(`Couldn't start Round 2 (${why}). Tap Continue to Round 2 to try again.`);
           } finally {
             setStartingGd(false);
           }
