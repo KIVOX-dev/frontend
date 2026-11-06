@@ -21,6 +21,7 @@ import { toast } from "@/lib/toast";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import { COMPANY_LOGOS, companyLogoFor } from "@/lib/companyLogos";
+import { GdResultScreen, type GdRoundData } from "./GdResultScreen";
 import { GroupDiscussionRound } from "./GroupDiscussionRound";
 import { InterviewMcqRound, type McqRoundResult } from "@/components/learner/InterviewMcqRound";
 import { companyTestName } from "@/lib/companyTestBanks";
@@ -370,6 +371,8 @@ export function LearnerMockInterview() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [gdActive, setGdActive] = useState(false);
   const [startingGd, setStartingGd] = useState(false);
+  // Round 2 result shown between the group discussion and the HR interview.
+  const [gdResult, setGdResult] = useState<GdRoundData | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1078,10 +1081,23 @@ export function LearnerMockInterview() {
           setMcqActive(false);
           setSessionId(null);
         }}
-        onComplete={() => {
+        onComplete={(result) => {
+          // Show the Round 2 result first; the student continues to Round 3 from there.
           setGdActive(false);
           setMcqActive(false);
-          startInterview(); // Round 3 (spoken interview); round result screens come next
+          setGdResult(result as unknown as GdRoundData);
+        }}
+      />
+    );
+  }
+
+  if (gdResult) {
+    return (
+      <GdResultScreen
+        result={gdResult}
+        onContinue={() => {
+          setGdResult(null);
+          startInterview(); // Round 3
         }}
       />
     );
@@ -1313,6 +1329,7 @@ export function LearnerMockInterview() {
               onClick={() => {
                 setMcqResult(null);
                 setSessionId(null); // every "Start" is a brand-new attempt
+                setGdResult(null);
                 setMcqActive(true);
               }}
               disabled={mediaStatus !== "granted"}
