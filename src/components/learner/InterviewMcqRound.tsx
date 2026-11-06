@@ -10,7 +10,15 @@ import { companyTestName, loadCompanyBankQuestions, type McqQuestion } from "@/l
 const SECONDS_PER_QUESTION = 90;
 const QUESTION_COUNT = 20;
 
-export type McqRoundResult = { correct: number; total: number; percentage: number };
+export type McqReviewItem = {
+  question: string;
+  section: string;
+  options: string[];
+  selected: string | null;
+  correct_answer: string;
+  explanation: string;
+};
+export type McqRoundResult = { correct: number; total: number; percentage: number; items: McqReviewItem[] };
 
 type Source = "ai" | "bank";
 
@@ -252,7 +260,21 @@ export function InterviewMcqRound({
               10 questions for a {role} at {company}, answered out loud with 60 seconds each. Your camera and microphone stay on for this round.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <button className="btn btn-p" style={{ justifyContent: "center", padding: "12px" }} onClick={() => onContinue({ correct, total: questions.length, percentage: pct })} disabled={continuing}>
+              <button className="btn btn-p" style={{ justifyContent: "center", padding: "12px" }} onClick={() =>
+                  onContinue({
+                    correct,
+                    total: questions.length,
+                    percentage: pct,
+                    items: questions.map((q) => ({
+                      question: q.question,
+                      section: q.section,
+                      options: q.options,
+                      selected: answers[q.id] ?? null,
+                      correct_answer: q.correct_answer,
+                      explanation: "",
+                    })),
+                  })
+                } disabled={continuing}>
                 {continuing ? "Preparing Round 2…" : "Continue to Round 2"}
               </button>
               <button className="btn btn-o" style={{ justifyContent: "center" }} onClick={load}>Retake Round 1</button>

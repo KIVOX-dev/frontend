@@ -21,6 +21,7 @@ import { toast } from "@/lib/toast";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import { COMPANY_LOGOS, companyLogoFor } from "@/lib/companyLogos";
+import { GroupDiscussionRound } from "./GroupDiscussionRound";
 import { InterviewMcqRound, type McqRoundResult } from "@/components/learner/InterviewMcqRound";
 import { companyTestName } from "@/lib/companyTestBanks";
 
@@ -365,6 +366,9 @@ export function LearnerMockInterview() {
   // its score is shown again on the final screen.
   const [mcqActive, setMcqActive] = useState(false);
   const [mcqResult, setMcqResult] = useState<McqRoundResult | null>(null);
+  // 3-round attempt: the server-side session that stores every round's result, and the GD round.
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [gdActive, setGdActive] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -940,13 +944,23 @@ export function LearnerMockInterview() {
           responses: formattedResponses
         });
       }
+      if (sessionId) {
+        try {
+          await api.post(`/mock-sessions/${sessionId}/rounds/3`, {
+            pairs: questions.map((q) => ({ question: spokenText(q.text), answer: answersRef.current[q.id] || "" })),
+            duration_seconds: questions.length * 60,
+          });
+        } catch (err) {
+          console.error("Failed to save Round 3 to the attempt:", err);
+        }
+      }
     } catch (err) {
       console.error("Failed to save interview history:", err);
     } finally {
       setEvaluating(false);
       setInterviewComplete(true);
     }
-  }, [questions, user?.id, role, round]);
+  }, [questions, user?.id, role, round, sessionId]);
 
   // Stops the interview for a camera violation: records why, then saves
   // whatever was answered so far exactly like "End Session" does.
@@ -1051,6 +1065,24 @@ export function LearnerMockInterview() {
     };
   }, [setup, interviewComplete, questions, currentQuestionIndex, askQuestion]);
 
+  if (gdActive && sessionId) {
+    return (
+      <GroupDiscussionRound
+        sessionId={sessionId}
+        studentName={user?.name || "You"}
+        onExit={() => {
+          setGdActive(false);
+          setMcqActive(false);
+        }}
+        onComplete={() => {
+          setGdActive(false);
+          setMcqActive(false);
+          startInterview(); // Round 3 (spoken interview); round result screens come next
+        }}
+      />
+    );
+  }
+
   if (setup && mcqActive) {
     return (
       <InterviewMcqRound
@@ -1058,9 +1090,20 @@ export function LearnerMockInterview() {
         company={company}
         continuing={loading}
         onExit={() => setMcqActive(false)}
-        onContinue={(result) => {
+        onContinue={async (result) => {
           setMcqResult(result);
-          startInterview();
+          // Create the attempt and store Round 1, then go to the group discussion. If the new
+          // session API is unavailable, fall back to the previous flow so nothing is blocked.
+          try {
+            const created = await api.post("/mock-sessions", { role, company });
+            const id = created.data.data.id as string;
+            await api.post(`/mock-sessions/${id}/rounds/1`, { items: result.items });
+            setSessionId(id);
+            setGdActive(true);
+          } catch (err) {
+            console.error("Could not start the 3-round attempt, using the legacy flow", err);
+            startInterview();
+          }
         }}
       />
     );
