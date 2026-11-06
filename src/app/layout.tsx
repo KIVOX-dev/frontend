@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Space_Grotesk, Source_Sans_3 } from "next/font/google";
+import localFont from "next/font/local";
 import { ConsentedAnalytics } from "@/components/shared/ConsentedAnalytics";
 import { CookieConsent } from "@/components/shared/CookieConsent";
 import { LegacyStyleGuard } from "@/components/shared/LegacyStyleGuard";
@@ -16,43 +16,32 @@ import { TooltipProvider } from "@/components/ui/Tooltip";
 // by e.g. ResumeBuilder.tsx). Source Sans Pro is the actual default applied
 // on <body> below.
 //
-// These two get their own distinct variable names (`--font-display-*`)
-// rather than reusing `--font-jakarta`/`--font-grotesk`, kept loaded for any
-// call site that still references them directly, though the landing page no
-// longer opts into a separate display font (see `.landing-typeset` in
-// globals.css) — Coursera itself uses one typeface everywhere.
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+// Fonts are self-hosted from the @fontsource-variable packages (latin subset, variable weight)
+// instead of next/font/google: that downloads from Google at build time, and a CI/Docker build
+// whose network gets an unexpected response from Google Fonts failed the whole build.
+// Same families and CSS variable names as before, so every call site keeps working. The two
+// duplicate `--font-display-*` loads were removed: nothing referenced them.
+const plusJakartaSans = localFont({
+  src: "../../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2",
+  weight: "200 800",
+  display: "swap",
   variable: "--font-jakarta",
 });
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+const spaceGrotesk = localFont({
+  src: "../../node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2",
+  weight: "300 700",
+  display: "swap",
   variable: "--font-grotesk",
 });
 
-const displayJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-display-jakarta",
-});
-
-const displayGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-display-grotesk",
-});
-// Coursera's actual body/title/display typeface is "Source Sans Pro" — Google
-// renamed the family to "Source Sans 3" for its variable-font rebuild, which
-// is what next/font/google now serves under that name. Kept aliased to the
-// existing `--font-inter` variable name (not renamed) so every
-// font-jakarta/font-grotesk/font-inter call site across the app keeps
-// resolving without being touched individually.
-const sourceSansPro = Source_Sans_3({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+// Coursera's actual body/title/display typeface is "Source Sans Pro" — Google renamed the
+// family to "Source Sans 3". Kept aliased to the existing `--font-inter` variable name (not
+// renamed) so every font-jakarta/font-grotesk/font-inter call site keeps resolving.
+const sourceSansPro = localFont({
+  src: "../../node_modules/@fontsource-variable/source-sans-3/files/source-sans-3-latin-wght-normal.woff2",
+  weight: "200 900",
+  display: "swap",
   variable: "--font-inter",
 });
 
@@ -134,7 +123,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: STALE_BUILD_GUARD_SCRIPT }} />
       </head>
       <body
-        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${sourceSansPro.variable} ${displayJakarta.variable} ${displayGrotesk.variable} ${sourceSansPro.className}`}
+        className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${sourceSansPro.variable} ${sourceSansPro.className}`}
         suppressHydrationWarning
       >
         <script
