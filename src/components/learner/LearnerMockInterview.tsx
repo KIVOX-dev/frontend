@@ -1068,10 +1068,10 @@ export function LearnerMockInterview() {
 
   if (setup) {
     return (
-      <div className="screen active" style={{ padding: "32px 40px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px", marginBottom: "24px" }}>
+      <div className="screen active" style={{ padding: "20px 32px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
           <div>
-            <h2 style={{ fontSize: "24px", marginBottom: "4px", fontWeight: 700, color: "var(--text)" }}>AI Mock Interviewer</h2>
+            <h2 style={{ fontSize: "22px", marginBottom: "2px", fontWeight: 700, color: "var(--text)" }}>AI Mock Interviewer</h2>
             <p style={{ color: "var(--muted)" }}>A written test, then a spoken interview, both tailored to your role and company.</p>
           </div>
 
@@ -1085,10 +1085,10 @@ export function LearnerMockInterview() {
         </div>
 
         {tab === "new" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "24px", alignItems: "start" }}>
-          <div className="card" style={{ padding: "28px", borderRadius: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "16px", alignItems: "start" }}>
+          <div className="card" style={{ padding: "20px", borderRadius: "16px" }}>
             <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)", marginBottom: "4px" }}>Interview Setup</div>
-            <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "22px" }}>Pick the role and company you&apos;re preparing for.</div>
+            <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "12px" }}>Pick the role and company you&apos;re preparing for.</div>
 
             <label htmlFor="mi-role" style={{ display: "block", marginBottom: "8px", fontWeight: 600, fontSize: "13px" }}>Target Role</label>
             <input
@@ -1103,7 +1103,7 @@ export function LearnerMockInterview() {
             <datalist id="mi-role-options">
               {ROLE_OPTIONS.map((r) => <option key={r} value={r} />)}
             </datalist>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px", marginBottom: "22px" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px", marginBottom: "12px" }}>
               {POPULAR_ROLES.map((r) => {
                 const active = role === r;
                 return (
@@ -1120,7 +1120,7 @@ export function LearnerMockInterview() {
             </div>
 
             <label htmlFor="mi-company" style={{ display: "block", marginBottom: "8px", fontWeight: 600, fontSize: "13px" }}>Target Company</label>
-            <div style={{ position: "relative", marginBottom: "22px" }}>
+            <div style={{ position: "relative", marginBottom: "12px" }}>
               {companyLogoFor(company) && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={companyLogoFor(company)!} alt="" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", height: "20px", maxWidth: "46px", objectFit: "contain", pointerEvents: "none" }} />
@@ -1140,7 +1140,7 @@ export function LearnerMockInterview() {
               </datalist>
             </div>
 
-            <div style={{ background: "var(--accent-l)", color: "var(--accent)", padding: "14px 16px", borderRadius: "10px", marginBottom: "22px", fontSize: "13px", display: "flex", gap: "12px", alignItems: "flex-start", lineHeight: 1.55 }}>
+            <div style={{ background: "var(--accent-l)", color: "var(--accent)", padding: "10px 14px", borderRadius: "10px", marginBottom: "12px", fontSize: "12.5px", display: "flex", gap: "10px", alignItems: "flex-start", lineHeight: 1.45 }}>
               <span style={{ flexShrink: 0, marginTop: "1px" }}>
                 <RoundIcon d="M12 8h.01M12 11v5m9-4a9 9 0 11-18 0 9 9 0 0118 0z" size={18} />
               </span>
@@ -1151,7 +1151,7 @@ export function LearnerMockInterview() {
               </div>
             </div>
 
-            <div style={{ background: "var(--bg)", padding: "18px", borderRadius: "12px", border: "1px solid var(--border)", marginBottom: "22px" }}>
+            <div style={{ background: "var(--bg)", padding: "12px 14px", borderRadius: "12px", border: "1px solid var(--border)", marginBottom: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px" }}>
                 <div>
                   <strong style={{ fontSize: "14px" }}>Camera &amp; Microphone Check</strong>
@@ -1245,7 +1245,7 @@ export function LearnerMockInterview() {
 
             <button
               className="btn btn-p"
-              style={{ width: "100%", padding: "14px", justifyContent: "center" }}
+              style={{ width: "100%", padding: "11px", justifyContent: "center" }}
               onClick={() => {
                 setMcqResult(null);
                 setMcqActive(true);
@@ -1257,7 +1257,7 @@ export function LearnerMockInterview() {
             <button
               type="button"
               className="btn btn-o"
-              style={{ width: "100%", justifyContent: "center", marginTop: "10px" }}
+              style={{ width: "100%", justifyContent: "center", marginTop: "8px" }}
               onClick={() => setShowHowItWorks(true)}
             >
               How it works?
@@ -1306,15 +1306,15 @@ export function LearnerMockInterview() {
             )}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div className="card" style={{ padding: "24px", borderRadius: "16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "16px", gap: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div className="card" style={{ padding: "18px", borderRadius: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px", gap: "12px" }}>
                 <div>
                   <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>Top Recruiters</div>
                   <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "2px" }}>Tap a company to tailor the questions.</div>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "8px" }}>
                 {COMPANY_LOGOS.map((c) => {
                   const active = company.trim().toLowerCase() === c.name.toLowerCase();
                   return (
@@ -1325,7 +1325,7 @@ export function LearnerMockInterview() {
                       aria-pressed={active}
                       aria-label={c.name}
                       style={{
-                        position: "relative", height: "84px", borderRadius: "12px", cursor: "pointer",
+                        position: "relative", height: "68px", borderRadius: "12px", cursor: "pointer",
                         background: "#fff", padding: "10px 14px",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         border: `1.5px solid ${active ? "var(--accent)" : "var(--border)"}`,
@@ -1348,10 +1348,10 @@ export function LearnerMockInterview() {
               </div>
             </div>
 
-            <div className="card" style={{ padding: "24px", borderRadius: "16px" }}>
+            <div className="card" style={{ padding: "18px", borderRadius: "16px" }}>
               <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text)" }}>Round 2 Focus</div>
-              <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "2px", marginBottom: "16px" }}>Choose what the spoken interview (Round 2) covers.</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "12px" }}>
+              <div style={{ fontSize: "13px", color: "var(--muted)", marginTop: "2px", marginBottom: "12px" }}>Choose what the spoken interview (Round 2) covers.</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "8px" }}>
                 {INTERVIEW_ROUNDS.map((r) => {
                   const active = round === r.id;
                   return (
@@ -1361,13 +1361,13 @@ export function LearnerMockInterview() {
                       onClick={() => setRound(r.id)}
                       aria-pressed={active}
                       style={{
-                        textAlign: "left", padding: "14px", borderRadius: "12px", cursor: "pointer",
+                        textAlign: "left", padding: "10px 12px", borderRadius: "12px", cursor: "pointer",
                         background: active ? "var(--accent-l)" : "var(--bg)",
                         border: `1.5px solid ${active ? "var(--accent)" : "var(--border)"}`,
                         transition: "all .15s",
                       }}
                     >
-                      <span style={{ width: "34px", height: "34px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "10px", background: active ? "var(--accent)" : "var(--accent-l)", color: active ? "#fff" : "var(--accent)" }}>
+                      <span style={{ width: "34px", height: "34px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "6px", background: active ? "var(--accent)" : "var(--accent-l)", color: active ? "#fff" : "var(--accent)" }}>
                         <RoundIcon d={r.icon} />
                       </span>
                       <span style={{ display: "block", fontSize: "14px", fontWeight: 700, color: "var(--text)" }}>{r.label}</span>
