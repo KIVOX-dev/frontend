@@ -96,6 +96,7 @@ export function GroupDiscussionRound({
   const [interim, setInterim] = useState("");
   const [typed, setTyped] = useState("");
   const [micSupported] = useState(() => newRecognizer() !== null);
+  const [voiceNote, setVoiceNote] = useState<string | null>(null);
 
   const turnsRef = useRef<Turn[]>([]);
   const phaseRef = useRef(phase);
@@ -131,34 +132,47 @@ export function GroupDiscussionRound({
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
   }, []);
 
-  // Plays one bot line with its own Google voice; falls back to the browser voice on any failure.
+  // Plays one bot line with its own Google voice. If that fails for ANY reason (service error,
+  // autoplay blocked, undecodable audio) it falls back to the browser voice and says why, so a
+  // silent room is never a mystery.
   const playLine = useCallback(async (slot: string, text: string) => {
     try {
       const res = await api.post("/tts", { voice: slot, text }, { responseType: "blob" });
       const url = URL.createObjectURL(res.data as Blob);
-      await new Promise<void>((resolve) => {
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        const done = () => {
-          URL.revokeObjectURL(url);
-          resolve();
-        };
-        audio.onended = done;
-        audio.onpause = done;
-        audio.onerror = done;
-        audio.play().catch(done);
-      });
-    } catch {
-      await new Promise<void>((resolve) => {
-        const synth = window.speechSynthesis;
-        if (!synth) return resolve();
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = "en-IN";
-        u.onend = () => resolve();
-        u.onerror = () => resolve();
-        synth.speak(u);
-      });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const audio = new Audio(url);
+          audioRef.current = audio;
+          audio.onended = () => resolve();
+          audio.onpause = () => resolve(); // stopAudio() (the student talked over the bot)
+          audio.onerror = () => reject(new Error("the audio could not be decoded"));
+          audio.play().catch(reject);
+        });
+        setVoiceNote(null);
+        return;
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      setVoiceNote(
+        status
+          ? `Google voice unavailable (error ${status}). Using your browser's voice instead.`
+          : `Couldn't play the Google voice (${err instanceof Error ? err.message : "unknown error"}). Using your browser's voice instead.`
+      );
     }
+    await new Promise<void>((resolve) => {
+      const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+      if (!synth) {
+        setVoiceNote("No voice is available in this browser. Lines are shown as text only.");
+        return resolve();
+      }
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-IN";
+      u.onend = () => resolve();
+      u.onerror = () => resolve();
+      synth.speak(u);
+    });
   }, []);
 
   const botSpeak = useCallback(
@@ -531,6 +545,7 @@ export function GroupDiscussionRound({
           <span style={{ fontWeight: 700, fontSize: "20px", fontVariantNumeric: "tabular-nums" }}>
             {inClosing ? clock(closingLeft) : clock(remaining)}
           </span>
+          <button type="button" className="btn btn-o" onClick={() => void playLine("bot3", "Hello. This is a voice check.")}>Test voice</button>
           <button className="btn btn-o" onClick={() => void finish()}>{inClosing ? "Finish" : "End discussion"}</button>
         </div>
       </div>
@@ -548,12 +563,21 @@ export function GroupDiscussionRound({
         })}
       </div>
 
+      {voiceNote && (
+        <div role="status" style={{ padding: "8px 12px", borderRadius: "10px", background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e", fontSize: "12.5px" }}>
+          🔈 {voiceNote}
+        </div>
+      )}
       <div className="card" style={{ ...card, flex: 1, minHeight: "200px", overflowY: "auto", padding: "14px" }} aria-live="polite">
         {turns.length === 0 && <div style={{ color: "var(--muted)", fontSize: "13px" }}>Start the discussion by sharing your opening view, or the moderator will begin shortly.</div>}
         {turns.map((t, i) => (
           <div key={i} style={{ marginBottom: "8px", padding: "8px 10px", borderRadius: "10px", background: t.is_student ? "var(--accent-l)" : "var(--bg)" }}>
             <span style={{ fontWeight: 700, fontSize: "12px", color: t.is_student ? "var(--accent)" : "var(--text)" }}>{t.speaker}{t.interrupts ? " (cut in)" : ""}: </span>
             <span style={{ fontSize: "13px" }}>{t.text}</span>
+            {!t.is_student && (
+              <button type="button" aria-label={`Replay ${t.speaker}`} onClick={() => void playLine(BOTS.find((b) => b.name === t.speaker)?.slot ?? "bot3", t.text)}
+                style={{ all: "unset", cursor: "pointer", marginLeft: "8px", fontSize: "12px", color: "var(--accent)" }}>🔊</button>
+            )}
           </div>
         ))}
         {interim && <div style={{ fontSize: "13px", color: "var(--muted)", fontStyle: "italic" }}>You: {interim}</div>}
