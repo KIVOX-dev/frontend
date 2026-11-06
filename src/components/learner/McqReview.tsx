@@ -1,0 +1,153 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useQuestionExplanations, type ExplanationState } from "@/lib/useQuestionExplanations";
+import type { McqQuestion } from "@/lib/companyTestBanks";
+
+const GREEN = "#16a34a";
+const RED = "#dc2626";
+
+type Filter = "missed" | "all";
+type Status = "correct" | "wrong" | "unanswered";
+
+/** First sentence(s) of an explanation, capped, for the stored one-line review. */
+export function oneLine(text: string, max = 220): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  const sentence = clean.match(/^.*?[.!?](\s|$)/)?.[0].trim() ?? clean;
+  // A fragment like "Yes." is not an explanation: fall back to the full text then.
+  const out = sentence.length >= 15 ? sentence : clean;
+  return out.length > max ? `${out.slice(0, max - 1).trimEnd()}…` : out;
+}
+
+function Explanation({ state }: { state: ExplanationState | undefined }) {
+  const [open, setOpen] = useState(false);
+  const box: React.CSSProperties = { marginTop: "10px", padding: "10px 12px", borderRadius: "10px", background: "var(--bg)", fontSize: "13px", lineHeight: 1.55, color: "var(--text)" };
+  if (!state || state.status === "loading") return <div style={{ ...box, color: "var(--muted)" }} aria-live="polite">Generating explanation…</div>;
+  if (state.status === "failed") return <div style={{ ...box, color: "var(--muted)" }}>Explanation isn&apos;t available right now.</div>;
+  const short = oneLine(state.text);
+  const hasMore = state.text.replace(/\s+/g, " ").trim().length > short.length;
+  return (
+    <div style={box}>
+      {state.disputed && (
+        <div style={{ marginBottom: "6px", padding: "6px 8px", borderRadius: "8px", background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e", fontSize: "12px" }}>
+          ⚠ The AI thinks this answer key may be wrong{state.suggestedAnswer ? ` — it suggests "${state.suggestedAnswer}"` : ""}.
+        </div>
+      )}
+      <strong style={{ color: "var(--accent)" }}>Why · </strong>
+      {open ? state.text : short}
+      {hasMore && (
+        <button type="button" onClick={() => setOpen((o) => !o)} style={{ all: "unset", cursor: "pointer", color: "var(--accent)", fontWeight: 600, marginLeft: "6px", fontSize: "12px" }}>
+          {open ? "Less" : "More"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Question-by-question review for Round 1: the question, every option marked
+ * (correct / your wrong pick / not chosen), and a short explanation. Explanations come
+ * from the cached /ai/explain-questions endpoint; `onExplained` reports them so the parent
+ * can store them with the Round 1 result.
+ */
+export function McqReview({
+  questions,
+  answers,
+  onExplained,
+}: {
+  questions: McqQuestion[];
+  answers: Record<number, string>;
+  onExplained?: (byQuestionId: Record<number, string>) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const statusOf = (q: McqQuestion): Status => (answers[q.id] == null ? "unanswered" : answers[q.id] === q.correct_answer ? "correct" : "wrong");
+  const missedCount = questions.filter((q) => statusOf(q) !== "correct").length;
+  const [filter, setFilter] = useState<Filter>(missedCount > 0 ? "missed" : "all");
+
+  const items = useMemo(
+    () => questions.map((q) => ({ question: q.question, options: q.options, correct: q.correct_answer, data_presentation: q.context })),
+    [questions]
+  );
+  const { explanations, retry } = useQuestionExplanations(items);
+
+  useEffect(() => {
+    if (!onExplained) return;
+    const out: Record<number, string> = {};
+    questions.forEach((q, i) => {
+      const e = explanations[i];
+      if (e?.status === "ready") out[q.id] = oneLine(e.text);
+    });
+    if (Object.keys(out).length) onExplained(out);
+  }, [explanations, questions, onExplained]);
+
+  const failedAny = Object.values(explanations).some((e) => e.status === "failed");
+  const shown = questions.map((q, i) => ({ q, i })).filter(({ q }) => filter === "all" || statusOf(q) !== "correct");
+
+  const pill = (s: Status) => {
+    const map = { correct: [GREEN, "#dcfce7", "Correct"], wrong: [RED, "#fee2e2", "Wrong"], unanswered: ["#64748b", "#f1f5f9", "Not answered"] } as const;
+    const [fg, bg, label] = map[s];
+    return <span style={{ fontSize: "11px", fontWeight: 700, color: fg, background: bg, padding: "2px 8px", borderRadius: "999px" }}>{label}</span>;
+  };
+
+  const tab = (f: Filter, label: string) => (
+    <button key={f} type="button" onClick={() => setFilter(f)} aria-pressed={filter === f}
+      style={{ padding: "5px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: 600, cursor: "pointer", border: `1px solid ${filter === f ? "var(--accent)" : "var(--border)"}`, background: filter === f ? "var(--accent-l)" : "transparent", color: filter === f ? "var(--accent)" : "var(--muted)" }}>
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="card" style={{ padding: "20px 24px", marginTop: "20px" }}>
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        style={{ all: "unset", cursor: "pointer", display: "flex", justifyContent: "space-between", width: "100%", fontWeight: 700, color: "var(--text)" }}>
+        Question review
+        <span style={{ color: "var(--accent)", fontSize: "13px" }}>{open ? "Hide" : "Show"}</span>
+      </button>
+      {open && (
+        <>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", margin: "12px 0" }}>
+            {tab("missed", `Missed (${missedCount})`)}
+            {tab("all", `All (${questions.length})`)}
+            {failedAny && <button type="button" className="btn" style={{ padding: "4px 12px", fontSize: "12px" }} onClick={retry}>Retry explanations</button>}
+          </div>
+          {shown.length === 0 && <div style={{ color: "var(--muted)", fontSize: "14px", padding: "8px 0" }}>You got every question right. Nothing missed.</div>}
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {shown.map(({ q, i }) => {
+              const chosen = answers[q.id];
+              return (
+                <div key={q.id} style={{ border: "1px solid var(--border)", borderRadius: "12px", padding: "14px 16px" }}>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", marginBottom: "6px" }}>
+                    <span style={{ fontWeight: 700, fontSize: "13px", color: "var(--text)" }}>Q{i + 1}</span>
+                    <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--muted)", background: "var(--bg)", padding: "2px 8px", borderRadius: "999px" }}>{q.section}</span>
+                    {pill(statusOf(q))}
+                  </div>
+                  {q.context && <div style={{ color: "var(--muted)", fontSize: "13px", marginBottom: "4px", whiteSpace: "pre-wrap" }}>{q.context}</div>}
+                  <div style={{ color: "var(--text)", fontWeight: 600, fontSize: "14px", lineHeight: 1.5, marginBottom: "10px" }}>{q.question}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {q.options.map((opt) => {
+                      const isCorrect = opt === q.correct_answer;
+                      const isWrongPick = opt === chosen && !isCorrect;
+                      const color = isCorrect ? GREEN : isWrongPick ? RED : "var(--text)";
+                      return (
+                        <div key={opt} style={{ display: "flex", justifyContent: "space-between", gap: "10px", padding: "7px 10px", borderRadius: "8px", fontSize: "13px", color, fontWeight: isCorrect || isWrongPick ? 600 : 400,
+                          background: isCorrect ? "#f0fdf4" : isWrongPick ? "#fef2f2" : "transparent", border: `1px solid ${isCorrect ? "#bbf7d0" : isWrongPick ? "#fecaca" : "var(--border)"}` }}>
+                          <span>{opt}</span>
+                          <span style={{ whiteSpace: "nowrap", fontSize: "12px" }}>
+                            {isCorrect ? "✓ Correct answer" : ""}
+                            {isCorrect && opt === chosen ? " · your answer" : ""}
+                            {isWrongPick ? "✗ Your answer" : ""}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <Explanation state={explanations[i]} />
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

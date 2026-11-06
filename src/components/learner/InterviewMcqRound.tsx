@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/stores/authStore";
 import { companyLogoFor } from "@/lib/companyLogos";
+import { McqReview } from "./McqReview";
 import { companyTestName, loadCompanyBankQuestions, type McqQuestion } from "@/lib/companyTestBanks";
 
 const SECONDS_PER_QUESTION = 90;
@@ -56,6 +57,11 @@ export function InterviewMcqRound({
   const [submitted, setSubmitted] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const startedAt = useRef(0);
+  // One-line explanations reported by the review, stored with the Round 1 result.
+  const explainedRef = useRef<Record<number, string>>({});
+  const onExplained = useCallback((m: Record<number, string>) => {
+    explainedRef.current = m;
+  }, []);
   // submit() runs from the timer too; read answers through a ref so the
   // countdown effect doesn't restart on every click.
   const answersRef = useRef(answers);
@@ -215,7 +221,6 @@ export function InterviewMcqRound({
   if (submitted) {
     const correct = questions.filter((q) => answers[q.id] === q.correct_answer).length;
     const pct = Math.round((correct / questions.length) * 100);
-    const wrong = questions.filter((q) => answers[q.id] !== q.correct_answer);
     const barColor = (p: number) => (p >= 60 ? "#16a34a" : p >= 35 ? "#d97706" : "#dc2626");
     return (
       <div className="screen active" style={{ padding: "32px 40px" }}>
@@ -271,7 +276,7 @@ export function InterviewMcqRound({
                       options: q.options,
                       selected: answers[q.id] ?? null,
                       correct_answer: q.correct_answer,
-                      explanation: "",
+                      explanation: explainedRef.current[q.id] ?? "",
                     })),
                   })
                 } disabled={continuing}>
@@ -283,35 +288,7 @@ export function InterviewMcqRound({
           </div>
         </div>
 
-        {wrong.length > 0 && (
-          <div className="card" style={{ padding: "20px 24px", marginTop: "20px" }}>
-            <button
-              onClick={() => setReviewOpen((o) => !o)}
-              style={{ all: "unset", cursor: "pointer", display: "flex", justifyContent: "space-between", width: "100%", fontWeight: 700, color: "var(--text)" }}
-              aria-expanded={reviewOpen}
-            >
-              Review {wrong.length} missed question{wrong.length === 1 ? "" : "s"}
-              <span style={{ color: "var(--accent)", fontSize: "13px" }}>{reviewOpen ? "Hide" : "Show"}</span>
-            </button>
-            {reviewOpen && (
-              <ol style={{ margin: "16px 0 0", paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                {wrong.map((q) => (
-                  <li key={q.id} style={{ fontSize: "14px", lineHeight: 1.55 }}>
-                    <div style={{ color: "var(--muted)", fontSize: "12px", fontWeight: 600 }}>{q.section}</div>
-                    {q.context && <div style={{ color: "var(--muted)", fontSize: "13px" }}>{q.context}</div>}
-                    <div style={{ color: "var(--text)", fontWeight: 500 }}>{q.question}</div>
-                    <div style={{ marginTop: "4px" }}>
-                      <span style={{ color: "#16a34a", fontWeight: 600 }}>Answer: {q.correct_answer}</span>
-                      <span style={{ color: answers[q.id] ? "#dc2626" : "var(--muted)", marginLeft: "12px" }}>
-                        {answers[q.id] ? `You chose: ${answers[q.id]}` : "Not answered"}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-        )}
+        <McqReview questions={questions} answers={answers} onExplained={onExplained} />
       </div>
     );
   }
