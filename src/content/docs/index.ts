@@ -3,6 +3,7 @@ import type { CampusAudience } from "@/components/landing/campus/audiences";
 import { cookies } from "./cookies";
 import { dataProtection } from "./dataProtection";
 import { privacy } from "./privacy";
+import { refund } from "./refund";
 import { terms } from "./terms";
 import type { Audience, Block, Doc, Section, Subsection } from "./types";
 
@@ -56,7 +57,7 @@ const troubleshooting: Doc = {
     }),
 };
 
-export const DOCS: Doc[] = [troubleshooting, terms, privacy, cookies, dataProtection];
+export const DOCS: Doc[] = [troubleshooting, terms, refund, privacy, cookies, dataProtection];
 
 export function findDoc(audience: Audience, slug: string) {
   return DOCS.find((d) => d.slug === slug && d.audiences.includes(audience)) ?? null;

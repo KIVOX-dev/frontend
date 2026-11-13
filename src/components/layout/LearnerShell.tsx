@@ -187,6 +187,8 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
               <Link href="/docs/individuals/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Privacy Policy</Link>
               <span>|</span>
               <Link href="/docs/individuals/terms-and-conditions" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Terms &amp; Conditions</Link>
+              <span>|</span>
+              <Link href="/docs/individuals/refund-policy" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Refunds</Link>
             </div>
           )}
         </div>

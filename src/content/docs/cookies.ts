@@ -7,7 +7,7 @@ export const cookies: Doc = {
   slug: "cookie-policy",
   title: "Cookie Policy",
   group: "Legal",
-  updated: "27 September 2026",
+  updated: "13 November 2026",
   audiences: ["individuals", "institutions", "recruiters"],
   intro:
     "Which cookies and browser storage TalentSnaps uses, what the services we rely on store, and how to change your choice at any time.",
@@ -46,6 +46,9 @@ export const cookies: Doc = {
               ["ts_chunk_reload_at (session only)", "Lets the site reload once to pick up a new version after an update, without looping."],
             ],
           },
+        },
+        {
+          p: "When you choose to pay for a plan, the payment window is loaded from Razorpay, our payment provider. Razorpay may store cookies or similar identifiers that it needs to process the payment and prevent fraud. It only loads when you open the payment window, and it's covered by Razorpay's own policies.",
         },
         {
           p: "Login, registration and password-reset forms also run Cloudflare Turnstile, a security check that tells people apart from automated sign-up attempts. Cloudflare may store what the check needs to work. It only loads on those forms.",

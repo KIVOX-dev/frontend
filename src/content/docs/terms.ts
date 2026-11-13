@@ -8,7 +8,7 @@ export const terms: Doc = {
   slug: "terms-and-conditions",
   title: "Terms and Conditions",
   group: "Legal",
-  updated: "26 September 2026",
+  updated: "13 November 2026",
   audiences: ["individuals", "institutions", "recruiters"],
   intro: (a) =>
     ({
@@ -415,22 +415,61 @@ export const terms: Doc = {
           ],
         },
         {
-          id: "billing",
-          title: "Billing, cancellation and refunds",
-          audiences: ["individuals"],
+          id: "who-can-buy",
+          title: "Who can buy a paid plan online",
+          audiences: ["individuals", "recruiters"],
           blocks: [
             {
-              p: "Paid plans are billed for the period shown when you upgrade. You can cancel at any time; your paid features stay active until the end of the period you've paid for. If you were charged in error, email [admin@talentsnaps.com](mailto:admin@talentsnaps.com) with the date and amount and we'll review it.",
+              p: "Independent learners and recruiters can buy a paid plan on the Subscription screen. Students added by their college, and college administrators and faculty, can't buy one online: they use what their institution has arranged with TalentSnaps.",
+            },
+          ],
+        },
+        {
+          id: "how-payment-works",
+          title: "How payment works",
+          audiences: ["individuals", "recruiters"],
+          blocks: [
+            {
+              p: "Payments are processed by Razorpay, a third-party payment provider. You enter your card, UPI or net banking details in Razorpay's secure payment window. TalentSnaps never sees or stores them. We keep a record of the plan you bought, the amount, the date, and the order and payment reference numbers.",
+            },
+            {
+              ul: [
+                "The price shown at checkout is the amount you're charged, in Indian rupees (INR).",
+                "A paid plan is a one-time payment for a fixed period of 6 or 12 months. It doesn't renew automatically, and we won't charge you again unless you buy again.",
+                "Your plan switches on once your payment is confirmed. If you buy again before it ends, the new period is added after your current one.",
+                "When the period ends, your account returns to the free plan. Your data stays in your account.",
+                "By paying, you agree to these terms and to the Razorpay terms that apply to the payment.",
+              ],
+            },
+          ],
+        },
+        {
+          id: "billing",
+          title: "Cancellation and refunds",
+          audiences: ["individuals", "recruiters"],
+          blocks: [
+            {
+              p: "A paid plan doesn't renew automatically, so there's nothing to cancel. It ends at the end of the period you paid for. Refunds for payments taken in error, such as a duplicate charge or a plan that didn't activate, are covered in our [Refund and Cancellation Policy](refund-policy). To report a payment problem, email [admin@talentsnaps.com](mailto:admin@talentsnaps.com) with the date, the amount and the payment ID.",
             },
           ],
         },
         {
           id: "commercial",
           title: "Commercial terms",
-          audiences: ["institutions", "recruiters"],
+          audiences: ["institutions"],
           blocks: [
             {
               p: "Pricing, billing, service levels and the length of your subscription are set out in your order form or agreement with TalentSnaps. If that agreement conflicts with these terms, the agreement applies.",
+            },
+          ],
+        },
+        {
+          id: "recruiter-agreements",
+          title: "Company agreements",
+          audiences: ["recruiters"],
+          blocks: [
+            {
+              p: "If your company has signed a separate order form or agreement with TalentSnaps, the pricing and billing in it apply instead of the online plan terms above, and the agreement takes priority if it conflicts with these terms.",
             },
           ],
         },

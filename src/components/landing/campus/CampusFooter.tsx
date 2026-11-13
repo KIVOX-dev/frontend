@@ -67,6 +67,9 @@ export function CampusFooter({ audience }: { audience: CampusAudience }) {
               ))}
               <Link href={`/docs/${CAMPUS_TO_DOCS[audience]}/privacy-policy`}>Privacy policy</Link>
               <Link href={`/docs/${CAMPUS_TO_DOCS[audience]}/terms-and-conditions`}>Terms and conditions</Link>
+              {CAMPUS_TO_DOCS[audience] !== "institutions" && (
+                <Link href={`/docs/${CAMPUS_TO_DOCS[audience]}/refund-policy`}>Refund policy</Link>
+              )}
               <Link href={`/docs/${CAMPUS_TO_DOCS[audience]}/cookie-policy`}>Cookie policy</Link>
               <CookieSettingsButton className="ts-cookie-btn" />
             </div>

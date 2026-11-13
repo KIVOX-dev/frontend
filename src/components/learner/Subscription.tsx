@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { isAxiosError } from "axios";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
@@ -54,7 +55,8 @@ export function Subscription({ audience = "learner" }: { audience?: "learner" | 
 
   useEffect(() => {
     api.get("/payments/plans")
-      .then((res) => { if (Array.isArray(res.data?.data) && res.data.data.length) setPlans(res.data.data); })
+      // The api client has already unwrapped node-api's { success, data } envelope.
+      .then((res) => { if (Array.isArray(res.data) && res.data.length) setPlans(res.data); })
       .catch(() => { /* keep the fallback prices on screen */ });
   }, []);
 
@@ -63,6 +65,7 @@ export function Subscription({ audience = "learner" }: { audience?: "learner" | 
   const isPro = prefs["plan"] === "pro" && (!expiresAt || expiresAt > new Date());
   const expiryLabel = expiresAt ? expiresAt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : null;
 
+  const docsAudience = audience === "hr" ? "recruiters" : "individuals";
   const plan = plans.find((p) => p.id === selected) ?? plans[0];
   const sixMonthTotal = plans.find((p) => p.months === 6)?.amount;
   const yearly = plans.find((p) => p.months === 12);
@@ -105,7 +108,8 @@ export function Subscription({ audience = "learner" }: { audience?: "learner" | 
         return;
       }
       const res = await api.post("/payments/create-order", { plan_id: plan.id });
-      const order = res.data.data;
+      const order = res.data;
+      if (!order?.order_id) throw new Error("The server returned no order");
       const checkout = new window.Razorpay({
         // The key that created the order always matches it; the env value is only a fallback.
         key: order.key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
@@ -212,6 +216,12 @@ export function Subscription({ audience = "learner" }: { audience?: "learner" | 
       </button>
       <p style={{ margin: "12px 0 0", fontSize: "12px", color: "var(--muted)", textAlign: "center" }}>
         Secure payment by Razorpay. UPI, cards and netbanking accepted.
+      </p>
+      <p style={{ margin: "8px 0 0", fontSize: "12px", color: "var(--muted)", textAlign: "center" }}>
+        One-time payment, no auto-renewal. By paying you agree to our{" "}
+        <Link href={`/docs/${docsAudience}/terms-and-conditions`} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "underline" }}>Terms</Link>,{" "}
+        <Link href={`/docs/${docsAudience}/refund-policy`} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "underline" }}>Refund Policy</Link>{" "}and{" "}
+        <Link href={`/docs/${docsAudience}/privacy-policy`} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "underline" }}>Privacy Policy</Link>.
       </p>
     </div>
   );

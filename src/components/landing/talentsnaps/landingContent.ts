@@ -334,6 +334,7 @@ export const ROOT_CONTENT: LandingContent = {
         items: [
           { label: "Privacy Policy", href: "/docs/individuals/privacy-policy" },
           { label: "Terms and Conditions", href: "/docs/individuals/terms-and-conditions" },
+          { label: "Refund Policy", href: "/docs/individuals/refund-policy" },
           { label: "Data Protection", href: "/docs/individuals/data-protection" },
         ],
       },
@@ -575,6 +576,7 @@ export const HR_CONTENT: LandingContent = {
         items: [
           { label: "Privacy Policy", href: "/docs/individuals/privacy-policy" },
           { label: "Terms and Conditions", href: "/docs/individuals/terms-and-conditions" },
+          { label: "Refund Policy", href: "/docs/individuals/refund-policy" },
           { label: "Data Protection", href: "/docs/individuals/data-protection" },
         ],
       },

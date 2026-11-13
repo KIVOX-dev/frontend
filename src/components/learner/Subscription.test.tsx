@@ -24,10 +24,10 @@ describe("Subscription (Razorpay checkout)", () => {
     razorpayInstances.length = 0;
     storeUser = { id: "u1", full_name: "Kavi", email: "k@example.com", role: "student", preferences: {} };
     get.mockResolvedValue({
-      data: { data: [
+      data: [
         { id: "pro_6m", label: "Pro, 6 months", months: 6, amount: 11900 },
         { id: "pro_12m", label: "Pro, 12 months", months: 12, amount: 21900 },
-      ] },
+    ],
     });
     // A minimal Razorpay stand-in so we can inspect what the screen hands it.
     window.Razorpay = function (this: unknown, options: Record<string, unknown>) {
@@ -45,7 +45,7 @@ describe("Subscription (Razorpay checkout)", () => {
   });
 
   it("creates an order for the chosen plan id only, then opens checkout with the server's order", async () => {
-    post.mockResolvedValue({ data: { data: { order_id: "order_1", amount: 11900, currency: "INR", key_id: "rzp_test_key", plan_label: "Pro, 6 months" } } });
+    post.mockResolvedValue({ data: { order_id: "order_1", amount: 11900, currency: "INR", key_id: "rzp_test_key", plan_label: "Pro, 6 months" } });
     render(<Subscription />);
     await userEvent.click(await screen.findByRole("radio", { name: /6 months/ }));
     await userEvent.click(screen.getByRole("button", { name: /Upgrade for ₹119/ }));
@@ -57,10 +57,10 @@ describe("Subscription (Razorpay checkout)", () => {
   });
 
   it("sends all three payment fields to verify on success and refreshes the user", async () => {
-    post.mockResolvedValueOnce({ data: { data: { order_id: "order_2", amount: 21900, currency: "INR", key_id: "rzp_test_key", plan_label: "x" } } });
-    post.mockResolvedValueOnce({ data: { data: { verified: true } } });
+    post.mockResolvedValueOnce({ data: { order_id: "order_2", amount: 21900, currency: "INR", key_id: "rzp_test_key", plan_label: "x" } });
+    post.mockResolvedValueOnce({ data: { verified: true } });
     get.mockImplementation((url: string) =>
-      url === "/auth/me" ? Promise.resolve({ data: { id: "u1", preferences: { plan: "pro" } } }) : Promise.resolve({ data: { data: [] } }));
+      url === "/auth/me" ? Promise.resolve({ data: { id: "u1", preferences: { plan: "pro" } } }) : Promise.resolve({ data: [] }));
     render(<Subscription />);
     await userEvent.click(await screen.findByRole("button", { name: /Upgrade for/ }));
     await waitFor(() => expect(razorpayInstances).toHaveLength(1));
@@ -74,7 +74,7 @@ describe("Subscription (Razorpay checkout)", () => {
 
   it("reports the real reason when the payment window throws, not a network error", async () => {
     const { toast } = await import("@/lib/toast");
-    post.mockResolvedValue({ data: { data: { order_id: "order_3", amount: 11900, currency: "INR", key_id: "rzp_test_key", plan_label: "x" } } });
+    post.mockResolvedValue({ data: { order_id: "order_3", amount: 11900, currency: "INR", key_id: "rzp_test_key", plan_label: "x" } });
     window.Razorpay = function () { throw new Error("Invalid options"); } as unknown as typeof window.Razorpay;
     vi.spyOn(console, "error").mockImplementation(() => {});
     render(<Subscription />);

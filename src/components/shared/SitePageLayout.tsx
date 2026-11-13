@@ -26,6 +26,7 @@ const NAV_GROUPS = [
     items: [
       { slug: "docs/individuals/privacy-policy", label: "Privacy Policy" },
       { slug: "docs/individuals/terms-and-conditions", label: "Terms and Conditions" },
+      { slug: "docs/individuals/refund-policy", label: "Refund Policy" },
       { slug: "docs/individuals/cookie-policy", label: "Cookie Policy" },
       { slug: "docs/individuals/data-protection", label: "Data Protection" },
     ],

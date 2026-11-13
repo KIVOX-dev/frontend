@@ -4,7 +4,7 @@ export const dataProtection: Doc = {
   slug: "data-protection",
   title: "Data Protection & Security",
   group: "Legal",
-  updated: "26 September 2026",
+  updated: "13 November 2026",
   audiences: ["individuals", "institutions", "recruiters"],
   intro: "How TalentSnaps keeps data safe: who can access what, how it's protected, how you get it out, and what happens when you leave.",
   sections: [
@@ -70,6 +70,16 @@ export const dataProtection: Doc = {
           id: "files",
           title: "Uploaded files",
           blocks: [{ p: "Uploaded documents such as offer letters are stored in cloud storage with access restricted to the roles entitled to view them." }],
+        },
+        {
+          id: "payments",
+          title: "Payments",
+          audiences: ["individuals", "recruiters"],
+          blocks: [
+            {
+              p: "Payments for paid plans go through Razorpay. Your card, UPI or bank details are entered in Razorpay's own payment window and never reach TalentSnaps' servers. We confirm each payment with a cryptographic signature check before switching on a plan, and the price is set on our server, not in your browser.",
+            },
+          ],
         },
         {
           id: "browser",
