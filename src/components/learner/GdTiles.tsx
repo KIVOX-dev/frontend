@@ -22,7 +22,28 @@ const LOOKS: Record<string, Look> = {
   bot3: { skin: "#f1c27d", hair: "#5b3a29", shirt: "#7c3aed", bg: "#ede9fe", style: "bun" },
 };
 
+// A real photo per bot, if one has been added: public/gd-avatars/bot0.jpg … bot3.jpg (bot0 = Kiran,
+// bot1 = Deep, bot2 = Sasi, bot3 = Ari). A photo can't move its mouth, so the tile's green border and
+// "Speaking" badge show who is talking. A missing file falls back to the drawn face below.
 function Avatar({ slot, active, levelRef }: { slot: string; active: boolean; levelRef: TileLevelRef }) {
+  const [photoMissing, setPhotoMissing] = useState(false);
+  if (!photoMissing) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={`/gd-avatars/${slot}.jpg`}
+        alt=""
+        decoding="async"
+        draggable={false}
+        onError={() => setPhotoMissing(true)}
+        style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%" }}
+      />
+    );
+  }
+  return <CartoonAvatar slot={slot} active={active} levelRef={levelRef} />;
+}
+
+function CartoonAvatar({ slot, active, levelRef }: { slot: string; active: boolean; levelRef: TileLevelRef }) {
   const look = LOOKS[slot] ?? LOOKS.bot0;
   const mouth = useRef<SVGEllipseElement>(null);
   const smooth = useRef(0);

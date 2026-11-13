@@ -6,6 +6,7 @@ import { isAxiosError } from "axios";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { planStatus, formatPlanDate } from "@/lib/plan";
 import { loadRazorpay, type RazorpayFailure, type RazorpaySuccess } from "@/lib/razorpay";
 
 type Plan = { id: string; label: string; months: number; amount: number };
@@ -60,10 +61,8 @@ export function Subscription({ audience = "learner" }: { audience?: "learner" | 
       .catch(() => { /* keep the fallback prices on screen */ });
   }, []);
 
-  const prefs = (user?.preferences ?? {}) as Record<string, unknown>;
-  const expiresAt = typeof prefs["plan_expires_at"] === "string" ? new Date(prefs["plan_expires_at"] as string) : null;
-  const isPro = prefs["plan"] === "pro" && (!expiresAt || expiresAt > new Date());
-  const expiryLabel = expiresAt ? expiresAt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : null;
+  const { isPro, expiresAt } = planStatus(user);
+  const expiryLabel = expiresAt ? formatPlanDate(expiresAt) : null;
 
   const docsAudience = audience === "hr" ? "recruiters" : "individuals";
   const plan = plans.find((p) => p.id === selected) ?? plans[0];

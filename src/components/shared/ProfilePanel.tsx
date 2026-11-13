@@ -18,6 +18,7 @@ import { PerformanceSummarySection } from "@/components/shared/PerformanceSummar
 import { IntegrationsSection } from "@/components/shared/IntegrationsSection";
 import { SkillsSection } from "@/components/shared/SkillsSection";
 import { cn } from "@/lib/utils";
+import { planStatus, formatPlanDate } from "@/lib/plan";
 
 type StudentProfile = {
   id: string;
@@ -755,6 +756,7 @@ export function ProfilePanel() {
   const avatarSrc = isStudent ? studentProfile?.avatar_url : typeof user?.avatar_url === "string" ? user.avatar_url : null;
   const coverSrc = isStudent ? studentProfile?.cover_image_url : typeof user?.cover_image_url === "string" ? user.cover_image_url : null;
 
+  const plan = planStatus(user);
   const initials = (user?.name || "?")
     .split(" ")
     .map((p) => p[0])
@@ -818,9 +820,19 @@ export function ProfilePanel() {
             <h1 className="text-heading-l text-ink leading-tight truncate">{user?.name}</h1>
             <p className="text-small text-ink-muted truncate mt-1">{user?.email}</p>
           </div>
-          <Badge tone="success" className="capitalize shrink-0">
-            {user?.role?.replace("_", " ")}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {plan.eligible && (
+              <Badge
+                tone={plan.isPro ? "info" : "neutral"}
+                title={plan.isPro && plan.expiresAt ? `Pro until ${formatPlanDate(plan.expiresAt)}` : "Free plan"}
+              >
+                {plan.isPro ? "Pro" : "Basic"}
+              </Badge>
+            )}
+            <Badge tone="success" className="capitalize shrink-0">
+              {user?.role?.replace("_", " ")}
+            </Badge>
+          </div>
         </div>
       </div>
 
