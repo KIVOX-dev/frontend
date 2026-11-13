@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
+import { ParticipantTile } from "./GdTiles";
+import { GdComposer } from "./GdComposer";
 
 // Round 2: group discussion with four AI participants. The server decides who speaks and writes
 // each line (POST /mock-sessions/:id/gd/turn); this component plays it with Google voices
@@ -113,8 +115,13 @@ export function GroupDiscussionRound({
   const speakStartRef = useRef(0);
   const bargedInRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Loudness (0..1) of the voice being played, read by the avatar tiles to move the mouth; -1 = no
+  // audio to analyse (browser voice), so the tile uses a speech-like rhythm instead.
+  const levelRef = useRef(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const recRef = useRef<Recognizer | null>(null);
   const finalTextRef = useRef("");
+  const interimRef = useRef(""); // words still being recognised: kept when the student releases early
   const submittedRef = useRef(false);
 
   useEffect(() => {
@@ -132,25 +139,74 @@ export function GroupDiscussionRound({
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
   }, []);
 
+  // Measures the loudness of an <audio> element through a Web Audio analyser so the avatar's mouth
+  // can follow the real voice. Any failure here must never block playback, so it just no-ops
+  // (the tile then falls back to a rhythmic mouth).
+  const attachMeter = useCallback((audio: HTMLAudioElement): (() => void) => {
+    levelRef.current = -1;
+    try {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return () => { levelRef.current = 0; };
+      const ctx = audioCtxRef.current ?? new Ctx();
+      audioCtxRef.current = ctx;
+      // A suspended context would route the audio into silence, so only tap it once it is running.
+      if (ctx.state === "suspended") void ctx.resume();
+      if (ctx.state !== "running") return () => { levelRef.current = 0; };
+      const source = ctx.createMediaElementSource(audio);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+      analyser.connect(ctx.destination);
+      const buf = new Uint8Array(analyser.fftSize);
+      let raf = 0;
+      const tick = () => {
+        analyser.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i += 1) {
+          const d = (buf[i] - 128) / 128;
+          sum += d * d;
+        }
+        levelRef.current = Math.min(1, Math.sqrt(sum / buf.length) * 4.5);
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      return () => {
+        cancelAnimationFrame(raf);
+        levelRef.current = 0;
+        try { source.disconnect(); analyser.disconnect(); } catch { /* already gone */ }
+      };
+    } catch {
+      return () => { levelRef.current = 0; };
+    }
+  }, []);
+
   // Plays one bot line with its own Google voice. If that fails for ANY reason (service error,
   // autoplay blocked, undecodable audio) it falls back to the browser voice and says why, so a
   // silent room is never a mystery.
   const playLine = useCallback(async (slot: string, text: string) => {
     try {
       const res = await api.post("/tts", { voice: slot, text }, { responseType: "blob" });
-      const url = URL.createObjectURL(res.data as Blob);
+      const raw = res.data as Blob;
+      // Say what actually came back instead of a vague decode error.
+      if (!raw || raw.size < 128) throw new Error("the server sent empty audio");
+      if (/^(text\/|application\/json)/.test(raw.type)) throw new Error(`the server sent ${raw.type} instead of audio`);
+      // Force the audio type: a blob labelled octet-stream / without a type can be refused by <audio>.
+      const url = URL.createObjectURL(new Blob([raw], { type: "audio/mpeg" }));
+      let stopMeter = () => {};
       try {
         await new Promise<void>((resolve, reject) => {
           const audio = new Audio(url);
           audioRef.current = audio;
+          stopMeter = attachMeter(audio);
           audio.onended = () => resolve();
           audio.onpause = () => resolve(); // stopAudio() (the student talked over the bot)
-          audio.onerror = () => reject(new Error("the audio could not be decoded"));
+          audio.onerror = () => reject(new Error(`the audio could not be decoded (media error ${audio.error?.code ?? "?"})`));
           audio.play().catch(reject);
         });
         setVoiceNote(null);
         return;
       } finally {
+        stopMeter();
         URL.revokeObjectURL(url);
       }
     } catch (err) {
@@ -169,8 +225,9 @@ export function GroupDiscussionRound({
       }
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "en-IN";
-      u.onend = () => resolve();
-      u.onerror = () => resolve();
+      levelRef.current = -1; // nothing to analyse: tiles animate the mouth with a speech-like rhythm
+      u.onend = () => { levelRef.current = 0; resolve(); };
+      u.onerror = () => { levelRef.current = 0; resolve(); };
       synth.speak(u);
     });
   }, []);
@@ -235,7 +292,8 @@ export function GroupDiscussionRound({
         /* already stopped */
       }
       setListening(false);
-      const text = finalTextRef.current.trim();
+      const text = `${finalTextRef.current} ${interimRef.current}`.trim();
+      interimRef.current = "";
       setInterim("");
       if (commit) commitStudent(text, Date.now() - speakStartRef.current, bargedInRef.current);
       finalTextRef.current = "";
@@ -244,10 +302,13 @@ export function GroupDiscussionRound({
     [commitStudent]
   );
 
-  const startMic = () => {
-    if (recRef.current || phaseRef.current === "prep") return;
+  const startMic = (): boolean => {
+    if (recRef.current || phaseRef.current === "prep") return false;
     const rec = newRecognizer();
-    if (!rec) return toast.warning("Voice input isn't supported in this browser. Please type your points.");
+    if (!rec) {
+      toast.warning("Voice input isn't supported in this browser. Please type your points.");
+      return false;
+    }
     // Student talking over a bot: cut the bot off and record it as an interruption made.
     if (audioRef.current && !audioRef.current.paused) {
       stopAudio();
@@ -257,6 +318,7 @@ export function GroupDiscussionRound({
     rec.interimResults = true;
     rec.lang = "en-IN";
     finalTextRef.current = "";
+    interimRef.current = "";
     speakStartRef.current = Date.now();
     rec.onresult = (e) => {
       let live = "";
@@ -265,6 +327,7 @@ export function GroupDiscussionRound({
         if (r.isFinal) finalTextRef.current = `${finalTextRef.current} ${r[0].transcript}`.trim();
         else live += r[0].transcript;
       }
+      interimRef.current = live;
       setInterim(live);
     };
     rec.onend = () => {
@@ -275,7 +338,14 @@ export function GroupDiscussionRound({
     };
     recRef.current = rec;
     setListening(true);
-    rec.start();
+    try {
+      rec.start();
+    } catch {
+      recRef.current = null;
+      setListening(false);
+      return false;
+    }
+    return true;
   };
 
   const sendTyped = () => {
@@ -550,17 +620,23 @@ export function GroupDiscussionRound({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "8px" }}>
-        {[...BOTS.map((b) => ({ key: b.slot, name: b.name, role: b.role })), { key: "you", name: "You", role: studentName }].map((p) => {
-          const active = speaking === p.key || (p.key === "you" && listening);
-          return (
-            <div key={p.key} style={{ padding: "10px", borderRadius: "12px", textAlign: "center", border: `2px solid ${active ? "var(--accent)" : "var(--border)"}`, background: active ? "var(--accent-l)" : "var(--bg)", transition: "all .15s" }}>
-              <div style={{ fontWeight: 700, fontSize: "14px" }}>{p.name}</div>
-              <div style={{ fontSize: "11px", color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.role}</div>
-              <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--accent)", minHeight: "14px" }}>{active ? (p.key === "you" ? "Listening…" : "Speaking…") : ""}</div>
-            </div>
-          );
-        })}
+      <div className="gd-grid">
+        <style>{`
+          .gd-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; width: 100%; max-width: calc(5 * (26vh * 4 / 3) + 40px); margin: 0 auto; }
+          @media (max-width: 760px) { .gd-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: none; gap: 8px; } }
+        `}</style>
+        {[...BOTS.map((b) => ({ key: b.slot, name: b.name, role: b.role })), { key: "you", name: "You", role: studentName }].map((p) => (
+          <ParticipantTile
+            key={p.key}
+            slot={p.key}
+            name={p.name}
+            role={p.role}
+            isYou={p.key === "you"}
+            active={speaking === p.key}
+            listening={listening}
+            levelRef={levelRef}
+          />
+        ))}
       </div>
 
       {voiceNote && (
@@ -584,15 +660,15 @@ export function GroupDiscussionRound({
         <div ref={transcriptEnd} />
       </div>
 
-      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-        {micSupported && (
-          <button type="button" className={listening ? "btn btn-p" : "btn btn-o"} onClick={() => (listening ? stopMic(true) : startMic())} aria-pressed={listening} style={{ minWidth: "120px", justifyContent: "center" }}>
-            {listening ? "Stop & send" : "Speak"}
-          </button>
-        )}
-        <input className="fi" value={typed} onChange={(e) => setTyped(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendTyped()} placeholder={micSupported ? "Or type your point…" : "Type your point…"} aria-label="Type your point" style={{ flex: 1 }} />
-        <button type="button" className="btn btn-o" onClick={sendTyped} disabled={!typed.trim()}>Send</button>
-      </div>
+      <GdComposer
+        typed={typed}
+        setTyped={setTyped}
+        onSendTyped={sendTyped}
+        micSupported={micSupported}
+        listening={listening}
+        onMicStart={startMic}
+        onMicStop={stopMic}
+      />
     </div>
   );
 }

@@ -6,6 +6,8 @@ import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/stores/authStore";
 import { companyLogoFor } from "@/lib/companyLogos";
 import { McqReview } from "./McqReview";
+import { useQuestionExplanations } from "@/lib/useQuestionExplanations";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { companyTestName, loadCompanyBankQuestions, type McqQuestion } from "@/lib/companyTestBanks";
 
 const SECONDS_PER_QUESTION = 90;
@@ -56,6 +58,7 @@ export function InterviewMcqRound({
   const [timeLeft, setTimeLeft] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [confirmingSubmit, setConfirmingSubmit] = useState(false);
   const startedAt = useRef(0);
   // One-line explanations reported by the review, stored with the Round 1 result.
   const explainedRef = useRef<Record<number, string>>({});
@@ -70,6 +73,15 @@ export function InterviewMcqRound({
   }, [answers]);
 
   const logo = companyLogoFor(company);
+
+  // Explanations are generated WHILE the student answers (the hook starts the
+  // moment `questions` is non-empty), so the review is instant at the end
+  // instead of making them wait on the AI.
+  const explainItems = useMemo(
+    () => questions.map((q) => ({ question: q.question, options: q.options, correct: q.correct_answer, data_presentation: q.context })),
+    [questions]
+  );
+  const explainer = useQuestionExplanations(explainItems);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -166,7 +178,8 @@ export function InterviewMcqRound({
 
   const confirmSubmit = () => {
     const left = questions.length - answeredCount;
-    if (left > 0 && !window.confirm(`${left} question${left === 1 ? " is" : "s are"} unanswered. Submit Round 1 anyway?`)) return;
+    // Unanswered questions: ask in-app (ConfirmDialog below) instead of a browser pop-up.
+    if (left > 0) { setConfirmingSubmit(true); return; }
     submit();
   };
 
@@ -288,7 +301,7 @@ export function InterviewMcqRound({
           </div>
         </div>
 
-        <McqReview questions={questions} answers={answers} onExplained={onExplained} />
+        <McqReview questions={questions} answers={answers} onExplained={onExplained} explainer={explainer} />
       </div>
     );
   }
@@ -387,6 +400,18 @@ export function InterviewMcqRound({
         </div>
       </div>
       <style>{"@media (max-width:900px){.mcq-grid{grid-template-columns:1fr!important}}"}</style>
+      <ConfirmDialog
+        open={confirmingSubmit}
+        title="Submit Round 1?"
+        message={(() => {
+          const left = questions.length - answeredCount;
+          return `You have ${left} unanswered question${left === 1 ? "" : "s"}. Once submitted, you can't change your answers.`;
+        })()}
+        confirmLabel="Submit anyway"
+        cancelLabel="Keep working"
+        onCancel={() => setConfirmingSubmit(false)}
+        onConfirm={() => { setConfirmingSubmit(false); submit(); }}
+      />
     </div>
   );
 }

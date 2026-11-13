@@ -231,7 +231,7 @@ export function DataPresentation({ text, accent }: { text: string; accent?: stri
   }
   const multi = data.series.length > 1;
   return (
-    <figure style={{ ...box, margin: "0 0 20px" }} role="img" aria-label={text}>
+    <figure className="dp-fig" style={{ ...box, margin: "0 0 20px" }} role="img" aria-label={text}>
       {data.title && <figcaption style={{ fontSize: "14px", fontWeight: 600, color: "var(--text)", marginBottom: "12px", textAlign: "center" }}>{data.title}</figcaption>}
       {data.kind === "bar" && <BarChart data={data} />}
       {data.kind === "line" && <LineChart data={data} />}

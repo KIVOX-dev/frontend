@@ -5,6 +5,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { useMalpracticeGuard, MALPRACTICE_MESSAGE } from "@/hooks/useMalpracticeGuard";
 import { DataPresentation } from "./DataPresentation";
+import { AptitudeReview } from "./AptitudeReview";
 
 type Question = {
   id: string | number;
@@ -280,45 +281,13 @@ export function AptitudeTests() {
   if (activeTest) {
     if (testCompleted && showReview && review) {
       return (
-        <div className="screen active" style={{ padding: "40px" }}>
-          <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-            <button className="btn btn-g" onClick={() => setShowReview(false)} style={{ marginBottom: "16px" }}>← Back to result</button>
-            <h2 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "4px" }}>Review: {activeTest.title}</h2>
-            <p style={{ color: "var(--muted)", marginBottom: "24px" }}>
-              {score} of {questions.length} correct · {review.filter((r) => r.selected === null || r.selected === "").length} unanswered
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {review.map((r, i) => {
-                const unanswered = !r.selected;
-                const tone = r.isCorrect ? { c: "#1e8e3e", bg: "#e6f4ea", t: "Correct" } : unanswered ? { c: "#b45309", bg: "#fef3c7", t: "Not answered" } : { c: "#dc2626", bg: "#fee2e2", t: "Incorrect" };
-                return (
-                  <div key={String(r.question.id)} className="card" style={{ padding: "20px", borderLeft: `4px solid ${tone.c}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginBottom: "10px" }}>
-                      <strong>Question {i + 1}</strong>
-                      <span style={{ padding: "3px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, background: tone.bg, color: tone.c }}>{tone.t}</span>
-                    </div>
-                    {r.question.data_presentation && <p style={{ color: "var(--muted)", fontSize: "13px", marginBottom: "8px", whiteSpace: "pre-wrap" }}>{r.question.data_presentation}</p>}
-                    <p style={{ fontWeight: 600, marginBottom: "12px" }}>{r.question.question}</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {r.question.options.map((opt) => {
-                        const isCorrectOpt = opt === r.correct;
-                        const isPicked = opt === r.selected;
-                        return (
-                          <div key={opt} style={{ padding: "8px 12px", borderRadius: "8px", fontSize: "14px", border: "1px solid var(--border)", background: isCorrectOpt ? "#e6f4ea" : isPicked ? "#fee2e2" : "transparent", color: isCorrectOpt ? "#1e8e3e" : isPicked ? "#dc2626" : "var(--text)", fontWeight: isCorrectOpt || isPicked ? 600 : 400 }}>
-                            {opt}
-                            {isCorrectOpt && " ✓ correct answer"}
-                            {isPicked && !isCorrectOpt && " ✗ your answer"}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <button className="btn btn-p" style={{ marginTop: "24px" }} onClick={() => setActiveTest(null)}>Back to Tests</button>
-          </div>
-        </div>
+        <AptitudeReview
+          title={activeTest.title}
+          review={review}
+          score={score}
+          onBackToResult={() => setShowReview(false)}
+          onBackToTests={() => setActiveTest(null)}
+        />
       );
     }
 
@@ -362,14 +331,53 @@ export function AptitudeTests() {
     const progress = ((currentQIndex + 1) / questions.length) * 100;
 
     return (
-      <div className="screen active" style={{ padding: "40px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <div>
-            <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)" }}>{activeTest.title}</h2>
-            <p style={{ color: "var(--muted)", fontSize: "13px" }}>{answeredCount}/{questions.length} answered</p>
+      <div className="screen active exam-root">
+        {/* Sized to the viewport: only the question card scrolls (if it must),
+            so the timer, submit button, palette and Prev/Next never leave the
+            screen — on desktop or a phone. */}
+        <style>{`
+          .exam-root { padding: 16px 24px !important; height: calc(100dvh - 64px); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+          .exam-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; flex-shrink: 0; }
+          .exam-title { font-size: 20px; font-weight: 800; color: var(--text); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .exam-head-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+          .exam-progress { width: 100%; height: 5px; background: var(--border); border-radius: 3px; margin-bottom: 14px; overflow: hidden; flex-shrink: 0; }
+          .exam-grid { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 16px; flex: 1; min-height: 0; }
+          .exam-card { padding: 0 !important; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+          .exam-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 24px 8px; overscroll-behavior: contain; }
+          .exam-foot { display: flex; justify-content: space-between; gap: 12px; padding: 12px 24px; border-top: 1px solid var(--border); flex-shrink: 0; }
+          .exam-palette { padding: 16px !important; height: fit-content; max-height: 100%; overflow-y: auto; }
+          .exam-body .dp-fig { padding: 10px 14px !important; margin: 0 0 12px !important; }
+          .exam-body .dp-fig svg { max-height: 32vh; }
+          .exam-q { font-size: 16px; font-weight: 600; color: var(--text); margin: 0 0 14px; line-height: 1.5; }
+          .exam-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+          @media (max-width: 860px) {
+            .exam-root { padding: 10px 12px !important; height: calc(100dvh - 56px); }
+            .exam-title { font-size: 15px; }
+            .exam-sub { display: none; }
+            .exam-head-right { gap: 8px; }
+            .exam-head-right .btn { padding: 7px 12px; font-size: 13px; }
+            .exam-progress { margin-bottom: 8px; }
+            .exam-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+            /* palette becomes a one-line swipeable strip above the question */
+            .exam-palette { order: -1; padding: 8px !important; max-height: none; overflow: visible; }
+            .exam-palette-title, .exam-palette-legend { display: none !important; }
+            .exam-palette-grid { display: flex !important; overflow-x: auto; gap: 6px !important; padding-bottom: 2px; scrollbar-width: none; }
+            .exam-palette-grid::-webkit-scrollbar { display: none; }
+            .exam-palette-grid button { flex: 0 0 34px; width: 34px !important; height: 34px !important; }
+            .exam-scroll { padding: 14px 14px 6px; }
+            .exam-foot { padding: 10px 12px; }
+            .exam-foot .btn { flex: 1; justify-content: center; }
+            .exam-body .dp-fig svg { max-height: 26vh; }
+            .exam-q { font-size: 15px; }
+          }
+        `}</style>
+        <div className="exam-head">
+          <div style={{ minWidth: 0 }}>
+            <h2 className="exam-title">{activeTest.title}</h2>
+            <p className="exam-sub" style={{ color: "var(--muted)", fontSize: "13px", margin: 0 }}>{answeredCount}/{questions.length} answered</p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ padding: "8px 16px", borderRadius: "8px", background: timeLeft < 120 ? "#fee2e2" : "var(--bg)", color: timeLeft < 120 ? "#dc2626" : "var(--text)", fontWeight: 700, fontSize: "16px", fontFamily: "monospace" }}>
+          <div className="exam-head-right">
+            <div style={{ padding: "6px 12px", borderRadius: "8px", background: timeLeft < 120 ? "#fee2e2" : "var(--bg)", color: timeLeft < 120 ? "#dc2626" : "var(--text)", fontWeight: 700, fontSize: "15px", fontFamily: "monospace", whiteSpace: "nowrap" }}>
               ⏱ {formatTime(timeLeft)}
             </div>
             <button className="btn btn-p" disabled={submitting} onClick={() => finishTest()}>{submitting ? "Submitting..." : "Submit Test"}</button>
@@ -377,22 +385,23 @@ export function AptitudeTests() {
         </div>
 
         {/* Progress bar */}
-        <div style={{ width: "100%", height: "6px", background: "var(--border)", borderRadius: "3px", marginBottom: "28px", overflow: "hidden" }}>
+        <div className="exam-progress">
           <div style={{ width: `${progress}%`, height: "100%", background: "var(--accent)", borderRadius: "3px", transition: "width 0.4s ease" }}></div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: "24px" }}>
+        <div className="exam-grid">
           {/* Question */}
-          <div className="card" style={{ padding: "32px" }}>
-            <div style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "16px" }}>Question {currentQIndex + 1} of {questions.length}</div>
+          <div className="card exam-card exam-body">
+            <div className="exam-scroll">
+            <div style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "10px" }}>Question {currentQIndex + 1} of {questions.length} · {answeredCount}/{questions.length} answered</div>
 
             {q.data_presentation && <DataPresentation text={q.data_presentation}  />}
 
-            <h3 style={{ fontSize: "17px", fontWeight: 600, color: "var(--text)", marginBottom: "24px", lineHeight: 1.6 }}>
+            <h3 className="exam-q">
               {q.question}
             </h3>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
+            <div className="exam-opts">
               {q.options.map((opt, i) => {
                 const letter = String.fromCharCode(65 + i);
                 const isSelected = answers[String(q.id)] === opt;
@@ -401,7 +410,7 @@ export function AptitudeTests() {
                     key={i}
                     onClick={() => handleSelectOption(opt)}
                     style={{
-                      padding: "14px 18px",
+                      padding: "10px 14px",
                       background: isSelected ? "var(--accent-l)" : "var(--bg)",
                       border: isSelected ? "2px solid var(--accent)" : "2px solid var(--border)",
                       borderRadius: "10px",
@@ -423,8 +432,9 @@ export function AptitudeTests() {
                 );
               })}
             </div>
+            </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div className="exam-foot">
               <button className="btn" disabled={currentQIndex === 0} onClick={handlePrev}>← Previous</button>
               <button className="btn btn-p" onClick={handleNext} disabled={currentQIndex === questions.length - 1}>
                 Next →
@@ -433,9 +443,9 @@ export function AptitudeTests() {
           </div>
 
           {/* Question palette */}
-          <div className="card" style={{ padding: "20px", height: "fit-content" }}>
-            <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)", marginBottom: "12px" }}>Question Palette</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "6px" }}>
+          <div className="card exam-palette">
+            <div className="exam-palette-title" style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)", marginBottom: "12px" }}>Question Palette</div>
+            <div className="exam-palette-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "6px" }}>
               {questions.map((qq, idx) => (
                 <button
                   key={qq.id}
@@ -457,7 +467,7 @@ export function AptitudeTests() {
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: "16px", fontSize: "11px", color: "var(--muted)", display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div className="exam-palette-legend" style={{ marginTop: "16px", fontSize: "11px", color: "var(--muted)", display: "flex", flexDirection: "column", gap: "6px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <div style={{ width: "12px", height: "12px", borderRadius: "3px", background: "var(--accent-l)", border: "1px solid var(--accent)" }}></div>
                 Answered
