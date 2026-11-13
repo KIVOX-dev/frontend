@@ -1,5 +1,6 @@
 "use client";
 
+import { ShowAllRow } from "@/components/ui/ShowAllRow";
 import { useUiStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useCallback, useEffect, useState } from "react";
@@ -253,7 +254,7 @@ export function LearnerDashboard() {
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div className="card">
             <div className="ct">
-              Recent Activity <span onClick={() => setActiveScreen("history")}>View all</span>
+              Recent Activity
             </div>
             <div id="dash-activity-list">
               {stats?.recent_activity?.length ? (
@@ -284,6 +285,7 @@ export function LearnerDashboard() {
                 </div>
               )}
             </div>
+            {stats?.recent_activity?.length ? <ShowAllRow onClick={() => setActiveScreen("history")} /> : null}
           </div>
           <div className="card">
             <div className="ct">Practice by Category</div>

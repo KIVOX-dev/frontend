@@ -61,6 +61,10 @@ function securityHeaders({ allowEval = false } = {}) {
   // the player itself is embedded as an iframe pointed at youtube.com, so
   // both script-src and frame-src need it below, not just connect-src.
   const youtubeOrigin = "https://www.youtube.com";
+  // Razorpay Standard Checkout (src/lib/razorpay.ts): the script, its payment iframe, and its event calls.
+  const razorpayScript = "https://checkout.razorpay.com";
+  const razorpayFrame = "https://api.razorpay.com https://checkout.razorpay.com";
+  const razorpayConnect = "https://api.razorpay.com https://lumberjack.razorpay.com https://checkout.razorpay.com";
   const connectSrc = [
     "'self'",
     "https://accounts.google.com",
@@ -70,6 +74,7 @@ function securityHeaders({ allowEval = false } = {}) {
     mediapipeCdn,
     mediapipeModelStore,
     youtubeOrigin,
+    razorpayConnect,
   ]
     .filter(Boolean)
     .join(" ");
@@ -105,16 +110,16 @@ function securityHeaders({ allowEval = false } = {}) {
         // MediaPipe's pose-detection WASM runtime needs, applied everywhere
         // rather than only allowEval routes since it can't be abused for JS
         // eval the way 'unsafe-eval' can.
-        `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' ${allowEval ? "'unsafe-eval' " : ""}https://accounts.google.com ${turnstileOrigin} ${mediapipeCdn} ${youtubeOrigin}`,
+        `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' ${allowEval ? "'unsafe-eval' " : ""}https://accounts.google.com ${turnstileOrigin} ${mediapipeCdn} ${youtubeOrigin} ${razorpayScript}`,
         "style-src 'self' 'unsafe-inline'",
         // storage.googleapis.com: student-uploaded avatar/cover images (see
         // gcsClient.js — Cloud Run's own filesystem can't persist these).
         // i.ytimg.com/yt3.ggpht.com: YouTube's video/channel thumbnail CDNs
         // (course/lesson thumbnails — see youtubeClient.js#bestThumbnail).
-        "img-src 'self' data: https://unavatar.io https://www.talentsnaps.com https://via.placeholder.com https://t3.gstatic.com https://storage.googleapis.com https://i.ytimg.com https://yt3.ggpht.com",
+        "img-src 'self' data: https://unavatar.io https://www.talentsnaps.com https://via.placeholder.com https://t3.gstatic.com https://storage.googleapis.com https://i.ytimg.com https://yt3.ggpht.com https://cdn.razorpay.com",
         "font-src 'self' data:",
         `connect-src ${connectSrc}`,
-        `frame-src https://accounts.google.com ${turnstileOrigin} ${youtubeOrigin}`,
+        `frame-src https://accounts.google.com ${turnstileOrigin} ${youtubeOrigin} ${razorpayFrame}`,
         // MediaPipe's vision task runs its WASM engine off the main thread
         // via a Worker constructed from a jsdelivr-hosted script; falls back
         // to script-src without this, which doesn't cover a cross-origin

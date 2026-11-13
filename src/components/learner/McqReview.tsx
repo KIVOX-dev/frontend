@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ShowAllRow } from "@/components/ui/ShowAllRow";
 import { useQuestionExplanations, type ExplanationState } from "@/lib/useQuestionExplanations";
 import type { McqQuestion } from "@/lib/companyTestBanks";
 
@@ -151,6 +152,9 @@ export function McqReview({
               );
             })}
           </div>
+          {filter === "missed" && questions.length > missedCount && (
+            <ShowAllRow onClick={() => setFilter("all")}>Show all {questions.length} questions</ShowAllRow>
+          )}
         </>
       )}
     </div>

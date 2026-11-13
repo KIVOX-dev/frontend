@@ -6,6 +6,7 @@ import {
   FileSpreadsheet, RefreshCw, Download, Plus, ArrowUpRight, ArrowDownRight, ExternalLink,
 } from "./dazzleIcons";
 import { toast } from "@/lib/toast";
+import { ShowAllRow } from "@/components/ui/ShowAllRow";
 import { displayCompanyName } from "@/components/shared/CompanyPicker";
 import {
   type User, type Placement, type Drive, type Department, type StudentRecord, type PlacementApplication,
@@ -595,11 +596,6 @@ export function PlacementDashboard({
           title="Upcoming drives"
           subtitle="Open for applications, soonest deadline first"
           className="lg:col-span-3"
-          action={
-            <button className="btn" onClick={onViewAllDrives} style={{ flexShrink: 0 }}>
-              <ExternalLink size={14} /> View all
-            </button>
-          }
         >
           {upcomingDrives.length === 0 ? (
             <div style={{ padding: "20px 0", textAlign: "center", color: "var(--muted)", fontSize: "14px" }}>
@@ -622,6 +618,7 @@ export function PlacementDashboard({
               ))}
             </div>
           )}
+          {upcomingDrives.length > 0 && <ShowAllRow onClick={onViewAllDrives} />}
         </Panel>
       </div>
     </div>

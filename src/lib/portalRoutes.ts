@@ -65,6 +65,7 @@ export const PORTAL_ROUTES = {
       "hr-app": "applicants",
       "hr-lb": "talent-board",
       "hr-analytics": "analytics",
+      "hr-subs": "subscription",
       "my-activity": "activity",
     } as Record<string, string>,
   },

@@ -36,6 +36,7 @@ export function HrShell({ children }: { children: React.ReactNode }) {
     { id: "hr-app", label: "Applicants", icon: <ApplicantsIcon /> },
     { id: "hr-lb", label: "Talent Board", icon: <BoardIcon /> },
     { id: "hr-analytics", label: "Candidate Analytics", section: "Insights", icon: <AnalyticsIcon /> },
+    { id: "hr-subs", label: "Subscription", section: "Account", icon: <SubscriptionIcon /> },
   ];
 
   const currentScreen = activeScreen === "dash" ? "hr-dash" : activeScreen;
@@ -157,6 +158,15 @@ function BoardIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+    </svg>
+  );
+}
+
+function SubscriptionIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
     </svg>
   );
 }
