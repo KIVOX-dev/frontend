@@ -114,7 +114,8 @@ export function GroupDiscussionRound({
   const lastInterruptCheckRef = useRef(0);
   const speakStartRef = useRef(0);
   const bargedInRef = useRef(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Whatever is currently speaking: an <audio> element or a Web Audio buffer wrapper.
+  const audioRef = useRef<{ paused: boolean; pause: () => void } | null>(null);
   // Loudness (0..1) of the voice being played, read by the avatar tiles to move the mouth; -1 = no
   // audio to analyse (browser voice), so the tile uses a speech-like rhythm instead.
   const levelRef = useRef(0);
@@ -139,46 +140,71 @@ export function GroupDiscussionRound({
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
   }, []);
 
-  // Measures the loudness of an <audio> element through a Web Audio analyser so the avatar's mouth
-  // can follow the real voice. Any failure here must never block playback, so it just no-ops
-  // (the tile then falls back to a rhythmic mouth).
-  const attachMeter = useCallback((audio: HTMLAudioElement): (() => void) => {
-    levelRef.current = -1;
+  // Running Web Audio context, or null when the browser won't give one (then we use <audio>).
+  const getCtx = useCallback(async (): Promise<AudioContext | null> => {
     try {
       const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctx) return () => { levelRef.current = 0; };
+      if (!Ctx) return null;
       const ctx = audioCtxRef.current ?? new Ctx();
       audioCtxRef.current = ctx;
-      // A suspended context would route the audio into silence, so only tap it once it is running.
-      if (ctx.state === "suspended") void ctx.resume();
-      if (ctx.state !== "running") return () => { levelRef.current = 0; };
-      const source = ctx.createMediaElementSource(audio);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
-      const buf = new Uint8Array(analyser.fftSize);
-      let raf = 0;
-      const tick = () => {
-        analyser.getByteTimeDomainData(buf);
-        let sum = 0;
-        for (let i = 0; i < buf.length; i += 1) {
-          const d = (buf[i] - 128) / 128;
-          sum += d * d;
-        }
-        levelRef.current = Math.min(1, Math.sqrt(sum / buf.length) * 4.5);
-        raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-      return () => {
-        cancelAnimationFrame(raf);
-        levelRef.current = 0;
-        try { source.disconnect(); analyser.disconnect(); } catch { /* already gone */ }
-      };
+      if (ctx.state === "suspended") await ctx.resume();
+      return ctx.state === "running" ? ctx : null;
     } catch {
-      return () => { levelRef.current = 0; };
+      return null;
     }
   }, []);
+
+  // Plays decoded audio through an analyser; the analyser's loudness drives the avatar's mouth.
+  const playBuffer = useCallback((ctx: AudioContext, buffer: AudioBuffer) => new Promise<void>((resolve) => {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    analyser.connect(ctx.destination);
+    const handle = {
+      paused: false,
+      pause() {
+        this.paused = true;
+        try { source.stop(); } catch { /* not started / already stopped */ }
+      },
+    };
+    audioRef.current = handle;
+    const data = new Uint8Array(analyser.fftSize);
+    let raf = 0;
+    const tick = () => {
+      analyser.getByteTimeDomainData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 1) {
+        const d = (data[i] - 128) / 128;
+        sum += d * d;
+      }
+      levelRef.current = Math.min(1, Math.sqrt(sum / data.length) * 4.5);
+      raf = requestAnimationFrame(tick);
+    };
+    source.onended = () => {
+      handle.paused = true;
+      cancelAnimationFrame(raf);
+      levelRef.current = 0;
+      try { source.disconnect(); analyser.disconnect(); } catch { /* already gone */ }
+      resolve();
+    };
+    raf = requestAnimationFrame(tick);
+    source.start();
+  }), []);
+
+  // Fallback player: a plain <audio> element (no loudness metering, so the mouth uses a rhythm).
+  const playElement = useCallback((blob: Blob) => new Promise<void>((resolve, reject) => {
+    const url = URL.createObjectURL(new Blob([blob], { type: "audio/mpeg" }));
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    levelRef.current = -1;
+    const done = () => { levelRef.current = 0; URL.revokeObjectURL(url); };
+    audio.onended = () => { done(); resolve(); };
+    audio.onpause = () => { done(); resolve(); }; // stopAudio() (the student talked over the bot)
+    audio.onerror = () => { done(); reject(new Error(`media error ${audio.error?.code ?? "?"}`)); };
+    audio.play().catch((e) => { done(); reject(e); });
+  }), []);
 
   // Plays one bot line with its own Google voice. If that fails for ANY reason (service error,
   // autoplay blocked, undecodable audio) it falls back to the browser voice and says why, so a
@@ -187,28 +213,37 @@ export function GroupDiscussionRound({
     try {
       const res = await api.post("/tts", { voice: slot, text }, { responseType: "blob" });
       const raw = res.data as Blob;
-      // Say what actually came back instead of a vague decode error.
-      if (!raw || raw.size < 128) throw new Error("the server sent empty audio");
-      if (/^(text\/|application\/json)/.test(raw.type)) throw new Error(`the server sent ${raw.type} instead of audio`);
-      // Force the audio type: a blob labelled octet-stream / without a type can be refused by <audio>.
-      const url = URL.createObjectURL(new Blob([raw], { type: "audio/mpeg" }));
-      let stopMeter = () => {};
+      const bytes = await raw.arrayBuffer();
+      // What actually arrived, so a failure is diagnosable from the message alone.
+      const head = Array.from(new Uint8Array(bytes.slice(0, 4))).map((b) => b.toString(16).padStart(2, "0")).join(" ");
+      const facts = `${bytes.byteLength} bytes, ${raw.type || "no content-type"}, starts ${head || "—"}`;
+      if (bytes.byteLength < 128) throw new Error(`the server sent empty audio (${facts})`);
+      if (/^(text\/|application\/json)/.test(raw.type)) throw new Error(`the server sent ${raw.type} instead of audio (${facts})`);
+
+      let played = false;
+      // 1) Web Audio: decodes by content (ignores the label) and gives exact loudness for lip-sync.
       try {
-        await new Promise<void>((resolve, reject) => {
-          const audio = new Audio(url);
-          audioRef.current = audio;
-          stopMeter = attachMeter(audio);
-          audio.onended = () => resolve();
-          audio.onpause = () => resolve(); // stopAudio() (the student talked over the bot)
-          audio.onerror = () => reject(new Error(`the audio could not be decoded (media error ${audio.error?.code ?? "?"})`));
-          audio.play().catch(reject);
-        });
-        setVoiceNote(null);
-        return;
-      } finally {
-        stopMeter();
-        URL.revokeObjectURL(url);
+        const ctx = await getCtx();
+        if (ctx) {
+          const buffer = await ctx.decodeAudioData(bytes.slice(0));
+          await playBuffer(ctx, buffer);
+          played = true;
+        }
+      } catch (e) {
+        console.warn("Web Audio decode failed, trying <audio>", e);
       }
+      // 2) Plain <audio> element.
+      if (!played) {
+        try {
+          await playElement(raw);
+          played = true;
+        } catch (e) {
+          console.warn("<audio> playback failed", e);
+        }
+      }
+      if (!played) throw new Error(`the audio could not be decoded (${facts})`);
+      setVoiceNote(null);
+      return;
     } catch (err) {
       const status = (err as { response?: { status?: number } }).response?.status;
       setVoiceNote(
@@ -230,7 +265,7 @@ export function GroupDiscussionRound({
       u.onerror = () => { levelRef.current = 0; resolve(); };
       synth.speak(u);
     });
-  }, []);
+  }, [getCtx, playBuffer, playElement]);
 
   const botSpeak = useCallback(
     async (bot: BotInfo, text: string, opts: { phase: string; interrupts?: boolean }) => {
