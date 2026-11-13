@@ -42,6 +42,7 @@ const LearnerDashboard = dynamic(() => import("@/components/learner/LearnerDashb
 const TestHistory = dynamic(() => import("@/components/learner/TestHistory").then((m) => m.TestHistory));
 const PlacementOpportunities = dynamic(() => import("@/components/learner/PlacementOpportunities").then((m) => m.PlacementOpportunities));
 const SetupWizard = dynamic(() => import("@/components/learner/SetupWizard").then((m) => m.SetupWizard));
+const Subscription = dynamic(() => import("@/components/learner/Subscription").then((m) => m.Subscription));
 
 type InstitutionalRole = "none" | "admin" | "faculty" | "student";
 
@@ -71,6 +72,9 @@ function allowedScreensFor(user: { role?: string; college_id?: string } | null):
   if (user.role === "student") {
     const allowed = new Set(BASE_STUDENT_SCREENS);
     if (user.college_id) INSTITUTIONAL_STUDENT_EXTRA_SCREENS.forEach((s) => allowed.add(s));
+    // The paid plan is for independent learners only. A student who signs in through this
+    // portal without a college is one; an institutional student never sees it.
+    else allowed.add("subs");
     return allowed;
   }
   return null;
@@ -259,6 +263,8 @@ function InstitutionalContent() {
         return <YoutubeCourseImport />;
       case "setup":
         return <SetupWizard />;
+      case "subs":
+        return <Subscription />;
       case "resume":
         return <ResumeBuilder />;
       case "lb":
