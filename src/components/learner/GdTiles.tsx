@@ -28,19 +28,57 @@ const LOOKS: Record<string, Look> = {
 function Avatar({ slot, active, levelRef }: { slot: string; active: boolean; levelRef: TileLevelRef }) {
   const [photoMissing, setPhotoMissing] = useState(false);
   if (!photoMissing) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
+    return <PhotoAvatar slot={slot} active={active} levelRef={levelRef} onMissing={() => setPhotoMissing(true)} />;
+  }
+  return <CartoonAvatar slot={slot} active={active} levelRef={levelRef} />;
+}
+
+// A still photo that "talks": while this bot speaks, the photo leans in and bobs with the loudness of
+// the voice being played (same levelRef the drawn face uses), and a soft light pulses over it. It isn't
+// lip-sync, which needs generated video, but it reads clearly as the person speaking.
+function PhotoAvatar({ slot, active, levelRef, onMissing }: { slot: string; active: boolean; levelRef: TileLevelRef; onMissing: () => void }) {
+  const img = useRef<HTMLImageElement>(null);
+  const glow = useRef<HTMLDivElement>(null);
+  const smooth = useRef(0);
+
+  useEffect(() => {
+    const apply = (v: number) => {
+      if (img.current) img.current.style.transform = `translateY(${(-v * 3).toFixed(2)}px) scale(${(1 + v * 0.05).toFixed(4)})`;
+      if (glow.current) glow.current.style.opacity = String(v * 0.55);
+    };
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!active || reduce) {
+      smooth.current = 0;
+      apply(0);
+      return undefined;
+    }
+    let raf = 0;
+    const tick = (t: number) => {
+      const level = levelRef.current;
+      const target = level >= 0 ? level : Math.max(0, (Math.sin(t / 95) + 1) / 2) * (0.55 + 0.35 * Math.sin(t / 340));
+      smooth.current += (target - smooth.current) * 0.35;
+      apply(Math.min(1, Math.max(0, smooth.current)));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active, levelRef]);
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", background: "#0f172a" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        ref={img}
         src={`/gd-avatars/${slot}.jpg`}
         alt=""
         decoding="async"
         draggable={false}
-        onError={() => setPhotoMissing(true)}
-        style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%" }}
+        onError={onMissing}
+        style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", transformOrigin: "50% 70%", willChange: "transform" }}
       />
-    );
-  }
-  return <CartoonAvatar slot={slot} active={active} levelRef={levelRef} />;
+      <div ref={glow} aria-hidden="true" style={{ position: "absolute", inset: 0, opacity: 0, pointerEvents: "none", background: "radial-gradient(circle at 50% 45%, rgba(255,255,255,.28), rgba(255,255,255,0) 65%)" }} />
+    </div>
+  );
 }
 
 function CartoonAvatar({ slot, active, levelRef }: { slot: string; active: boolean; levelRef: TileLevelRef }) {

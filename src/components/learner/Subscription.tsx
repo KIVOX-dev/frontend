@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { planStatus, formatPlanDate } from "@/lib/plan";
+import { PlanChip } from "@/components/shared/PlanBadge";
 import { loadRazorpay, type RazorpayFailure, type RazorpaySuccess } from "@/lib/razorpay";
 
 type Plan = { id: string; label: string; months: number; amount: number };
@@ -30,6 +31,13 @@ const LEARNER_PRO_FEATURES = [
   "Advanced Analytics",
   "Unlimited Resume PDF Downloads",
 ];
+
+const YourPlan = () => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 700, color: "#15803d" }}>
+    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,0.25)" }} />
+    Your plan
+  </span>
+);
 
 const Tick = ({ color }: { color: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" width="18" height="18"><polyline points="20 6 9 17 4 12" /></svg>
@@ -156,7 +164,11 @@ export function Subscription({ audience = "learner" }: { audience?: "learner" | 
         {audience === "hr" ? "TalentSnaps Pro" : "Most Popular"}
       </div>
 
-      <h3 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "16px", color: "var(--accent)" }}>Pro Plan</h3>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px 12px", marginBottom: "16px" }}>
+        <h3 style={{ fontSize: "24px", fontWeight: 700, margin: 0, color: "var(--accent)" }}>Pro Plan</h3>
+        <PlanChip variant="pro" />
+        {isPro && <YourPlan />}
+      </div>
 
       <div role="radiogroup" aria-label="Choose a plan" style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
         {plans.map((p) => {
@@ -239,7 +251,11 @@ export function Subscription({ audience = "learner" }: { audience?: "learner" | 
       <div style={{ display: "flex", gap: "24px", justifyContent: "center", maxWidth: "900px", margin: "0 auto", flexWrap: "wrap" }}>
         {audience === "learner" && (
           <div className="card pricing-card" style={{ flex: "1", minWidth: "300px", maxWidth: "440px", padding: "40px 32px", position: "relative" }}>
-            <h3 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "8px" }}>Base Plan</h3>
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px 12px", marginBottom: "8px" }}>
+              <h3 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>Base Plan</h3>
+              <PlanChip variant="basic" />
+              {!isPro && <YourPlan />}
+            </div>
             <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--text)", marginBottom: "24px" }}>
               Free <span style={{ fontSize: "14px", color: "var(--muted)", fontWeight: 500 }}>/ forever</span>
             </div>
