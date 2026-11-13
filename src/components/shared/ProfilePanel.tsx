@@ -18,7 +18,8 @@ import { PerformanceSummarySection } from "@/components/shared/PerformanceSummar
 import { IntegrationsSection } from "@/components/shared/IntegrationsSection";
 import { SkillsSection } from "@/components/shared/SkillsSection";
 import { cn } from "@/lib/utils";
-import { planStatus, formatPlanDate } from "@/lib/plan";
+import { planStatus } from "@/lib/plan";
+import { PlanBadge } from "@/components/shared/PlanBadge";
 
 type StudentProfile = {
   id: string;
@@ -817,22 +818,15 @@ export function ProfilePanel() {
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="min-w-0">
-            <h1 className="text-heading-l text-ink leading-tight truncate">{user?.name}</h1>
+            <div className="flex items-center gap-3 min-w-0">
+              <h1 className="text-heading-l text-ink leading-tight truncate">{user?.name}</h1>
+              {plan.eligible && <PlanBadge isPro={plan.isPro} expiresAt={plan.expiresAt} role={user?.role} />}
+            </div>
             <p className="text-small text-ink-muted truncate mt-1">{user?.email}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {plan.eligible && (
-              <Badge
-                tone={plan.isPro ? "info" : "neutral"}
-                title={plan.isPro && plan.expiresAt ? `Pro until ${formatPlanDate(plan.expiresAt)}` : "Free plan"}
-              >
-                {plan.isPro ? "Pro" : "Basic"}
-              </Badge>
-            )}
-            <Badge tone="success" className="capitalize shrink-0">
-              {user?.role?.replace("_", " ")}
-            </Badge>
-          </div>
+          <Badge tone="success" className="capitalize shrink-0">
+            {user?.role?.replace("_", " ")}
+          </Badge>
         </div>
       </div>
 
