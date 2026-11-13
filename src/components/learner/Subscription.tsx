@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { isAxiosError } from "axios";
 import { useAuthStore } from "@/stores/authStore";
 import { api } from "@/lib/api";
 import { toast } from "@/lib/toast";
@@ -134,6 +135,14 @@ export function Subscription({ audience = "learner" }: { audience?: "learner" | 
       checkout.open();
     } catch (err) {
       setPaying(false);
+      // Only a failed HTTP call is a network problem. Anything else is a script error while opening
+      // the payment window, and the shared error mapper would wrongly call it "Network error".
+      if (!isAxiosError(err)) {
+        console.error("Razorpay checkout could not open", err);
+        const reason = err instanceof Error && err.message ? `: ${err.message}` : ".";
+        toast.error(`Could not open the payment window${reason}`);
+        return;
+      }
       toast.error(err, "Could not start the payment. Please try again.");
     }
   };

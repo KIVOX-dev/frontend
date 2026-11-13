@@ -72,6 +72,16 @@ describe("Subscription (Razorpay checkout)", () => {
     await waitFor(() => expect(updateUser).toHaveBeenCalled());
   });
 
+  it("reports the real reason when the payment window throws, not a network error", async () => {
+    const { toast } = await import("@/lib/toast");
+    post.mockResolvedValue({ data: { data: { order_id: "order_3", amount: 11900, currency: "INR", key_id: "rzp_test_key", plan_label: "x" } } });
+    window.Razorpay = function () { throw new Error("Invalid options"); } as unknown as typeof window.Razorpay;
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<Subscription />);
+    await userEvent.click(await screen.findByRole("button", { name: /Upgrade for/ }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Could not open the payment window: Invalid options"));
+  });
+
   it("shows only the Pro card for HR", async () => {
     storeUser = { ...storeUser, role: "hr" };
     render(<Subscription audience="hr" />);
