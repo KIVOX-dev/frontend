@@ -40,6 +40,22 @@ function istDatetimeLocalToIso(value: string): string {
   return `${value}:00+05:30`;
 }
 
+// Inverse of the above: an ISO instant -> the "YYYY-MM-DDTHH:mm" digits an IST
+// datetime-local picker should show, independent of the viewer's machine zone.
+function isoToIstDatetimeLocal(iso?: string | null): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  return new Date(t + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 16);
+}
+
+function formatIstDateTime(iso?: string | null): string {
+  if (!iso) return "No end date";
+  return new Date(iso).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
+
 export function CollegeAdminDashboard() {
   const { user: currentUser } = useAuthStore();
   const { activeScreen, setActiveScreen, searchFocusId, setSearchFocusId } = useUiStore();
@@ -144,6 +160,10 @@ export function CollegeAdminDashboard() {
   // department + batch year is a distinct action from authoring one.
   const [departments, setDepartments] = useState<Department[]>([]);
   const [assigningTest, setAssigningTest] = useState<Assessment | null>(null);
+  // Edit-deadline modal: lets an admin extend (or clear) a test's end date.
+  const [editingTest, setEditingTest] = useState<Assessment | null>(null);
+  const [editEndAt, setEditEndAt] = useState("");
+  const [isSavingEndAt, setIsSavingEndAt] = useState(false);
   const [assignForm, setAssignForm] = useState<{ department_ids: string[]; batch_year: number }>({ department_ids: [], batch_year: new Date().getFullYear() });
   const [assignResult, setAssignResult] = useState<{ summary: string; failures: { department: string; reason: string }[] } | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
@@ -969,6 +989,24 @@ export function CollegeAdminDashboard() {
     } catch { toast.error("Failed to delete"); }
   };
 
+  const handleSaveEndAt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTest) return;
+    setIsSavingEndAt(true);
+    try {
+      await api.put(`/tests/${editingTest.id}`, {
+        end_at: editEndAt ? istDatetimeLocalToIso(editEndAt) : null,
+      });
+      setEditingTest(null);
+      fetchAssessments();
+      toast.success("Deadline updated", editEndAt ? "Students can attempt the test until the new end time." : "The test no longer has an end date.");
+    } catch (err: any) {
+      toast.error(err, "Failed to update deadline");
+    } finally {
+      setIsSavingEndAt(false);
+    }
+  };
+
   const handleAssignTest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningTest) return;
@@ -1059,6 +1097,7 @@ export function CollegeAdminDashboard() {
   const closeCreateUser = useCallback(() => setShowCreateUser(false), []);
   const closeCreateAssessment = useCallback(() => setShowCreateAssessment(false), []);
   const closeAssigningTest = useCallback(() => setAssigningTest(null), []);
+  const closeEditingTest = useCallback(() => setEditingTest(null), []);
   const closeInsights = useCallback(() => {
     setViewingInsightsFor(null);
     setInsightsData(null);
@@ -1083,6 +1122,11 @@ export function CollegeAdminDashboard() {
     !!assigningTest,
     closeAssigningTest,
     "assign-test-title"
+  );
+  const { panelRef: editTestPanelRef, dialogProps: editTestDialogProps } = useModalA11y(
+    !!editingTest,
+    closeEditingTest,
+    "edit-test-title"
   );
   const { panelRef: editStudentPanelRef, dialogProps: editStudentDialogProps } = useModalA11y(
     !!editingStudentUser,
@@ -1619,6 +1663,7 @@ export function CollegeAdminDashboard() {
                   <th style={{ padding: "12px 8px" }}>Duration</th>
                   <th style={{ padding: "12px 8px" }}>Questions</th>
                   <th style={{ padding: "12px 8px" }}>Marks</th>
+                  <th style={{ padding: "12px 8px" }}>Due</th>
                   <th style={{ padding: "12px 8px", textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
@@ -1640,7 +1685,17 @@ export function CollegeAdminDashboard() {
                     <td style={{ padding: "12px 8px" }}>{a.duration_minutes} min</td>
                     <td style={{ padding: "12px 8px" }}>{a.question_count ?? "—"}</td>
                     <td style={{ padding: "12px 8px" }}>{a.total_marks}</td>
-                    <td style={{ padding: "12px 8px", textAlign: "right" }}>
+                    <td style={{ padding: "12px 8px", whiteSpace: "nowrap", fontSize: "13px" }}>{a.category ? "—" : formatIstDateTime(a.end_at)}</td>
+                    <td style={{ padding: "12px 8px", textAlign: "right", whiteSpace: "nowrap" }}>
+                      {!a.category && (
+                        <button
+                          className="btn btn-o btn-sm"
+                          onClick={() => { setEditingTest(a); setEditEndAt(isoToIstDatetimeLocal(a.end_at)); }}
+                          style={{ marginRight: "8px" }}
+                        >
+                          Edit
+                        </button>
+                      )}
                       {!a.category && (
                         <button
                           className="btn btn-p btn-sm"
@@ -1655,7 +1710,7 @@ export function CollegeAdminDashboard() {
                   </tr>
                 ))}
                 {assessments.length === 0 && (
-                  <tr><td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No assessments created yet.</td></tr>
+                  <tr><td colSpan={8} style={{ padding: "24px", textAlign: "center", color: "var(--muted)" }}>No assessments created yet.</td></tr>
                 )}
               </tbody>
             </table>
@@ -1906,6 +1961,35 @@ export function CollegeAdminDashboard() {
               <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "20px" }}>
                 <button type="button" className="btn" onClick={() => setShowCreateAssessment(false)}>Cancel</button>
                 <button type="submit" className="btn btn-p">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Deadline Modal */}
+      {editingTest && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+          <div ref={editTestPanelRef} {...editTestDialogProps} className="card" style={{ padding: "32px", width: "100%", maxWidth: "440px" }}>
+            <h3 id="edit-test-title" style={{ fontSize: "20px", fontWeight: 700, marginBottom: "4px", color: "var(--text)" }}>Edit Deadline</h3>
+            <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "20px" }}>{editingTest.title}</p>
+            <form onSubmit={handleSaveEndAt}>
+              <div style={{ marginBottom: "20px" }}>
+                <label className="lbl">End Date &amp; Time (IST)</label>
+                <input
+                  type="datetime-local"
+                  className="fi"
+                  value={editEndAt}
+                  min={isoToIstDatetimeLocal(editingTest.start_at) || undefined}
+                  onChange={e => setEditEndAt(e.target.value)}
+                />
+                <p style={{ fontSize: "12px", color: "var(--muted)", margin: "4px 0 0" }}>
+                  Currently: {formatIstDateTime(editingTest.end_at)}. Leave blank to remove the end date.
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                <button type="button" className="btn" onClick={() => setEditingTest(null)}>Cancel</button>
+                <button type="submit" className="btn btn-p" disabled={isSavingEndAt}>{isSavingEndAt ? "Saving..." : "Save"}</button>
               </div>
             </form>
           </div>
