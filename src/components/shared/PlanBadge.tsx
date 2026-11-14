@@ -33,10 +33,10 @@ const BASIC: React.CSSProperties = {
 
 const PRO: React.CSSProperties = {
   ...GLASS_BASE,
-  color: "#1d4ed8",
-  background: "linear-gradient(135deg, rgba(59,130,246,0.30), rgba(139,92,246,0.24))",
-  border: "1px solid rgba(147,197,253,0.75)",
-  boxShadow: "0 8px 22px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.75), inset 0 -1px 0 rgba(99,102,241,0.25)",
+  color: "#92400e",
+  background: "linear-gradient(135deg, rgba(253,224,71,0.55), rgba(245,158,11,0.34) 55%, rgba(251,191,36,0.48))",
+  border: "1px solid rgba(252,211,77,0.95)",
+  boxShadow: "0 8px 22px rgba(217,119,6,0.32), inset 0 1px 0 rgba(255,251,214,0.95), inset 0 -1px 0 rgba(217,119,6,0.30)",
 };
 
 /** Sparkle with its own gradient + glow; only the icon is shaded, the label keeps its flat colour. */
@@ -65,7 +65,7 @@ export function PlanChip({ variant, title }: { variant: "basic" | "pro"; title?:
   if (variant === "pro") {
     return (
       <span style={PRO} title={title ?? "Pro plan"}>
-        <Gem size={17} aria-hidden="true" />
+        <Gem size={17} aria-hidden="true" style={{ color: "#b45309", filter: "drop-shadow(0 1px 2px rgba(251,191,36,0.9))" }} />
         Pro
       </span>
     );
