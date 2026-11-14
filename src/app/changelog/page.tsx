@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 };
 
 const TOC = [
+  { id: "2026-11", label: "November 2026" },
   { id: "2026-09", label: "September 2026" },
   { id: "2026-08", label: "August 2026" },
   { id: "2026-07", label: "July 2026" },
@@ -23,6 +24,16 @@ export default function ChangelogPage() {
           colleges we&apos;ve onboarded, not a packaged release schedule. This page is a rough,
           honest log of what changed and roughly when, grouped by month rather than a specific date.
         </p>
+      </section>
+
+      <section>
+        <h2 id="2026-11">November 2026</h2>
+        <ul>
+          <li>Launched Pro plans for independent learners and recruiters — 6 months or 12 months, paid securely online with Razorpay (UPI, cards and netbanking). One-time payment, no auto-renewal.</li>
+          <li>Your plan is now visible in the sidebar and the profile menu, with the date it stays active until. Buying again before it ends adds the new period on top.</li>
+          <li>Subscribers now get a thank-you email confirming their plan, amount and end date.</li>
+          <li>Independent learners no longer see Aptitude Tests, which are assigned by institutions, and now get their own set of practice questions.</li>
+        </ul>
       </section>
 
       <section>
