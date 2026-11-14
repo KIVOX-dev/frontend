@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import { SidebarPlanStrip } from "@/components/shared/SidebarPlanStrip";
 import { TopbarTitle, navTitles } from "@/components/layout/TopbarTitle";
 
 export function LearnerShell({ children }: { children: React.ReactNode }) {
@@ -21,15 +22,16 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
     setUiMode,
   } = useUiStore();
 
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateUser } = useAuthStore();
 
   React.useEffect(() => {
-    // Session check on mount; its result is intentionally unused — a 401 here
-    // is handled by the shared axios interceptor, not by this component.
+    // Session check on mount; also refreshes the user so the sidebar plan card
+    // reflects a plan bought elsewhere. A 401 is handled by the shared axios
+    // interceptor, not by this component.
     import("@/lib/api").then(({ api }) => {
-      api.get("/auth/me").catch(() => {});
+      api.get("/auth/me").then((res) => updateUser(res.data)).catch(() => {});
     });
-  }, []);
+  }, [updateUser]);
 
   const isInstitutionalStudent = user?.role === "student" && !!user?.college_id;
 
@@ -164,20 +166,7 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="s-foot">
-          {user?.role === "student" && !user?.college_id && (
-            <button
-              type="button"
-              className="plan-strip"
-              onClick={() => setActiveScreen("subs")}
-              style={{ display: "block", width: "100%", textAlign: "left" }}
-            >
-              <div className="plan-name">Free Plan</div>
-              <div className="plan-sub">Upgrade for more features</div>
-              <div className="plan-bar-w">
-                <div className="plan-bar-f" style={{ width: "20%", background: "var(--accent)" }}></div>
-              </div>
-            </button>
-          )}
+          <SidebarPlanStrip onClick={() => setActiveScreen("subs")} />
           {!isSidebarCollapsed && (
             // Opens in a new tab rather than navigating this tab away from
             // an in-progress test/practice session — these are separate

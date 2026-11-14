@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import { SidebarPlanStrip } from "@/components/shared/SidebarPlanStrip";
 import { TopbarTitle, navTitles } from "@/components/layout/TopbarTitle";
 
 export function HrShell({ children }: { children: React.ReactNode }) {
@@ -82,6 +83,9 @@ export function HrShell({ children }: { children: React.ReactNode }) {
           ))}
         </div>
 
+        <div className="s-foot">
+          <SidebarPlanStrip onClick={() => setActiveScreen("hr-subs")} />
+        </div>
       </div>
 
       {/* Backdrop that closes the drawer on outside click — only visible/interactive while open, see legacy-portal.css's #app.mob-sidebar-open #sidebar-overlay rule */}
