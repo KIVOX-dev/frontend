@@ -62,7 +62,10 @@ export function LearnerShell({ children }: { children: React.ReactNode }) {
         // Test History lives behind the "History" button inside Aptitude
         // Tests (AptitudeTests.tsx) now, not the sidebar — one entry point
         // instead of two for the same screen.
-        { id: "tests", label: "Aptitude Tests", icon: <TestsIcon /> },
+        // Aptitude Tests are assessments assigned by an institution, so they
+        // only exist for institutional students — independent learners have
+        // none to receive (they use Practice Tools instead).
+        ...(isInstitutionalStudent ? [{ id: "tests", label: "Aptitude Tests", icon: <TestsIcon /> }] : []),
         { id: "learnings", label: "Learnings", icon: <LearningsIcon /> },
         { id: PRACTICE_TOOLS_GROUP_ID, label: "Practice Tools", icon: <PracticeIcon />, children: practiceToolsChildren },
         { id: "youtube-course-import", label: "YouTube to Course", icon: <YoutubeToolIcon /> },
