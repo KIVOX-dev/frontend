@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
+import { planStatus, formatPlanDate } from "@/lib/plan";
 
 interface ProfileMenuProps {
   /** Content of the .uav avatar circle — a letter (LearnerShell/CollegeAdminShell) or short text (HrShell's "HR"). */
@@ -28,6 +29,7 @@ export function ProfileMenu({ avatar, avatarStyle, name, roleLabel, showSettings
   const { user, logout, updateUser } = useAuthStore();
   const { setActiveScreen } = useUiStore();
   const avatarUrl = typeof user?.avatar_url === "string" ? user.avatar_url : null;
+  const plan = planStatus(user);
 
   // The chip's photo is the student's own uploaded avatar (students.avatar_url
   // via /students/profile), not part of the login/auth payload — fetch it
@@ -119,6 +121,24 @@ export function ProfileMenu({ avatar, avatarStyle, name, roleLabel, showSettings
           >
             My Activity
           </button>
+          {plan.eligible && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setActiveScreen(user?.role === "hr" || user?.role === "recruiter" ? "hr-subs" : "subs");
+                setOpen(false);
+              }}
+              style={{ ...menuItemStyle, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}
+            >
+              <span>My Plan</span>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: plan.isPro ? "#92400e" : "var(--muted)" }}>
+                {plan.isPro
+                  ? plan.expiresAt ? `Pro · until ${formatPlanDate(plan.expiresAt)}` : "Pro"
+                  : "Free · Upgrade"}
+              </span>
+            </button>
+          )}
           {showSettings && (
             <button
               type="button"
